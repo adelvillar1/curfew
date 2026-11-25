@@ -74,7 +74,7 @@ Plan 3 (executor + journal) is next; entries are verified *through* it.
 | Atom | Builds | Depends | Choices | Status | Evidence |
 |---|---|---|---|---|---|
 | L5.1 | TUI: list, bundle picker, preview, the persistent "quiet mode is ON" banner | L1.8 | D15, D0 | done | `TUI.swift`, `TUILoop.swift`; `TUITests` (11); `curfew tui --frame` renders live data |
-| L5.2 | Menu bar: status item, quiet-mode indicator, restore | L1.8 | D15, D23 | done | `MenuBarModel.swift`, `curfew-menubar/`; `MenuBarModelTests` (6); `make app` builds a signed Curfew.app that launches. **Status item's appearance unverified** — screen capture is refused from an agent session |
+| L5.2 | Menu bar: status item, quiet-mode indicator, restore | L1.8 | D15, D23 | done | `MenuBarModel.swift`, `curfew-menubar/`; `MenuBarModelTests` (6); `make app` builds a signed Curfew.app that launches. status item verified visually via cua-driver (A/B: glyph present while running, gone when quit; `○` clean, `◐ 1` with an intent) |
 
 ## L6 — Release
 

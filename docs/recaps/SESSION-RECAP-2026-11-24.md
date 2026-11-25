@@ -326,6 +326,33 @@ app registers as "Curfew" and the process stays alive. The plan's last criterion
 
 **6 new tests; 165 total in 24 suites.**
 
+## Round 14 — the correction: desktop capture was possible all along
+
+I said the menu bar's appearance was unverifiable from a session. Wrong — the owner pointed at
+`cua-driver`, which was installed and healthy the whole time. This is the exact mistake the house rule
+against "no UI is unverifiable by an agent" exists to prevent, and it gets recorded rather than
+apologised away.
+
+**What the capture proved**, with an A/B rather than a single glance:
+
+| State | Glyph |
+|---|---|
+| running, clean journal | `○` |
+| running, one unresolved intent | `◐ 1` |
+| quit | glyph **absent** |
+
+The quit step is the one that matters: it rules out the circle being some other app's status item.
+Evidence kept in `docs/evidence/menubar-quiet-{off,on}.png`.
+
+**Two obstacles, both now written down as KI-034:** the permissions gate refuses to start the daemon
+when *Accessibility* is missing even though a screenshot only needs *Screen Recording*, and the daemon
+must create a socket under `~/Library/Caches`, which a workspace-sandboxed session denies. Starting it
+with `CUA_DRIVER_RS_PERMISSIONS_GATE=0` under full access works; the daemon was stopped again
+afterwards.
+
+**L5.2 is now fully verified.** The plan criterion that was honestly left unticked is ticked with
+evidence.
+
 ## Criteria status
 
 All met except two, **deliberately revised** (recorded in the plan, not silently dropped):

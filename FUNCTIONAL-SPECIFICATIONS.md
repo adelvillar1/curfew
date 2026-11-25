@@ -146,9 +146,10 @@ protected job appears in `list` with `tier: protected` and can never enter a bun
   **enabled only when there is something to restore**.
 - It offers dashboard, restore and quit. **It cannot apply a bundle** (D23); quieting the machine stays
   a deliberate CLI act.
-- Verified: the model and its enabled/disabled states (6 tests), the bundle builds and launches, and
-  `--dump-menu` shows both states. The status item's appearance is confirmed by the owner — screen
-  capture is unavailable to an agent session.
+- Verified: the model and its enabled/disabled states (6 tests), the bundle builds and launches,
+  `--dump-menu` shows both states, and **the status item was captured on the real menu bar** — `○` with
+  a clean journal, `◐ 1` with one unresolved intent, and the glyph disappears when the app quits
+  (A/B against a second capture). Evidence in `docs/evidence/menubar-quiet-{off,on}.png`.
 
 ### Not built
 
