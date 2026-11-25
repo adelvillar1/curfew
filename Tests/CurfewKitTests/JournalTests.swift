@@ -141,15 +141,18 @@ struct VerifyBlockTests {
         #expect(CatalogValidator.validate(catalog).isEmpty)
     }
 
-    @Test("the postgres entry carries a port_closed check")
-    func postgresVerify() throws {
+    @Test("a verified stop target carries a post-condition")
+    func verifiedTargetHasVerify() throws {
         let dir = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
             .appendingPathComponent("catalog")
         let catalog = try CatalogLoader.load(directory: dir)
-        let verify = try #require(catalog.entry("sh.brew.postgresql@18")?.stop?.verify)
-        #expect(verify.kind == .portClosed)
-        #expect(verify.value == "5432")
+        let verify = try #require(catalog.entry("com.microsoft.SyncReporter")?.stop?.verify)
+        #expect(verify.kind == .labelNotRunning)
+        #expect(verify.value == "com.microsoft.SyncReporter")
+
+        // an always-on entry has no post-condition because it has no stop
+        #expect(catalog.entry("sh.brew.postgresql@18")?.stop == nil)
     }
 
     @Test("an unknown verify kind is a load error")

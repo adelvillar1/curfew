@@ -123,21 +123,26 @@ struct CatalogTests {
                         "\(bundle.name) includes \(member), which is marked unstoppable")
             }
         }
-        #expect(catalog.entry("sh.brew.postgresql@18")?.lever == .command)
+        #expect(catalog.entry("sh.brew.postgresql@18")?.lever == Lever.none,
+                "the database is always-on by owner decision, not a stop target")
         #expect(catalog.entry("laya")?.lever == Lever.none, "Lever.none, not Optional.none — `== .none` on an optional reads as nil")
         #expect(catalog.bundle("harness-core")?.kind == .protect)
         #expect(catalog.bundle("harness-core")?.protectPorts.contains(8901) == true)
         #expect(CatalogValidator.validate(catalog).isEmpty, "the shipped catalog must be valid")
     }
 
-    @Test("the postgres recipe holds the stop when launchd respawns it")
-    func postgresHolds() throws {
+    @Test("an always-on entry carries no recipe and says so")
+    func alwaysOnHasNoRecipe() throws {
         let catalog = try CatalogLoader.load(directory: Self.repoCatalog)
-        let recipe = try #require(catalog.entry("sh.brew.postgresql@18")?.stop)
-        let argv = try #require(recipe.run.first)
-        #expect(argv.contains { $0.hasSuffix("/pg_ctl") })
-        #expect(argv.suffix(2) == ["-m", "fast"])
-        #expect(recipe.hold == .bootoutIfRespawned, "pg_ctl leaves launchd supervising the job")
+        let postgres = try #require(catalog.entry("sh.brew.postgresql@18"))
+        #expect(postgres.stoppable == false)
+        #expect(postgres.stop == nil, "there is nothing to verify: the decision is not to stop it")
+        #expect(postgres.evidence?.contains("owner decision") == true)
+
+        // and no bundle that acts may include it
+        for bundle in catalog.bundles where bundle.kind == .stop {
+            #expect(!bundle.members.contains(postgres.id))
+        }
     }
 
     @Test("an unknown key is a load error, not a silent drop")

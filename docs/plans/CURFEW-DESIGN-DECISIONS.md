@@ -66,6 +66,19 @@ Rules:
 - **D14 — In-process engines are `never-cold`, not suspend candidates.**
   Rationale: Laya has no port and no process to signal; its cost is a **180 s** reload on the next sys1 call. A quiet mode that frees 2 GB and adds three minutes is a net loss the user must be told about before choosing it. *Constrains:* the `never-cold` anti-bundle, the catalog's `in-process` kind, the cold-start field.
 
+## What must never be stopped
+
+- **D22 — `sh.brew.postgresql@18` and `com.adelvillar1.sem1-llama` are always-on: Curfew never stops
+  them.**
+  Rationale: owner decision 2026-11-24 — *"postgress@18 needs to stay up, same as sem1-llama"*. Both
+  were previously `draft` stop targets with verified-looking recipes (the pg recipe had been exercised
+  during research); that work is superseded, not deleted, because it records what stopping them
+  actually costs. A quiet mode that breaks the database and the embedding server is not quiet, it is
+  broken — the machine is 16 GB and these two are the reason the rest of the catalog exists.
+  *Constrains:* both are `lever: none` + `stoppable: false` with **no recipe** — an
+  always-on entry needs no stop recipe and no post-condition, and the validator refuses a bundle that
+  acts from containing one (`alwaysOnHasNoRecipe`). `data-services` is now empty as a result.
+
 ## Privilege
 
 - **D20 — The privileged helper is not a command executor; it is a catalog executor.**

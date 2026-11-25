@@ -1,22 +1,18 @@
-# Data services. Every entry is `draft` until its recipe has been run on this host and dated.
-# The recipes are argv, never shell: no quoting, no interpolation, no injection from a label.
+# Data services.
+#
+# `lever: none` + `stoppable: false` means "this must not be stopped". Those entries carry no recipe
+# because there is nothing to verify: the decision is the owner's, and the evidence field records it.
+# A stop target needs a recipe, a post-condition and a dated verification (rule 5); an always-on entry
+# needs none of that, and must never appear in a bundle that acts.
 
 entries:
   - id: sh.brew.postgresql@18
     kind: agent
-    lever: command
+    lever: none
     supervised: launchd
-    status: draft
-    hazards: [socket, data]
-    stop:
-      run: [/opt/homebrew/opt/postgresql@18/bin/pg_ctl, -D, /opt/homebrew/var/postgresql@18, stop, -m, fast]
-      expect: port 5432 released and no postmaster process remains
-      quiesce: no ESTABLISHED clients on 5432
-      hold: bootoutIfRespawned
-      verify:
-        kind: port_closed
-        value: "5432"
-    start:
-      run: [/opt/homebrew/opt/postgresql@18/bin/pg_ctl, -D, /opt/homebrew/var/postgresql@18, start]
-      meansReady: port 5432 accepts a connection
+    status: verified
+    stoppable: false
+    hazards: [socket, data, always-on]
+    evidence: "owner decision 2026-11-24: must stay up — Curfew does not stop the database. There is no recipe to verify because it is not a stop target."
+    coldStartCost: a restart drops every open connection and takes the app servers down with it
     depends: []

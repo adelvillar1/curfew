@@ -283,6 +283,26 @@ entry.
 
 **4 new tests; 159 total in 23 suites.**
 
+## Round 12 — two services reclassified, one hypothesis disproved
+
+The owner's ruling: **postgres and sem1-llama must stay up.** That is a reclassification, not a
+verification, and it is recorded as **D22** — both become `lever: none`, `stoppable: false`, with the
+recipe *removed*. An always-on entry needs no stop recipe and no post-condition; keeping one would
+imply it is a target. `data-services` is consequently empty, and a new test (`alwaysOnHasNoRecipe`)
+refuses any acting bundle that includes one.
+
+The old pg recipe was exercised during research, so its evidence is in the ledger as what stopping it
+actually costs — superseded, not erased.
+
+**The bridge question, checked rather than assumed.** The owner expected `dev.dsh.bridge` to be the
+OpenBot bridge and redundant. It *was* built for OpenBot — the source says so and OpenBot is gone — but
+its access log tells a different story: **119 requests, 111 of them on 2026-11-25**, and every one a
+Kanzo board tool (`kanzo_list_tasks` ×22, `kanzo_list_projects` ×13, `kanzo_update_task`). It is the
+path an agent uses to reach the board over Tailscale. Removing it would have cut that path, so it
+stays and the reasoning lives in the catalog file where the next reader will find it.
+
+**159 tests in 23 suites; the gate is green.**
+
 ## Criteria status
 
 All met except two, **deliberately revised** (recorded in the plan, not silently dropped):

@@ -1,31 +1,30 @@
-# The harness path. Stopping these is not forbidden by the schema, but every bundle that acts
-# excludes them, and `harness-core` protects their ports (bundle file) rather than their labels —
-# a port survives a reinstall that renames a job.
+# The harness path. `harness-core` protects these by *port*, because a port survives a reinstall that
+# renames a job.
 
 entries:
+  # Always-on by owner decision (2026-11-24). Every semantic tool in the harness depends on this
+  # server; stopping it does not save the machine, it breaks the session.
   - id: com.adelvillar1.sem1-llama
     kind: agent
-    lever: stop
+    lever: none
     supervised: launchd
-    status: draft
-    hazards: [socket]
-    stop:
-      run:
-        - [/bin/launchctl, bootout, {domain}/com.adelvillar1.sem1-llama]
-      expect: the llama-server pid is gone and port 8901 is released
-      quiesce: no sem1 embed call in flight
-    start:
-      run:
-        - [/bin/launchctl, bootstrap, {domain}, {plist}]
-      meansReady: port 8901 answers a models request with embeddinggemma
+    status: verified
+    stoppable: false
+    hazards: [socket, always-on]
+    evidence: "owner decision 2026-11-24: must stay up — the embedding server every semantic tool depends on. Curfew does not stop it; there is no recipe to verify."
+    coldStartCost: first embed call reloads embeddinggemma-2 into RAM
     depends: []
 
+  # Built for OpenBot, but NOT redundant: the bridge is what an agent uses to reach the Kanzo board
+  # over Tailscale. 119 requests in its access log, 111 of them on 2026-11-25 (kanzo_list_tasks,
+  # kanzo_list_projects, kanzo_update_task). It stays.
   - id: dev.dsh.bridge
     kind: agent
     lever: stop
     supervised: launchd
     status: draft
     hazards: [socket]
+    evidence: "not verified as a stop target — it is in active use (see the note above). Stopping it cuts the agent path to Kanzo"
     stop:
       run:
         - [/bin/launchctl, bootout, {domain}/dev.dsh.bridge]

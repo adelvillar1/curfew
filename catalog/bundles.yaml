@@ -32,7 +32,7 @@ bundles:
   - name: data-services
     kind: stop
     summary: databases, stopped cleanly and held
-    members: [sh.brew.postgresql@18]
+    members: []
 
   - name: dev-tools
     kind: protect
