@@ -73,7 +73,7 @@ Plan 3 (executor + journal) is next; entries are verified *through* it.
 
 | Atom | Builds | Depends | Choices | Status | Evidence |
 |---|---|---|---|---|---|
-| L5.1 | TUI: list, bundle picker, dry-run preview, the persistent "quiet mode is ON" banner | L1.8 | D15 | planned | — |
+| L5.1 | TUI: list, bundle picker, preview, the persistent "quiet mode is ON" banner | L1.8 | D15, D0 | done | `TUI.swift`, `TUILoop.swift`; `TUITests` (11); `curfew tui --frame` renders live data |
 | L5.2 | Menu bar: one-click toggle, suspended count, always-visible indicator | L1.8, L4.2 | D15 | planned | — |
 
 ## L6 — Release

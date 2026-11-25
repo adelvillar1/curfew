@@ -69,6 +69,7 @@ usage:
   curfew doctor [--json] [--disagreements]
   curfew catalog validate | list [--bundle NAME] | plan --bundle NAME   [--json] [--dir PATH]
   curfew status                                          [--json]
+  curfew tui   [--frame]                                 the dashboard; --frame prints one screen
   curfew apply  --bundle NAME [--execute [--yes]] [--json]      dry run unless --execute
   curfew resume [--execute [--yes]] [--json]
   curfew --version
@@ -397,6 +398,32 @@ func whyByName(_ name: String) -> Never {
     }
 }
 
+// MARK: - the TUI (L5.1): previews only, never acts
+
+func buildTUIState() -> TUIState {
+    let inventory = LaunchdInventory()
+    let records = inventory.records(in: .currentUser, findings: FindingsEngine()).records
+    let catalog = (try? CatalogLoader.load(directory: catalogDirectory()))
+        ?? Catalog(entries: [], bundles: [], files: [])
+    let quiet = !Journal().unresolved().isEmpty
+    return TUIBuilder.state(
+        records: records,
+        catalog: catalog,
+        quietMode: quiet,
+        title: "curfew \(curfewVersion) · macOS \(macos) · gui/\(getuid())"
+    )
+}
+
+func runTUI() -> Never {
+    // A one-frame render keeps the screen inspectable from a script or a pipe, which is also how
+    // this session verifies it. The interactive loop needs a terminal.
+    if has("--frame") || isatty(STDIN_FILENO) == 0 {
+        print(TUIRenderer.render(buildTUIState()))
+        exit(ExitCode.clean.rawValue)
+    }
+    TUILoop.run()
+}
+
 // MARK: - apply / resume (the first commands that can change a machine)
 
 func requireExecuteConsent(_ what: String) {
@@ -680,12 +707,14 @@ case "doctor": runDoctor()
 case "why": runWhy()
 case "catalog": runCatalog()
 case "status": runStatus()
+case "tui": runTUI()
+case nil: runTUI()
 case "apply": runApply()
 case "resume": runResume()
 case "--version", "-v", "version":
     print("curfew \(curfewVersion)")
     exit(ExitCode.clean.rawValue)
-case "--help", "-h", "help", nil:
+case "--help", "-h", "help":
     print(usage)
     exit(ExitCode.clean.rawValue)
 default:

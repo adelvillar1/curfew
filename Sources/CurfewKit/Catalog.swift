@@ -89,6 +89,12 @@ public struct Catalog: Sendable, Equatable {
     public var bundles: [CatalogBundle]
     public var files: [String]
 
+    public init(entries: [CatalogEntry], bundles: [CatalogBundle], files: [String]) {
+        self.entries = entries
+        self.bundles = bundles
+        self.files = files
+    }
+
     public func entry(_ id: String) -> CatalogEntry? { entries.first { $0.id == id } }
     public func bundle(_ name: String) -> CatalogBundle? { bundles.first { $0.name == name } }
 }

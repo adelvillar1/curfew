@@ -141,6 +141,21 @@ CONSUMED BY  WitrClient (C5) · LaunchdInventory (C2) · curfew doctor --disagre
 
 Invariants it owns: the seven kinds from `D8`; fingerprint rate-limiting (one line per 10 minutes, suppressed count flushed on the next write); rotation at 5 MB × 3; and the redaction rule — `argc` and basename only, never argv, never env (D18).
 
+## C13 — `TUI` — Sources/CurfewKit/{TUI.swift}, Sources/curfew/TUILoop.swift
+
+```text
+OFFERS   TUIBuilder::state(records:catalog:quietMode:title:selectedBundle:) -> TUIState
+         TUIRenderer::render(_:width:height:) -> String
+         TUIKeys::parse([UInt8]) -> TUIKey?
+         TUIState::move / toggle / nextBundle / markBundleMembers
+EXPECTS  ServiceRecord (C0) · Catalog::bundle (C9) · terminal (external, TUILoop only)
+CONSUMED BY  curfew tui · the bare `curfew` invocation
+```
+
+The view model and the renderer are pure, which is what makes "the quiet-mode banner is on every
+frame" a test rather than a hope. `TUILoop` only moves bytes. **The TUI cannot act**: it has no runner
+and no transport, so previewing is the only thing the screen can do.
+
 ## C12 — `HelperPolicy` — Sources/CurfewKit/HelperProtocol.swift
 
 ```text

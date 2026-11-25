@@ -207,6 +207,28 @@ Team ID.
 in — C12 expected `Catalog::entry`, which C9 never offered — which is the contract discipline doing
 exactly what it is for.
 
+## Round 9 — L5.1, the first face
+
+`curfew tui` — a dashboard over the same engine: services, findings, the current bundle, and the
+quiet-mode banner on every frame.
+
+Split three ways so the screen is testable without a terminal: `TUIState` (pure), `TUIRenderer`
+(state → text), `TUILoop` (bytes). **The TUI cannot act** — no runner, no transport; `a` previews, and
+`apply --execute` stays a CLI act with `--yes`.
+
+**Rendering it against the live machine found three defects in the first frame**, all fixed:
+
+1. The header ran together — `gui/501quiet mode: off` — because the title was truncated but not padded.
+2. The list was dominated by `application.*` rows: running GUI instances are not services anyone manages
+   (D0). They are now excluded, and both they and protected-tier jobs are *counted* in the footer rather
+   than silently dropped.
+3. Long ids overflowed their column and pushed the state out of alignment.
+
+`--frame` exists because of that exercise: it prints one screen and exits, and a non-TTY stdin does the
+same automatically — so the screen can be read from a script, which is how it was verified.
+
+**11 new tests; 149 total in 21 suites, green.**
+
 ## Criteria status
 
 All met except two, **deliberately revised** (recorded in the plan, not silently dropped):

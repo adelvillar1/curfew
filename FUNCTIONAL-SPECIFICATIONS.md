@@ -127,11 +127,21 @@ protected job appears in `list` with `tier: protected` and can never enter a bun
 
 ## 6. Indicators & Notifications
 
-<add-when-implemented>
-- The persistent indicator that quiet mode is on — never a silent mode.
-- Resume confirmation: the count restored, and anything that failed to restore.
-- The rule that a failed restore is louder than a successful apply.
-</add-when-implemented>
+**Implemented (TUI, v0.1.0).**
+
+- **The quiet-mode state is on the header of every frame**, in words: `quiet mode: off`, or
+  `QUIET MODE: ON  (unresolved journal intents)`. It never scrolls away, because a mode that suspends
+  services must never be invisible.
+- **The footer states the read-only guarantee on every screen**: *"only `curfew apply --execute`
+  changes anything"*.
+- **Excluded rows are counted, not hidden silently**: `hidden: 18 (protected + app-bound)` tells you
+  what the screen is not showing.
+- A failed restore is louder than a successful apply — that rule belongs to the mutating path and is
+  written when it ships.
+
+### Not built
+
+Per-action confirmations, notifications, and the menu-bar indicator (L5.2).
 
 ## 7. Edge Cases & Error States
 
