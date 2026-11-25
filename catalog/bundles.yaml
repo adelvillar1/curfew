@@ -10,7 +10,7 @@ bundles:
     kind: protect
     summary: the path an unattended DSH or Zcode run depends on
     protectPorts: [8901, 4242, 7426, 57730, 57801]
-    members: [com.adelvillar1.sem1-llama, dev.dsh.bridge]
+    members: [com.adelvillar1.embed-proxy, dev.dsh.bridge]
 
   - name: never-cold
     kind: protect

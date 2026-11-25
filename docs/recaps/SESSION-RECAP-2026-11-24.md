@@ -448,6 +448,37 @@ index and re-embeds every fact, and sem1 feeds blend1 and select_skills too.
 
 **No decision was taken** — the owner asked to try it first. Recorded in memory as a reference fact.
 
+## Round 18 — qwen3 embeddings, gemma phased out
+
+Owner decision: reindex onto `qwen3-embedding-8b` and retire the local gemma model.
+
+**The design choice that made it cheap.** `http://127.0.0.1:8901/v1/embeddings` is baked into four
+independent readers — the harness's recall, `select_skills`, fleet's recall, and sem1's `http_llama`
+provider — all assuming an unauthenticated OpenAI shape, and the DSH side is not inspectable from a
+session. So the **URL stays and a 30-line local proxy changes what is behind it** (D26). No consumer
+was touched; `~/.fleet/bin/qwen-embed-proxy.py` forwards to OpenCode Go with the key read from a 0600
+file, defaulting `dimensions: 1024`.
+
+**The trap this avoided, and then hit anyway.** `brain_recall` returned plausible results *immediately*
+after the swap — but the index still held 768-dim gemma vectors from the day before, and my repeated
+query hit a cached query vector. A model change behind an unchanged URL is **invisible to an
+embedder-keyed cache**; the similarity numbers looked sane because both sides were stale and consistent.
+Clearing the caches was the only way to make the change real.
+
+**What the rebuild does.** It is lazy and incremental, not a blocking pass: the proxy log shows 55
+concurrent embedding requests in two seconds, and the index grew 88 → 248 vectors at 1024 dims as
+queries arrived. `degraded` stayed empty throughout, and recall still answers correctly.
+
+**Removed:** the `sem1-llama` LaunchAgent (backup `/tmp/sem1-llama.plist.removed`), the **1.4 GB**
+gemma model cache, and the entry in Curfew's catalog. Added: `com.adelvillar1.embed-proxy`, an
+always-on protect entry. `harness-core` now guards the proxy instead of the retired server; port 8901
+keeps its protection.
+
+**Verified:** `sem1_probe` → reachable, **1024 dims, `qwen3-embedding-8b`**; `brain_recall` answers with
+`scanned: 2504, degraded: ""`; ledger, catalog and tests all green.
+
+**Cost:** a recall query now pays a network round-trip (single text ~340 ms through the proxy).
+
 ## Criteria status
 
 All met except two, **deliberately revised** (recorded in the plan, not silently dropped):

@@ -2,17 +2,19 @@
 # renames a job.
 
 entries:
-  # Always-on by owner decision (2026-11-24). Every semantic tool in the harness depends on this
-  # server; stopping it does not save the machine, it breaks the session.
-  - id: com.adelvillar1.sem1-llama
+  # The embedding endpoint every semantic tool depends on: the harness's recall, select_skills,
+  # fleet's recall and sem1 all call http://127.0.0.1:8901/v1/embeddings. Since 2026-11-25 that URL is
+  # served by a local proxy forwarding to qwen3-embedding-8b at 1024 dims (the local gemma model is
+  # gone). It holds no model, so it costs almost nothing — but stopping it blinds every semantic path.
+  - id: com.adelvillar1.embed-proxy
     kind: agent
     lever: none
     supervised: launchd
     status: verified
     stoppable: false
     hazards: [socket, always-on]
-    evidence: "owner decision 2026-11-24: must stay up — the embedding server every semantic tool depends on. Curfew does not stop it; there is no recipe to verify."
-    coldStartCost: first embed call reloads embeddinggemma-2 into RAM
+    evidence: "owner decision 2026-11-25: the embeddings path is always on. Verified the same day — launchd job RunAtLoad+KeepAlive on :8901, /health reports qwen3-embedding-8b at 1024 dims, and the recall index rebuilt through it (248 vectors and growing, 274 requests served)"
+    coldStartCost: nothing local to load; a stopped proxy degrades every recall to keyword-only
     depends: []
 
   # Built for OpenBot, but NOT redundant: the bridge is how an agent reaches the Kanzo board over
