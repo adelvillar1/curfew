@@ -109,16 +109,24 @@ struct NoNetworkTests {
     @Test("no source file imports a networking framework or opens a socket")
     func noNetworking() throws {
         let forbidden = ["import Network", "import CFNetwork", "URLSession", "NWConnection", "socket(", "getaddrinfo"]
+        // D28: exactly one file may make an outbound call — the decision-model transport. Any second
+        // file containing a network token still fails, so the carve-out cannot quietly spread.
+        let allowed = "JevHTTPTransport.swift"
         let files = FileManager.default.enumerator(at: Self.sourcesRoot, includingPropertiesForKeys: nil)
         var checked = 0
+        var networkFiles: [String] = []
         while let url = files?.nextObject() as? URL {
             guard url.pathExtension == "swift" else { continue }
             let text = try String(contentsOf: url, encoding: .utf8)
             checked += 1
+            let hits = forbidden.filter { text.contains($0) }
+            if !hits.isEmpty { networkFiles.append(url.lastPathComponent) }
+            guard url.lastPathComponent != allowed else { continue }
             for token in forbidden {
-                #expect(!text.contains(token), "\(url.lastPathComponent) contains \(token) — v1 must have no network path")
+                #expect(!text.contains(token), "\(url.lastPathComponent) contains \(token) — only \(allowed) may make an outbound call (D28)")
             }
         }
+        #expect(networkFiles == [allowed], "exactly one file may hold the network path, found \(networkFiles)")
         #expect(checked > 5, "expected to scan the source tree, scanned \(checked) files")
     }
 }

@@ -1,5 +1,5 @@
 ---
-status: draft
+status: active
 created: 2026-11-25
 updated: 2026-11-25
 slug: jev-assisted-decisions
@@ -46,9 +46,10 @@ JevClient(transport: JevTransport, model: String) -> ask(questions:state:) throw
   0600. No key on disk in the repo, no key in the journal (rule 8).
 - **`User-Agent: curfew`** on every request. Non-negotiable: Cloudflare answers 403 (error 1010) to
   urllib-shaped clients — verified twice on this machine.
-- **Endpoint defaults to sys1** (`http://127.0.0.1:57722`-style local MCP is stdio, so in practice the
-  direct TypeSafe/Go URL), overridable by `CURFEW_JEV_URL`. Model pinned by `CURFEW_JEV_MODEL`
-  (default `jev-1.14`) so a provider-side upgrade cannot silently change behaviour.
+- **Endpoint is OpenCode Go directly** (owner ruling 2026-11-25):
+  `https://opencode.ai/inference/go/systemone/v1/systemone`, overridable by `CURFEW_JEV_URL`. One hop,
+  no MCP in the path. Model pinned by `CURFEW_JEV_MODEL` (default `jev-1.14`) so a provider-side upgrade
+  cannot silently change behaviour.
 - **Everything is injected** — transport, clock, cache — so the whole surface is testable with
   fixtures and no network, exactly like the executor's runner.
 
@@ -73,12 +74,14 @@ triage is free and byte-identical — the same property the embedding proxy need
 
 ```swift
 enum Confidence { case confident, marginal, unknown }
-// confident: p >= floor && top-two margin >= marginFloor   (defaults 0.60 / 0.15)
+// confident: p >= floor && top-two margin >= marginFloor   (defaults 0.70 / 0.20)
 // marginal:  anything computed but under either threshold — goes to a human, never to action
 // unknown:   transport failure, 402, malformed answer — never silently treated as confident
 ```
 
-Defaults come from the measurement, not taste: the one label error came back at p=0.25.
+**Owner ruling 2026-11-25: 0.70 / 0.20.** Stricter than the measurement suggested (0.60/0.15), which is
+the right way round — the one label error in the sample came back at p=0.25, so a tighter floor costs a
+few more human reviews and buys a wider margin against the failure that matters.
 
 ## Feature 1 — `curfew catalog propose <label>` (read-only)
 
@@ -101,7 +104,7 @@ in one request (speculative fan-out):
 2. Otherwise take `disposition`, but only when `ConfidencePolicy` says `confident`.
 3. `marginal` or `unknown` → emit `review`, with all four answers printed so the human decides.
 
-**Output.** A YAML snippet on stdout (**never a file**), `status: draft`, no recipes, and an `evidence:`
+**Output.** A YAML snippet on stdout (**never a file**), `status: active`, no recipes, and an `evidence:`
 line naming the model, date, all four answers and the floor applied:
 
 ```
@@ -114,12 +117,12 @@ applied, so the worst a bad proposal can do is waste the owner's review time.
 
 **Acceptance criteria**
 
-- [ ] With a fake transport returning the measured answers, `propose` emits `protect` for
+- [ ] *(L7.1 done; L7.2 pending)* With a fake transport returning the measured answers, `propose` emits `protect` for
       `blend1-service` and `kiri.daemon` and `stop` for `zoom.updater` — the three cases in the research
       doc, as a regression test.
 - [ ] A disposition at p=0.25 emits `review`, and the output shows the confidence and the floor.
 - [ ] State is JSON, and contains the listener ports — asserted on the captured request body.
-- [ ] No file is written without `--write`; a written entry is `status: draft` with no recipes.
+- [ ] No file is written without `--write`; a written entry is `status: active` with no recipes.
 - [ ] A 402/500/timeout emits `unknown` → `review`; nothing is proposed as confident.
 - [ ] The decision log gains exactly one row per call, carrying `stateSha` and `questionsSha`.
 
@@ -136,8 +139,14 @@ connections on its ports, recent client processes, runs in the last minute).
 | ≤ 0.35 (idle) | proceed to the recipe |
 
 **It narrows only.** It runs after `NeverList`, port, ancestry and draft checks — it can never make
-something stoppable that those rules refuse. Off by default; enabled per-entry (`quiesceGate: true`) or
-by `CURFEW_QUIESCE_GATE=1` for the trial window.
+something stoppable that those rules refuse.
+
+**When it runs: `auto` — if and only if the entry declares a `quiesce:` probe** (owner ruling
+2026-11-25, after the count showed **0 of 18 entries declare one**). The catalog already contains the
+author's statement of risk; the gate checks that statement live rather than inventing a trial period.
+Today it therefore never runs, which is correct: the 11 acting entries are updaters and launchers with no
+clients, and a model call per entry would add latency for an answer that is always "idle". It arms
+itself the moment an entry is catalogued that holds state and is not on the never-list.
 
 **Acceptance criteria**
 

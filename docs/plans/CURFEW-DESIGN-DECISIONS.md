@@ -117,6 +117,17 @@ Rules:
   a proposal is always `draft`, the quiesce gate runs **after** every deterministic refusal and can only
   narrow, `unknown` is a first-class outcome, and the default floor is 0.60/0.15.
 
+## Model-assisted decisions
+
+- **D28 — Exactly one file may make an outbound network call, and it is named.**
+  Rationale: the project's standing invariant was "no network path" (asserted by
+  `ContractShapeTests` over every source file), and D27 puts a model call in the tool. Pretending the
+  call is not a network call would be worse than an honest exception. So `JevHTTPTransport.swift` is
+  the single allowed file, the test names it, and a *second* file containing any network token still
+  fails — the carve-out cannot spread. *Constrains:* the transport stays a separate injected seam (tests
+  still never touch the network), the key is read from a 0600 file, and the invariant test asserts
+  `networkFiles == [JevHTTPTransport.swift]` rather than merely skipping it.
+
 ## Privilege
 
 - **D20 — The privileged helper is not a command executor; it is a catalog executor.**
