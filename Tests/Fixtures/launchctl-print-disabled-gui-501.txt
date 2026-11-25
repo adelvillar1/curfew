@@ -1,0 +1,33 @@
+
+	disabled services = {
+		"com.docker.helper" => enabled
+		"com.microsoft.teams2.agent" => enabled
+		"io.tailscale.ipn.macsys.login-item-helper" => enabled
+		"com.alejandrodelvillar.second-brain-pg" => enabled
+		"com.zcode.model-router" => disabled
+		"com.apple.ManagedClientAgent.enrollagent" => disabled
+		"com.ollama.ollama" => enabled
+		"com.cruisingintelligence.prod-network-attach" => disabled
+		"com.alejandrodelvillar.zcode-model-router" => disabled
+		"sh.brew.postgresql@14" => disabled
+		"com.apple.Siri.agent" => disabled
+		"sh.brew.mlx-lm" => enabled
+		"com.microsoft.update.agent" => enabled
+		"com.fleet.gui" => disabled
+		"com.cruisingintelligence.stack-watchdog" => disabled
+		"com.agnostic-router.model-router" => disabled
+		"com.microsoft.OneDriveLauncher" => enabled
+		"com.apple.FolderActionsDispatcher" => disabled
+		"ai.openclaw.gateway" => enabled
+		"com.opencodex.proxy" => enabled
+		"homebrew.mxcl.postgresql@17" => enabled
+		"local.fleet-maintenance" => disabled
+		"com.openai.chat-helper" => enabled
+		"com.apple.appleseed.seedusaged.postinstall" => disabled
+		"sh.brew.postgresql@18" => enabled
+		"com.apple.ScriptMenuApp" => disabled
+		"com.microsoft.OneDriveMigrationLauncher" => disabled
+		"homebrew.mxcl.cliproxyapi" => enabled
+		"com.alejandrodelvillar.second-brain-tower" => enabled
+		"sh.brew.gitea-runner" => enabled
+	}

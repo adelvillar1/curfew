@@ -1,0 +1,89 @@
+gui/501/com.adelvillar1.sem1-llama = {
+	active count = 1
+	path = /Users/alejandrodelvillar/Library/LaunchAgents/com.adelvillar1.sem1-llama.plist
+	type = LaunchAgent
+	state = running
+
+	program = /Users/alejandrodelvillar/.unsloth/llama.cpp/build/bin/llama-server
+	BTM uuid = 405C7AB0-8796-4C00-A36C-4785E0E0D65F
+	arguments = {
+		/Users/alejandrodelvillar/.unsloth/llama.cpp/build/bin/llama-server
+		-m
+		/Users/alejandrodelvillar/.cache/huggingface/hub/models--unsloth--embeddinggemma-2-GGUF/snapshots/031f0d4b35536f69ab3509d4893c923264fcf253/embeddinggemma-2-BF16.gguf
+		--embedding
+		--port
+		8901
+		--host
+		127.0.0.1
+		--parallel
+		1
+		--flash-attn
+		on
+		-c
+		16384
+		--batch-size
+		4096
+		--ubatch-size
+		4096
+	}
+
+	stdout path = /Users/alejandrodelvillar/.local/share/sem1/llama-server.log
+	stderr path = /Users/alejandrodelvillar/.local/share/sem1/llama-server.log
+	inherited environment = {
+		SSH_AUTH_SOCK => /var/run/com.apple.launchd.iYTehn3qLl/Listeners
+	}
+
+	default environment = {
+		PATH => /usr/bin:/bin:/usr/sbin:/sbin
+	}
+
+	environment = {
+		OSLogRateLimit => 64
+		XPC_SERVICE_NAME => com.adelvillar1.sem1-llama
+	}
+
+	domain = gui/501 [100026]
+	asid = 100026
+	minimum runtime = 10
+	exit timeout = 5
+	runs = 11
+	pid = 27468
+	immediate reason = inefficient
+	forks = 0
+	execs = 1
+	initialized = 1
+	trampolined = 1
+	started suspended = 0
+	proxy started suspended = 0
+	checked allocations = 0 (queried = 1)
+	checked allocations reason = no host
+	checked allocations flags = 0x0
+	last exit reason = OS_REASON_CODESIGNING
+
+	resource coalition = {
+		ID = 1218
+		type = resource
+		state = active
+		active count = 1
+		name = com.adelvillar1.sem1-llama
+	}
+
+	jetsam coalition = {
+		ID = 1219
+		type = jetsam
+		state = active
+		active count = 1
+		name = com.adelvillar1.sem1-llama
+	}
+
+	spawn type = background (5)
+	jetsam priority = 40
+	jetsam memory limit (active) = (unlimited)
+	jetsam memory limit (inactive) = (unlimited)
+	jetsamproperties category = daemon
+	jetsam thread limit = 32
+	cpumon = default
+	job state = running
+
+	properties = keepalive | runatload | inferred program | managed LWCR | has LWCR
+}

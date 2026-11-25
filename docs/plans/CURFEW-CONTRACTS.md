@@ -1,0 +1,253 @@
+# Curfew — the contract ledger (what each module offers / expects)
+
+**The interface registry.** [`CURFEW-DECOMPOSITION.md`](CURFEW-DECOMPOSITION.md) records the atoms (the build map); [`CURFEW-DESIGN-DECISIONS.md`](CURFEW-DESIGN-DECISIONS.md) records the choices (`D` ids); this records the **interfaces** — for every module, what it **OFFERS** (the exact calls and types others may use) and what it **EXPECTS** (the offers it consumes, naming the provider).
+
+How to read it:
+
+- **OFFERS** — the module's public contract. Signatures are Swift-flavoured and normative; a change here is a contract change — update the consumers.
+- **EXPECTS** — each entry names its provider: `Symbol (C<n>)` for an in-project module, `thing (external)` for something outside (`launchctl`, `witr`, the filesystem).
+- **CONSUMED BY** — the reverse index. Touch an offer, check this list.
+
+**The consistency rule:** every `EXPECTS` resolving to `(C<n>)` must name an `OFFERS` symbol that exists in that section. An `EXPECTS` naming no offer is a **broken seam** — fix it before building. `scripts/ledger_check.py` enforces this.
+
+**The contract precedes the code.** Nothing here is implemented yet; these are the seams the first plan builds against. A signature that changes during implementation changes this file in the same commit.
+
+---
+
+## C0 — Shared types (the bedrock)
+
+```text
+OFFERS   ServiceRecord · ProcessFacts · Finding · AncestryNode
+         Tier · Kind · Lever · JobState · Supervision · Domain · Enrichment · Severity
+         SystemVersion::shellVersion() -> String · formatFixture() -> String?
+EXPECTS  (nothing — the bedrock defines types and no behaviour)
+CONSUMED BY  every module below
+```
+
+```swift
+// Sources/CurfewKit/ServiceRecord.swift
+struct ServiceRecord {
+  var id: String              // the launchd label, or "unmanaged:<exe>@<port>"  (D6)
+  var domain: Domain          // .gui(uid: UInt32) | .system
+  var plistPath: String?
+  var state: JobState         // .running(pid: Int32) | .spawnScheduled | .notLoaded | .disabled | .unknown
+  var runs: UInt64?           // nil means UNKNOWN, never 0  (D3)
+  var lastExitCode: Int32?    // 78 == EX_CONFIG
+  var program: String?        // ProgramArguments[0]
+  var keepAlive: KeepAliveMode
+  var tier: Tier              // .protected | .osCore | .appleAgent | .thirdParty
+  var kind: Kind              // .daemon | .agent | .appChild | .container | .inProcess | .command | .unmanaged
+  var vendor: String?
+  var supervised: Supervision // .launchd | .appParent | .none
+  var process: ProcessFacts?  // witr enrichment; nil when not running or witr unavailable
+  var findings: [Finding]
+  var enrichment: Enrichment // .ok | .unavailable(reason) | .degraded(reason)
+}
+
+struct ProcessFacts {           // exactly what witr gives us, no derived opinion
+  var pid: Int32
+  var exe: String
+  var workingDir: String?
+  var gitRepo: String?
+  var gitBranch: String?
+  var listeningPorts: [UInt16]
+  var ancestry: [AncestryNode]  // from launchd (pid 1) down to the process
+  var sourceType: String        // "launchd" | "ssh" | "cron" | "docker" | "unknown"
+  var sourceName: String?
+  var warnings: [String]
+  var cpuPercent: Double?
+  var memoryRSS: UInt64?
+}
+
+struct Finding {
+  var id: String                // "crashLoop", "danglingProgram", …
+  var severity: Severity        // .blocker | .defect | .gap | .improvement | .environmental | .risk
+  var summary: String
+  var evidence: String          // the literal observation that justifies it
+  var confirmsScan: Bool        // false when the finding is "we could not look"
+}
+```
+
+## C1 — `NeverList` — Sources/CurfewKit/NeverList.swift
+
+```text
+OFFERS   isProtected(label: String) -> Bool
+         isProtected(processName: String) -> Bool   // second net, not a substitute
+         all() -> [String]                          // 28 labels + process names
+EXPECTS  (nothing — a leaf by design, D9)
+CONSUMED BY  Classification (C3) · Findings (C4) · the future Executor
+```
+
+## C2 — `LaunchdInventory` — Sources/CurfewKit/LaunchdInventory.swift
+
+```text
+OFFERS   enumerate(domain: Domain) -> [ServiceRecord]        // tolerant table scan (D3)
+         detail(label: String, domain: Domain) -> ServiceRecord?  // strict field extraction
+         listLabels(domain: Domain) -> [String]
+EXPECTS  launchctl print (external) · SystemVersion::formatFixture (C0)
+CONSUMED BY  curfew list (C7) · curfew why (C7) · Findings (C4) · DisagreementLog (C6)
+```
+
+The `formatFixture` offer is what makes D3's per-version gate real: `detail()` refuses to trust a
+missing field, and `formatFixture()` returning `nil` for an unseen macOS major is how `doctor` says
+"the parser has no fixture for this OS" instead of guessing.
+
+## C3 — `Classification` — Sources/CurfewKit/Classification.swift
+
+```text
+OFFERS   classify(_ record: ServiceRecord) -> Classification   // tier, kind, vendor, supervised
+         vendor(for label: String) -> String?
+EXPECTS  NeverList::isProtected (C1)
+CONSUMED BY  curfew list (C7) · the future catalog loader
+```
+
+## C4 — `Findings` — Sources/CurfewKit/Findings.swift
+
+```text
+OFFERS   evaluate(_ record: ServiceRecord) -> [Finding]        // pure; no I/O, no clock beyond a passed Date
+         crashLoop(_ record: ServiceRecord, loadedFor: Duration) -> Finding?   // D7's three clauses
+         danglingProgram(_ record: ServiceRecord, resolve: (String) -> String?) -> Finding?
+EXPECTS  ServiceRecord (C0) · NeverList::isProtected (C1)
+CONSUMED BY  curfew doctor (C7) · curfew why (C7) · DisagreementLog (C6)
+```
+
+`evaluate` must be a pure function of its inputs plus the injected clock and resolver — that is what makes the seven rules testable against fixtures with no machine.
+
+## C5 — `WitrClient` — Sources/CurfewKit/WitrClient.swift
+
+```text
+OFFERS   probe(pid: Int32) -> WitrReport?           // nil when witr is absent or cannot see it
+         probe(port: UInt16) -> WitrReport?
+         probe(name: String) -> WitrReport?
+         version() -> String?                        // nil when absent
+         isCompatible() -> Bool                      // >= 0.3.4 (D5)
+EXPECTS  witr executable at /opt/homebrew/bin/witr or $PATH (external) ·
+         DisagreementLog::append (C6)
+CONSUMED BY  curfew why (C7) · Findings (C4, optional enrichment)
+```
+
+Rules this module enforces, not the caller: argv-only invocation (never a shell string), JSON parse with `Error` inspection, and **no decision from the exit code** (KI-005).
+
+## C6 — `DisagreementLog` — Sources/CurfewKit/DisagreementLog.swift
+
+```text
+OFFERS   append(kind: DisagreementKind, target: Target, launchd: [String: String],
+                witr: [String: String], verdict: Verdict)
+         summarize() -> [DisagreementCount]          // grouped by fingerprint
+         suppressedCount(for fingerprint: String) -> UInt32
+EXPECTS  filesystem at ~/Library/Logs/Curfew/ (external) · clock (external)
+CONSUMED BY  WitrClient (C5) · LaunchdInventory (C2) · curfew doctor --disagreements (C7)
+```
+
+Invariants it owns: the seven kinds from `D8`; fingerprint rate-limiting (one line per 10 minutes, suppressed count flushed on the next write); rotation at 5 MB × 3; and the redaction rule — `argc` and basename only, never argv, never env (D18).
+
+## C11 — `Executor` — Sources/CurfewKit/Executor.swift
+
+```text
+OFFERS   apply(bundle:catalog:context:execute:) -> [StepOutcome]
+         resume(context:catalog:) -> [StepOutcome]
+         substitute(_:domain:plist:) -> [[String]]?  // {domain} and {plist}; nothing else
+         refusal(for:context:) -> String?
+EXPECTS  Journal::appendIntent (C10) · CatalogPlanner::plan (C9) · NeverList::isProtected (C1) ·
+         Probes (portIsOpen / pidExists / labelIsRunning) · runner argv (external)
+CONSUMED BY  curfew apply · curfew resume (C7)
+```
+
+The order is the design: **refuse → journal the intent → act → verify → journal the outcome.** A refusal
+happens before the first intent is written, so a refused run leaves no journal trace. A failed
+post-condition stops the run rather than continuing to the next entry. The runner and the three probes
+are injected, so every ordering guarantee is a test rather than a review note.
+
+## C10 — `Journal` — Sources/CurfewKit/Journal.swift
+
+```text
+OFFERS   appendIntent(entryId:action:argv:) throws -> Int     // flushed before the caller acts
+         appendOutcome(intent:result:verified:error:) throws
+         records() -> [JournalRecord]
+         unresolved() -> [JournalRecord]
+         restorePlan() -> [JournalRecord]                      // reverse order
+         parseJournalTimestamp(String) -> Date?
+EXPECTS  filesystem at ~/Library/Application Support/Curfew/journal.jsonl (external)
+         CURFEW_JOURNAL overrides the path (external)
+CONSUMED BY  the executor (C11, planned) · curfew status (C7)
+```
+
+Append-only JSONL. A truncated final line is skipped, never fatal — a crash mid-write must not make the
+journal unreadable or let a half-written record look like a completed action. If `appendIntent` throws,
+**the caller must not act**: that is rule 2's teeth.
+
+## C9 — `Catalog` — Sources/CurfewKit/{Catalog,MiniYAML}.swift
+
+```text
+OFFERS   CatalogLoader::load(directory:) throws -> Catalog
+         CatalogValidator::validate(_:) -> [CatalogViolation]
+         CatalogPlanner::plan(bundle:in:) -> (steps: [CatalogStep], refusals: [CatalogRefusal], protectedPorts: [UInt16])
+         MiniYAML::parse(String) throws -> YAMLValue
+EXPECTS  NeverList::isProtected (C1) · filesystem (external)
+CONSUMED BY  curfew catalog (C7)
+```
+
+**This module spawns nothing.** It reads files and does arithmetic; `CatalogReadOnlyTests` fails the
+build if `Process(` or `executableURL` ever appears in it. Execution is L3.3 and will need its own seam.
+
+## C8 — `ListenerScan` — Sources/CurfewKit/ListenerScan.swift
+
+```text
+OFFERS   ListenerParser::parse(String) -> [Listener]
+         ListenerScanner::scan() -> [Listener]
+         ExecutableResolver::memoized(_:) -> ExecutableResolver
+         ListenerFindings::orphanPorts(listeners:records:executableForPid:) -> [Finding]
+         ListenerFindings::unattributed(listeners:records:executableForPid:) -> Finding?
+EXPECTS  ServiceRecord (C0) · lsof (external)
+CONSUMED BY  curfew doctor (C7)
+```
+
+Identity is the resolved executable path, never the command name: `lsof` truncates `COMMAND` to nine
+characters and every `node` shares it (KI-025). An orphan also requires the job to be **dead** — a
+running job with a second process of the same binary is a second instance, not a leftover (KI-026).
+
+## C7 — `curfew` CLI — Sources/curfew/ (the external surface)
+
+```text
+OFFERS   curfew list   [--domain gui|system|all] [--json]
+         curfew why    <label|--pid N|--port N|--name S> [--json]
+         curfew doctor [--json] [--disagreements]
+         exit codes 0..6 (below)
+EXPECTS  LaunchdInventory::enumerate (C2) · Classification::classify (C3) ·
+         Findings::evaluate (C4) · WitrClient::probe (C5) ·
+         DisagreementLog::summarize (C6) · ListenerScanner::scan (C8) · CatalogLoader::load (C9) ·
+         Journal::unresolved (C10)
+CONSUMED BY  humans · scripts · the future TUI and menu bar
+```
+
+### External shapes (the normative part)
+
+```text
+curfew list --json
+{ "v": 1,
+  "sources": { "witr": "0.3.4" | null, "macos": "26.5.2", "curfew": "0.1.0" },
+  "records": [ <ServiceRecord> ... ],
+  "scan": { "complete": true|false, "incompleteReasons": ["enrichMissing", …] } }
+
+curfew doctor --json
+{ "v": 1, "findings": [<Finding>...], "scan": {...},
+  "disagreements": [ { "fingerprint": "sha1:…", "kind": "…", "count": 3,
+                       "firstSeen": "…", "lastSeen": "…" } ] }
+
+exit codes
+  0  clean            — nothing found, scan complete
+  1  warnings         — findings present, or a scan was incomplete
+  2  not found        — the target does not exist
+  3  dependency missing — witr absent or incompatible (degraded, not failed)
+  4  bad input        — ambiguous target, bad flag
+  5  internal error
+  6  read-only violated — never expected; the guarantee test forbids it
+```
+
+`--json` is a **contract**: field names and meanings are stable, changes are additive only, and a removal or retype is a breaking change requiring a new `v`. **A field with no value is omitted, never `null`** — so consumers treat a missing optional key as "not read", which is the same distinction D3 makes internally. `ContractShapeTests` pins every key of all three shapes and the disagreement record.
+
+## Consistency check
+
+```bash
+python3 scripts/ledger_check.py      # known-issues cells + D ids + this file's seams
+```

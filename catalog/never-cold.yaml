@@ -1,0 +1,13 @@
+# Entries whose absence costs minutes, not bytes. There is nothing to suspend here: Laya is an
+# in-process engine with no port and no job, and making it cold costs a three-minute reload on the
+# next sys1 call. `lever: none` is legal only with a coldStartCost.
+
+entries:
+  - id: laya
+    kind: inProcess
+    lever: none
+    supervised: none
+    status: draft
+    stoppable: false
+    coldStartCost: up to 180 s on the first sys1 call after a restart
+    hazards: []

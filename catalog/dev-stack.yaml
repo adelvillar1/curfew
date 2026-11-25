@@ -1,0 +1,22 @@
+# Data services. Every entry is `draft` until its recipe has been run on this host and dated.
+# The recipes are argv, never shell: no quoting, no interpolation, no injection from a label.
+
+entries:
+  - id: sh.brew.postgresql@18
+    kind: agent
+    lever: command
+    supervised: launchd
+    status: draft
+    hazards: [socket, data]
+    stop:
+      run: [/opt/homebrew/opt/postgresql@18/bin/pg_ctl, -D, /opt/homebrew/var/postgresql@18, stop, -m, fast]
+      expect: port 5432 released and no postmaster process remains
+      quiesce: no ESTABLISHED clients on 5432
+      hold: bootoutIfRespawned
+      verify:
+        kind: port_closed
+        value: "5432"
+    start:
+      run: [/opt/homebrew/opt/postgresql@18/bin/pg_ctl, -D, /opt/homebrew/var/postgresql@18, start]
+      meansReady: port 5432 accepts a connection
+    depends: []

@@ -1,0 +1,52 @@
+# Vendor updaters, sync agents and launchers. Nothing here is needed to compile a project or run an
+# agent overnight; the disable lever is used because several of them re-register themselves when
+# their parent app launches.
+#
+# Bootstrap recipes use {plist}, resolved from what `launchctl print` reports — never a hand-written
+# path. Writing one by hand cost a live service: the updater lives in /Library/LaunchAgents and the
+# recipe said ~/Library/LaunchAgents, so the restore failed and left it unloaded (KI-030).
+
+entries:
+  - id: us.zoom.updater
+    kind: agent
+    lever: disable
+    supervised: launchd
+    status: verified
+    hazards: [vendor]
+    evidence: "2026-11-24 · this Mac · disable→print-disabled says disabled; bootout→label unloaded; enable+bootstrap {plist}→loaded, state not running"
+    stop:
+      run:
+        - [/bin/launchctl, disable, {domain}/us.zoom.updater]
+        - [/bin/launchctl, bootout, {domain}/us.zoom.updater]
+      expect: print-disabled lists the label as disabled and launchctl print no longer resolves it
+      verify:
+        kind: label_not_running
+        value: us.zoom.updater
+    start:
+      run:
+        - [/bin/launchctl, enable, {domain}/us.zoom.updater]
+        - [/bin/launchctl, bootstrap, {domain}, {plist}]
+      meansReady: launchctl print resolves the label and print-disabled says enabled
+    depends: []
+
+  - id: com.microsoft.OneDriveStandaloneUpdater
+    kind: agent
+    lever: disable
+    supervised: launchd
+    status: verified
+    hazards: [vendor]
+    evidence: "2026-11-24 · this Mac · disable→disabled; bootout→unloaded; enable+bootstrap {plist}→loaded, state not running"
+    stop:
+      run:
+        - [/bin/launchctl, disable, {domain}/com.microsoft.OneDriveStandaloneUpdater]
+        - [/bin/launchctl, bootout, {domain}/com.microsoft.OneDriveStandaloneUpdater]
+      expect: print-disabled lists the label as disabled and launchctl print no longer resolves it
+      verify:
+        kind: label_not_running
+        value: com.microsoft.OneDriveStandaloneUpdater
+    start:
+      run:
+        - [/bin/launchctl, enable, {domain}/com.microsoft.OneDriveStandaloneUpdater]
+        - [/bin/launchctl, bootstrap, {domain}, {plist}]
+      meansReady: launchctl print resolves the label and print-disabled says enabled
+    depends: []

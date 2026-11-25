@@ -1,0 +1,43 @@
+# Secrets and machine-local state — never committed
+CLAUDE.local.md
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.mobileprovision
+
+# macOS
+.DS_Store
+._*
+
+# Swift / SPM
+.build/
+.swiftpm/
+Package.resolved.bak
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+DerivedData/
+*.xcarchive
+
+# Runtime state (never commit a journal — it describes live services)
+journal/
+*.journal.json
+catalog/local/
+
+# Node (docs tooling, if any)
+node_modules/
+pnpm-lock.yaml.bak
+
+# Python (probe scripts)
+__pycache__/
+.venv/
+*.pyc
+
+# Rust (experiments only)
+target/
+
+# Logs and dumps
+*.log
+*.trace
+*.profraw

@@ -1,0 +1,33 @@
+diff --git a/api/runtime/src/platform/macos/index.js b/api/runtime/src/platform/macos/index.js
+index 573869e9c..809964b20 100644
+--- a/api/runtime/src/platform/macos/index.js
++++ b/api/runtime/src/platform/macos/index.js
+@@ -29,9 +29,10 @@ const docker = (...args) => platform.docker(...args);
+ const name = (settings) => `${settings.containerPrefix}worker`;
+ 
+ const build = (settings) => JSON.parse(readFileSync(join(settings.bundle, "manifest.json"), "utf8")).build_id;
+-// the socket path is the Docker VM's, as Docker Desktop and colima provide it
+-const mounts = ({ home, bundle }) => [
+-  "-v", "/var/run/docker.sock:/var/run/docker.sock", "-v", `${VOLUMES}:${VOLUMES}`,
++// the socket path is the Docker VM's, as Docker Desktop and colima provide it;
++// the volumes dir is the daemon's own root, which need not be the stock path (Kiri: /var/lib/kiri/volumes)
++const mounts = ({ home, bundle, volumes }) => [
++  "-v", "/var/run/docker.sock:/var/run/docker.sock", "-v", `${volumes || VOLUMES}:${VOLUMES}`,
+   "-v", `${home}:${home}`, "-v", `${bundle}:${bundle}:ro`,
+   "-e", `LAYERFS_NATIVE=${join(bundle, "layerfs.node")}`,
+ ];
+diff --git a/api/runtime/src/project/init.js b/api/runtime/src/project/init.js
+index f11645958..0ab32a2b4 100644
+--- a/api/runtime/src/project/init.js
++++ b/api/runtime/src/project/init.js
+@@ -83,6 +83,10 @@ export async function runInit(runtime, prepared, report = () => {}) {
+   await platform.init(settings);
+   // its owner, for runtime.volume.list: Docker sets a volume's labels only when it creates it
+   await platform.docker(settings, ["volume", "create", "--label", "layerfs.role=store", "--label", `layerfs.home=${settings.home}`, "--label", `layerfs.project=${project.name}`, project.volume], { timeout: 30_000 });
++  // Some daemons (Kiri) create the volume's _data only on first mount, and Init inspects the
++  // directory before mounting anything: one no-op container materializes it the way Docker would.
++  if (platform.name === "macos")
++    await platform.docker(settings, ["run", "--rm", "--network", "none", "-v", `${project.volume}:/layerfs-init`, settings.image, "/bin/true"], { timeout: 60_000 });
+   report({ step: "import" });
+   let client;
+   try {

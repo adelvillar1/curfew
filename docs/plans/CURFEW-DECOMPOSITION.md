@@ -1,0 +1,116 @@
+# Curfew — the decomposition ledger (the build map)
+
+**The atoms.** One row per smallest coherent, buildable, verifiable increment — each with its own surface and its own test. An atom that needs two surfaces or two unrelated tests is two atoms.
+
+Every atom traces four ways: **atom → plan** (where it is built), **atom → contract** (the interface it implements, `C` ids), **atom → choices** (the `D` ids that bind it), **atom → atoms** (its dependencies). Status: `planned → drafted → building → done`.
+
+Siblings: [`CURFEW-DESIGN-DECISIONS.md`](CURFEW-DESIGN-DECISIONS.md) (the choices), [`CURFEW-CONTRACTS.md`](CURFEW-CONTRACTS.md) (the seams), [`../known-issues.md`](../known-issues.md) (what is broken).
+
+**26 atoms across 7 layers.** L0 + L1 + L2 shipped 2026-11-24 (read-only slice, 57 tests); L3–L6 are the map, not a commitment.
+
+---
+
+## L0 — Bedrock (4 atoms)
+
+Everything above depends on these; they have no dependencies themselves.
+
+| Atom | Builds | Depends | Choices | Status | Evidence |
+|---|---|---|---|---|---|
+| L0.1 | Package skeleton, `ServiceRecord`, the six enums, `SystemVersion` | — | D15 | done | `Package.swift`, `Sources/CurfewKit/ServiceRecord.swift` |
+| L0.2 | `NeverList` compiled from the 28 research labels + process-name net, with the completeness test | L0.1 | D9 | done | `NeverList.swift`; `NeverListTests.completenessAgainstResearch` |
+| L0.3 | Format fixture gate: `SystemVersion.formatFixture()` + the checked-in `launchctl print` fixtures | L0.1 | D3 | done | `LaunchdParser.swift`; `Tests/Fixtures/launchctl-*-macos-26.5.2.txt` |
+
+## L1 — Read (the first shippable slice)
+
+Plan: [`2026-11-24-inventory-and-why.md`](2026-11-24-inventory-and-why.md).
+
+| Atom | Builds | Depends | Choices | Status | Evidence |
+|---|---|---|---|---|---|
+| L1.1 | Domain enumeration: tolerant scan of the `services = {` table, `gui/$UID` + `system` | L0.1, L0.3 | D3, D4 | done | `LaunchdParser.domainTable`; `domainTableFromFixture` |
+| L1.2 | Per-label strict extraction: `runs`, `lastExitCode`, `pid`, `state`, `path`, `program`; absent → `nil` + `fieldUnavailable` | L1.1 | D3 | done | `LaunchdParser.jobDetail`; `detailFromFixture` |
+| L1.3 | Classification: tier, kind, vendor, supervision, from label + plist + program path | L0.2, L1.2 | D0, D6, D12 | done | `Classification.swift`; `ClassificationTests` (5 tests) |
+| L1.4 | Findings engine: seven rules as pure functions with injected clock and path resolver | L1.2, L0.2 | D3, D7 | done | `Findings.swift`; `FindingsTests` (13 tests) |
+| L1.5 | `curfew list` + `--json` (the first command that runs live) | L1.1, L1.3 | D6 | done | `curfew list`; `ContractShapeTests.listShape` |
+| L1.6 | `WitrClient`: spawn, parse, version gate, degrade; never trusts exit code | L2.1 | D2, D5 | done | `WitrClient.swift`; `WitrClientTests` (8 tests) |
+| L1.7 | `curfew why`: accepts label/pid/port/name, resolves to one record, falls back to launchd for a dead job | L1.2, L1.6 | D2, D6 | done | `curfew why`; verified on `com.adelvillar1.sem1-llama` (ancestry 1 → 27468) |
+| L1.8 | `curfew doctor` + `--disagreements`; scan completeness is part of the output | L1.4, L1.6, L2.1 | D3, D7, D8 | done | `curfew doctor`; 16 findings on 2026-11-24, scan marked incomplete |
+| L1.9 | Read-only guarantee test (shimmed `PATH`) + no-network assertion | L1.5, L1.7, L1.8 | D1, D18 | done | `ReadOnlyGuaranteeTests`, `NoNetworkTests` |
+| L1.10 | Listener scan: `orphanPort` (a port bound by a dead job's executable) and `noSupervisor` (aggregated) | L1.4, L1.2 | D2, D12 | done | `ListenerScan.swift`; `ListenerScanTests` (11); `curfew doctor` reports one aggregate on this machine |
+
+## L2 — Record (the log and the published shapes)
+
+| Atom | Builds | Depends | Choices | Status | Evidence |
+|---|---|---|---|---|---|
+| L2.1 | `DisagreementLog`: seven kinds, fingerprint rate-limit, 5 MB × 3 rotation, redaction | L0.1 | D8, D18 | done | `DisagreementLog.swift`; `DisagreementLogTests` (6 tests) |
+| L2.2 | JSON contract: shape tests pinning `list`/`doctor` output and the exit-code table | L1.5, L1.8 | D19 | done | `Contracts.swift`; `ContractShapeTests` |
+
+## L3 — Mutate (the first layer that changes the machine)
+
+Plan 3 (executor + journal) is next; entries are verified *through* it.
+
+> **Build-order correction, 2026-11-24.** The first draft of this layer had the order wrong, and the
+> error is exactly what hard rule 2 exists to prevent: it put the journal *after* the executor, and it
+> made the executor depend on catalog entries that can only be verified by running recipes. The
+> corrected order is journal → executor → entries. Ids are identities and were not renumbered; their
+> dependencies moved.
+
+| Atom | Builds | Depends | Choices | Status | Evidence |
+|---|---|---|---|---|---|
+| L3.1 | Catalog schema (`catalog/*.yaml`) + loader + validation (lever, supervision, `evidence:`) | L1.3 | D11, D12 | done | `Catalog.swift`, `MiniYAML.swift`; `CatalogTests` (20); `curfew catalog validate` |
+| L3.4 | Journal: write-ahead append, fail-open restore. **Before anything acts** (rule 2) | L0.1 | D16 | done | `Journal.swift`; `JournalTests` (7); `curfew status` reads it |
+| L3.3 | Executor: freeze, stop, disable, throttle, command — dry-run first, journal before each action, quiesce probes, refusals. Root recipes refused until L4.2 | L3.4, L3.1 | D10, D11, D12 | done | `Executor.swift`; `ExecutorTests` (16); `curfew apply` dry-run refuses every draft |
+| L3.2 | Catalog entries for this machine: vendor-noise, dev-idle, data-services, harness-core, never-cold — each verified and dated | L3.3 | D11, D12, D14 | planned | partial: `us.zoom.updater` and `com.microsoft.OneDriveStandaloneUpdater` verified 2026-11-24 (disable→disabled, bootout→unloaded, enable+bootstrap→loaded); the rest are still `draft` |
+| L3.5 | Crash test: `kill -9` mid-action; assert full restore | L3.3, L3.4 | D16 | done | `scripts/crash-test.sh` (SIGKILL between intent and outcome, resume restores, second resume is a no-op); `CrashRecoveryTests` (4) |
+
+## L4 — Control (the privileged half)
+
+| Atom | Builds | Depends | Choices | Status | Evidence |
+|---|---|---|---|---|---|
+| L4.1 | Helper daemon registered via `SMAppService.daemon`; the approval flow | L0.1 | D16, D17 | planned | — |
+| L4.2 | XPC protocol + `SecCodeCheckValidity` on every call | L4.1 | D17 | planned | — |
+
+## L5 — Faces (thin, stateless)
+
+| Atom | Builds | Depends | Choices | Status | Evidence |
+|---|---|---|---|---|---|
+| L5.1 | TUI: list, bundle picker, dry-run preview, the persistent "quiet mode is ON" banner | L1.8 | D15 | planned | — |
+| L5.2 | Menu bar: one-click toggle, suspended count, always-visible indicator | L1.8, L4.2 | D15 | planned | — |
+
+## L6 — Release
+
+| Atom | Builds | Depends | Choices | Status | Evidence |
+|---|---|---|---|---|---|
+| L6.1 | Signing, notarisation, stapling, DMG | L4.2, L5.2 | D17 | planned | — |
+| L6.2 | Homebrew cask + version bump procedure | L6.1 | D17 | planned | — |
+
+---
+
+## Build order and critical path
+
+```
+L0.1 → L0.3 → L1.1 → L1.2 → L1.4 → L1.5 → L1.8 → L1.9
+                 ↘ L2.1 → L1.6 → L1.7 ↗
+L3.1 → L3.2 → L3.3 → L3.4 → L3.5      (after L4.1/L4.2)
+L4.1 → L4.2                            (parallel with L1; blocks L3.3)
+```
+
+**Critical path (longest dependency chain):**
+
+`L0.1 → L0.3 → L1.1 → L1.2 → L1.4 → L1.8 → L1.9 → L3.1 → L3.2 → L3.3 → L3.4 → L3.5 → L6.1`
+
+The bottleneck is **L1.2 → L1.4**: the parser's field extraction feeds every finding, so a parser that
+reports `nil` where it should report a value silently disables the whole detector. That is why D3 makes
+"unknown" a first-class outcome and why L1.2's test is the strictest in the slice.
+
+## What is deliberately not an atom
+
+- **The `system` domain's Apple daemons as suspend targets** — reported, never acted on (D0).
+- **Container-engine support** (Kiri, podman) — vitr's container lookup is blind to Kiri (KI-004), and
+  container levers are VM-side wins only (D13). Out of v1.
+- **Apple Tier-2 agent enabling** — `apple-quiet` is opt-in per label with dated verification, and needs
+  no atom of its own: it is a catalog file, not a code path.
+- **Automatic/idle triggers** — a face-level feature (L5), not bedrock.
+
+## Consistency
+
+`Depends` names only defined atoms; `Choices` names only existing `D` ids; the atom count matches the plan set. Policed by `scripts/ledger_check.py`.

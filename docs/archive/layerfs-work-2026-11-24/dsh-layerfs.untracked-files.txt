@@ -1,0 +1,14 @@
+packages/client/src/client/assets/11.png
+packages/client/src/client/assets/12.png
+packages/client/src/client/assets/13.png
+packages/client/src/client/assets/2.png
+packages/client/src/client/assets/3.png
+packages/client/src/client/assets/4.png
+packages/client/src/client/assets/5.png
+packages/client/src/client/assets/6.png
+packages/client/src/client/assets/7.png
+packages/client/src/client/assets/8.png
+packages/client/src/client/assets/9.png
+packages/client/src/client/assets/ellen_joe.gif
+packages/client/src/client/assets/ellen_joe.png
+packages/client/src/client/assets/heads.png

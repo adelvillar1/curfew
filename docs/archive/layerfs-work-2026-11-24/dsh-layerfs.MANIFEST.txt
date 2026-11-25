@@ -1,0 +1,12 @@
+repo: /Users/alejandrodelvillar/Projects/dsh-layerfs
+remote: https://github.com/Ephemeral-AI-Lab/dsh-layerfs.git
+HEAD: baac1b92b97f0bd492002c285f6a13401b4f4c0b
+detached: HEAD
+archived: 2026-11-24
+--- status ---
+ M packages/client/package.json
+ M packages/client/src/client/LayerFsPanel.tsx
+ M packages/client/src/client/avatars.ts
+ M packages/client/src/client/maid.tsx
+ M packages/host/src/route.js
+?? packages/client/src/client/assets/

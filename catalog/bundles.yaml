@@ -1,0 +1,28 @@
+# Bundles are files, not tags: a bundle can carry a summary and — for the protecting ones — the
+# ports it guarantees, which is how the harness is protected without depending on a label that a
+# reinstall can rename.
+#
+# kind: stop     a mode that acts on its members
+# kind: protect  a set that must never be actioned; `protectPorts` is the invariant it asserts
+
+bundles:
+  - name: harness-core
+    kind: protect
+    summary: the path an unattended DSH or Zcode run depends on
+    protectPorts: [8901, 4242, 7426, 57730, 57801]
+    members: [com.adelvillar1.sem1-llama, dev.dsh.bridge]
+
+  - name: never-cold
+    kind: protect
+    summary: entries whose absence costs minutes rather than bytes
+    members: [laya]
+
+  - name: vendor-noise
+    kind: stop
+    summary: updaters and launchers nothing needs during a build
+    members: [us.zoom.updater, com.microsoft.OneDriveStandaloneUpdater]
+
+  - name: data-services
+    kind: stop
+    summary: databases, stopped cleanly and held
+    members: [sh.brew.postgresql@18]

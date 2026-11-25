@@ -1,0 +1,206 @@
+{
+  "Target": {
+    "Type": "port",
+    "Value": "8901"
+  },
+  "ResolvedTarget": "llama-server",
+  "Process": {
+    "PID": 27468,
+    "PPID": 1,
+    "Command": "llama-server",
+    "Cmdline": "/Users/alejandrodelvillar/.unsloth/llama.cpp/build/bin/llama-server -m /Users/alejandrodelvillar/.cache/huggingface/hub/models--unsloth--embeddinggemma-2-GGUF/snapshots/031f0d4b35536f69ab3509d4893c923264fcf253/embeddinggemma-2-BF16.gguf --embedding --port 8901 --host 127.0.0.1 --parallel 1 --flash-attn on -c 16384 --batch-size 4096 --ubatch-size 4096",
+    "Exe": "",
+    "StartedAt": "2026-11-08T16:10:28Z",
+    "User": "alejandrodelvillar",
+    "CPUPercent": 0,
+    "MemoryRSS": 26591232,
+    "MemoryPercent": 0.15478134155273438,
+    "WorkingDir": "/",
+    "GitRepo": "",
+    "GitBranch": "",
+    "Container": "",
+    "Service": "inefficient",
+    "Sockets": [
+      {
+        "Inode": "",
+        "Port": 8901,
+        "Address": "127.0.0.1",
+        "State": "LISTEN",
+        "Protocol": "TCP"
+      }
+    ],
+    "Health": "healthy",
+    "Forked": "not-forked",
+    "Env": [
+      "OSLogRateLimit=64",
+      "XPC_SERVICE_NAME=com.adelvillar1.sem1-llama",
+      "SSH_AUTH_SOCK=/var/run/com.apple.launchd.iYTehn3qLl/Listeners",
+      "PATH=/usr/bin:/bin:/usr/sbin:/sbin",
+      "XPC_FLAGS=1",
+      "LOGNAME=alejandrodelvillar",
+      "USER=alejandrodelvillar",
+      "HOME=/Users/alejandrodelvillar",
+      "SHELL=/bin/zsh",
+      "TMPDIR=/var/folders/tw/r_gr0v7s5nzb8kfqb143fyf00000gn/T/"
+    ],
+    "ExeDeleted": false,
+    "Memory": {
+      "VMS": 0,
+      "RSS": 0,
+      "VMSMB": 0,
+      "RSSMB": 0,
+      "Shared": 0,
+      "Text": 0,
+      "Lib": 0,
+      "Data": 0,
+      "Dirty": 0
+    },
+    "IO": {
+      "ReadBytes": 0,
+      "WriteBytes": 0,
+      "ReadOps": 0,
+      "WriteOps": 0
+    }
+  },
+  "RestartCount": 0,
+  "Ancestry": [
+    {
+      "PID": 1,
+      "PPID": 0,
+      "Command": "launchd",
+      "Cmdline": "/sbin/launchd",
+      "Exe": "",
+      "StartedAt": "2026-10-22T18:31:56Z",
+      "User": "root",
+      "CPUPercent": 0.8,
+      "MemoryRSS": 19398656,
+      "MemoryPercent": 0.1129150390625,
+      "WorkingDir": "unknown",
+      "GitRepo": "",
+      "GitBranch": "",
+      "Container": "",
+      "Service": "initproc",
+      "Sockets": [
+        {
+          "Inode": "",
+          "Port": 8021,
+          "Address": "127.0.0.1",
+          "State": "LISTEN",
+          "Protocol": "TCP"
+        },
+        {
+          "Inode": "",
+          "Port": 8021,
+          "Address": "::1",
+          "State": "LISTEN",
+          "Protocol": "TCP"
+        }
+      ],
+      "Health": "healthy",
+      "Forked": "not-forked",
+      "Env": null,
+      "ExeDeleted": false,
+      "Memory": {
+        "VMS": 0,
+        "RSS": 0,
+        "VMSMB": 0,
+        "RSSMB": 0,
+        "Shared": 0,
+        "Text": 0,
+        "Lib": 0,
+        "Data": 0,
+        "Dirty": 0
+      },
+      "IO": {
+        "ReadBytes": 0,
+        "WriteBytes": 0,
+        "ReadOps": 0,
+        "WriteOps": 0
+      }
+    },
+    {
+      "PID": 27468,
+      "PPID": 1,
+      "Command": "llama-server",
+      "Cmdline": "/Users/alejandrodelvillar/.unsloth/llama.cpp/build/bin/llama-server -m /Users/alejandrodelvillar/.cache/huggingface/hub/models--unsloth--embeddinggemma-2-GGUF/snapshots/031f0d4b35536f69ab3509d4893c923264fcf253/embeddinggemma-2-BF16.gguf --embedding --port 8901 --host 127.0.0.1 --parallel 1 --flash-attn on -c 16384 --batch-size 4096 --ubatch-size 4096",
+      "Exe": "",
+      "StartedAt": "2026-11-08T16:10:28Z",
+      "User": "alejandrodelvillar",
+      "CPUPercent": 0,
+      "MemoryRSS": 26591232,
+      "MemoryPercent": 0.15478134155273438,
+      "WorkingDir": "/",
+      "GitRepo": "",
+      "GitBranch": "",
+      "Container": "",
+      "Service": "inefficient",
+      "Sockets": [
+        {
+          "Inode": "",
+          "Port": 8901,
+          "Address": "127.0.0.1",
+          "State": "LISTEN",
+          "Protocol": "TCP"
+        }
+      ],
+      "Health": "healthy",
+      "Forked": "not-forked",
+      "Env": [
+        "OSLogRateLimit=64",
+        "XPC_SERVICE_NAME=com.adelvillar1.sem1-llama",
+        "SSH_AUTH_SOCK=/var/run/com.apple.launchd.iYTehn3qLl/Listeners",
+        "PATH=/usr/bin:/bin:/usr/sbin:/sbin",
+        "XPC_FLAGS=1",
+        "LOGNAME=alejandrodelvillar",
+        "USER=alejandrodelvillar",
+        "HOME=/Users/alejandrodelvillar",
+        "SHELL=/bin/zsh",
+        "TMPDIR=/var/folders/tw/r_gr0v7s5nzb8kfqb143fyf00000gn/T/"
+      ],
+      "ExeDeleted": false,
+      "Memory": {
+        "VMS": 0,
+        "RSS": 0,
+        "VMSMB": 0,
+        "RSSMB": 0,
+        "Shared": 0,
+        "Text": 0,
+        "Lib": 0,
+        "Data": 0,
+        "Dirty": 0
+      },
+      "IO": {
+        "ReadBytes": 0,
+        "WriteBytes": 0,
+        "ReadOps": 0,
+        "WriteOps": 0
+      }
+    }
+  ],
+  "Source": {
+    "Type": "launchd",
+    "Name": "com.adelvillar1.sem1-llama",
+    "Description": "",
+    "UnitFile": "/Users/alejandrodelvillar/Library/LaunchAgents/com.adelvillar1.sem1-llama.plist",
+    "Details": {
+      "keepalive": "Yes (restarts if killed)",
+      "plist": "/Users/alejandrodelvillar/Library/LaunchAgents/com.adelvillar1.sem1-llama.plist",
+      "triggers": "RunAtLoad (starts at login/boot)",
+      "type": "Launch Agent"
+    }
+  },
+  "Warnings": [
+    "Process is running from a suspicious working directory: /",
+    "Service name and process name do not match"
+  ],
+  "SocketInfo": {
+    "Port": 8901,
+    "State": "LISTEN",
+    "LocalAddr": "127.0.0.1",
+    "RemoteAddr": "*.*",
+    "Explanation": "The process is actively waiting for incoming connections.",
+    "Workaround": ""
+  },
+  "ResourceContext": null,
+  "FileContext": null
+}

@@ -1,0 +1,103 @@
+diff --git a/packages/client/package.json b/packages/client/package.json
+index c8d77aa..64f4c96 100644
+--- a/packages/client/package.json
++++ b/packages/client/package.json
+@@ -7,11 +7,13 @@
+   "exports": {
+     ".": "./lib/index.js",
+     "./client": "./lib/client.js",
+-    "./package.json": "./package.json"
++    "./package.json": "./package.json",
++    "./assets/*": "./lib/assets/*"
+   },
+   "files": [
+     "lib/index.js",
+-    "lib/client.js"
++    "lib/client.js",
++    "lib/assets"
+   ],
+   "dsh": {
+     "client": {
+diff --git a/packages/client/src/client/LayerFsPanel.tsx b/packages/client/src/client/LayerFsPanel.tsx
+index dcd5e71..5b4fca1 100644
+--- a/packages/client/src/client/LayerFsPanel.tsx
++++ b/packages/client/src/client/LayerFsPanel.tsx
+@@ -15,7 +15,7 @@
+ // the sharky maid theme (maid.tsx) sets inside the page.
+ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+ import { Button, IconChecklistOutlineRegular, IconEllipsisOutlineRegular, IconFolderOpenOutlineRegular, IconPlusOutlineRegular, IconRefreshOutlineRegular, IconTrashOutlineRegular, IconFlatListOutlineRegular, Menu, type MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
+-import ellen from '../../../../sim/avatars/ellen_joe.gif'
++import ellen from './assets/ellen_joe.gif'
+ import { AllSandboxes } from './AllSandboxes.tsx'
+ import { api, readProject, type Project, type ProjectState, type Status, type Storage } from './api.ts'
+ import { InitDialog } from './InitDialog.tsx'
+diff --git a/packages/client/src/client/avatars.ts b/packages/client/src/client/avatars.ts
+index 2a1a13b..f13a8e8 100644
+--- a/packages/client/src/client/avatars.ts
++++ b/packages/client/src/client/avatars.ts
+@@ -4,19 +4,19 @@
+ // not offered here, so there is no Cast switch. Each image is bundled as a
+ // data URL instead of a page-relative path.
+ import { maidAvatars } from '../../../view/src/skins/maids/cast.js'
+-import m11 from '../../../../sim/avatars/11.png'
+-import m12 from '../../../../sim/avatars/12.png'
+-import m13 from '../../../../sim/avatars/13.png'
+-import m2 from '../../../../sim/avatars/2.png'
+-import m3 from '../../../../sim/avatars/3.png'
+-import m4 from '../../../../sim/avatars/4.png'
+-import m5 from '../../../../sim/avatars/5.png'
+-import m6 from '../../../../sim/avatars/6.png'
+-import m7 from '../../../../sim/avatars/7.png'
+-import m8 from '../../../../sim/avatars/8.png'
+-import m9 from '../../../../sim/avatars/9.png'
+-import ellen from '../../../../sim/avatars/ellen_joe.png'
+-import heads from '../../../../sim/avatars/heads.png'
++import m11 from './assets/11.png'
++import m12 from './assets/12.png'
++import m13 from './assets/13.png'
++import m2 from './assets/2.png'
++import m3 from './assets/3.png'
++import m4 from './assets/4.png'
++import m5 from './assets/5.png'
++import m6 from './assets/6.png'
++import m7 from './assets/7.png'
++import m8 from './assets/8.png'
++import m9 from './assets/9.png'
++import ellen from './assets/ellen_joe.png'
++import heads from './assets/heads.png'
+ 
+ const SHEET: Record<string, string> = { ellen_joe: ellen, 2: m2, 3: m3, 4: m4, 5: m5, 6: m6, 7: m7, 8: m8, 9: m9, 11: m11, 12: m12, 13: m13, heads }
+ 
+diff --git a/packages/client/src/client/maid.tsx b/packages/client/src/client/maid.tsx
+index 1e20186..031d4ac 100644
+--- a/packages/client/src/client/maid.tsx
++++ b/packages/client/src/client/maid.tsx
+@@ -6,7 +6,7 @@
+ // follow; menus and dialogs open outside it and keep dsh's look. Dark follows
+ // dsh's colour scheme (data-theme, from followTheme), else the system's.
+ // Ellen shows how the tests went with one of her expressions.
+-import ellen from '../../../../sim/avatars/ellen_joe.png'
++import ellen from './assets/ellen_joe.png'
+ 
+ const bubbles = (ring: string, dot: string, heart: string) => `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><circle cx="10" cy="12" r="3" fill="none" stroke="${ring}" stroke-width="1.2"/><circle cx="16" cy="6" r="1.6" fill="${dot}"/><path d="M44 40c-2-3.4-7-2-6.2 1.4.7 2.8 6.2 5.6 6.2 5.6s5.5-2.8 6.2-5.6C51 38 46 36.6 44 40z" fill="${heart}"/><circle cx="52" cy="14" r="1.2" fill="${dot}"/></svg>`)}")`
+ 
+diff --git a/packages/host/src/route.js b/packages/host/src/route.js
+index 5656783..13361bf 100644
+--- a/packages/host/src/route.js
++++ b/packages/host/src/route.js
+@@ -75,7 +75,14 @@ export function registerRoutes(ctx, { spec, bindings, collector, trees, jobs = n
+     return { session: id, root: agent.root, folder, choice, project, choices: folder ? bindings.workspace(folder) : { projects: [], lastUsed: null } };
+   };
+   const handler = async (req, res) => {
+-    const rejection = ctx.connection.requestRejection(req);
++    // 0.2.3 removed requestRejection() and admits the route itself: WebRoute.auth
++    // defaults to "required", so the webServer has authenticated this request
++    // before the handler runs. Older hosts keep their own gate.
++    let rejection;
++    if (typeof ctx.connection.requestRejection === "function") {
++      const admission = ctx.connection.requestRejection(req);
++      rejection = admission && typeof admission === "object" ? admission.rejection : admission;
++    }
+     if (rejection !== undefined) { res.statusCode = rejection; res.end(); return; }
+     const url = new URL(String(req.url), "http://localhost"), parts = url.pathname.slice(PREFIX.length).split("/").filter(Boolean);
+     try {

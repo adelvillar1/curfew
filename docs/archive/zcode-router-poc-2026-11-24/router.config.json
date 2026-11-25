@@ -1,0 +1,1482 @@
+{
+  "port": 8300,
+  "localToken": "local-auto-router",
+  "providerConfigPath": "~/.zcode/v2/provider_config.json",
+  "typesafeEnvFile": "~/.zcode/router/.env",
+  "kitRoot": "~/Projects/zcode-router-kit",
+  "rosterPath": "~/Projects/zcode-router-kit/roster.json",
+  "typesafeModel": "jev-1.13.0",
+  "judge": {
+    "mode": "cascade",
+    "fastino": {
+      "model": "fastino/gliner2.5-multi-v1",
+      "apiKeyEnv": "FASTINO_API_KEY",
+      "timeoutMs": 2500,
+      "keepWarm": true
+    }
+  },
+  "ttlHours": 6,
+  "routing": {
+    "wideChars": 1000000,
+    "minConfidence": 0.6,
+    "workflowMinConfidence": 0.4,
+    "omniModel": {
+      "providerId": "xiaomi-mimo",
+      "model": "mimo-v2.6-pro",
+      "candidates": [
+        {
+          "providerId": "xiaomi-mimo",
+          "model": "mimo-v2.6-pro",
+          "caps": {
+            "ctxWindow": 1000000
+          }
+        },
+        {
+          "providerId": "zai-coding-plan",
+          "model": "GLM-5.3-Flash"
+        },
+        {
+          "providerId": "stepfun",
+          "model": "step-5-preview"
+        }
+      ]
+    },
+    "wideModel": {
+      "providerId": "xiaomi-mimo",
+      "model": "mimo-v2.6-pro",
+      "candidates": [
+        {
+          "providerId": "xiaomi-mimo",
+          "model": "mimo-v2.6-pro",
+          "caps": {
+            "ctxWindow": 1000000
+          }
+        },
+        {
+          "providerId": "zai-coding-plan",
+          "model": "GLM-5.3-Flash"
+        },
+        {
+          "providerId": "stepfun",
+          "model": "step-3.7-flash"
+        }
+      ]
+    },
+    "workloads": {
+      "quick": {
+        "providerId": "stepfun",
+        "model": "step-3.7-flash",
+        "candidates": [
+          {
+            "providerId": "stepfun",
+            "model": "step-3.7-flash"
+          },
+          {
+            "providerId": "xiaomi-mimo",
+            "model": "mimo-v2.6-flash",
+            "caps": {
+              "ctxWindow": 1000000
+            }
+          },
+          {
+            "providerId": "stepfun",
+            "model": "step-3.7-flash"
+          },
+          {
+            "providerId": "zai-coding-plan",
+            "model": "GLM-5.3-Flash"
+          }
+        ]
+      },
+      "standard_code": {
+        "providerId": "stepfun",
+        "model": "step-3.7-flash",
+        "candidates": [
+          {
+            "providerId": "stepfun",
+            "model": "step-3.7-flash"
+          },
+          {
+            "providerId": "zai-coding-plan",
+            "model": "GLM-5.3-Flash"
+          },
+          {
+            "providerId": "xiaomi-mimo",
+            "model": "mimo-v2.6-flash",
+            "caps": {
+              "ctxWindow": 1000000
+            }
+          }
+        ]
+      },
+      "hard": {
+        "providerId": "stepfun",
+        "model": "step-5-preview",
+        "candidates": [
+          {
+            "providerId": "stepfun",
+            "model": "step-5-preview"
+          },
+          {
+            "providerId": "xiaomi-mimo",
+            "model": "mimo-v2.6-pro",
+            "caps": {
+              "ctxWindow": 1000000
+            }
+          },
+          {
+            "providerId": "zai-coding-plan",
+            "model": "GLM-5.3-Flash"
+          }
+        ]
+      },
+      "prose": {
+        "providerId": "stepfun",
+        "model": "step-3.7-flash",
+        "candidates": [
+          {
+            "providerId": "stepfun",
+            "model": "step-3.7-flash"
+          },
+          {
+            "providerId": "zai-coding-plan",
+            "model": "GLM-5.3-Flash"
+          },
+          {
+            "providerId": "token-plan",
+            "model": "qwen3.8-flash"
+          }
+        ]
+      },
+      "deep_context": {
+        "providerId": "stepfun",
+        "model": "step-5-preview",
+        "candidates": [
+          {
+            "providerId": "stepfun",
+            "model": "step-5-preview"
+          },
+          {
+            "providerId": "zai-coding-plan",
+            "model": "GLM-5.3-Flash"
+          },
+          {
+            "providerId": "xiaomi-mimo",
+            "model": "mimo-v2.6-pro",
+            "caps": {
+              "ctxWindow": 1000000
+            }
+          }
+        ]
+      },
+      "composed": {
+        "providerId": "blend1",
+        "model": "blend1",
+        "candidates": [
+          {
+            "providerId": "blend1",
+            "model": "blend1"
+          },
+          {
+            "providerId": "stepfun",
+            "model": "step-3.7-flash"
+          },
+          {
+            "providerId": "zai-coding-plan",
+            "model": "GLM-5.3-Flash"
+          },
+          {
+            "providerId": "xiaomi-mimo",
+            "model": "mimo-v2.6-flash",
+            "caps": {
+              "ctxWindow": 1000000
+            }
+          }
+        ]
+      }
+    },
+    "defaultWorkload": "standard_code",
+    "thinkingStyles": {},
+    "profiles": {
+      "quick": {
+        "workload": "quick"
+      },
+      "code": {
+        "workload": "standard_code"
+      },
+      "composed": {
+        "workload": "composed"
+      },
+      "hard": {
+        "workload": "hard"
+      },
+      "prose": {
+        "workload": "prose"
+      },
+      "long-context": {
+        "workload": "deep_context"
+      },
+      "vision": {
+        "use": "omniModel"
+      },
+      "mixture": {
+        "use": "mixture"
+      },
+      "deep": {
+        "workload": "hard",
+        "thinking": "deep"
+      },
+      "bulk": {
+        "workload": "quick",
+        "thinking": "off"
+      }
+    },
+    "mixture": {
+      "proposers": [
+        {
+          "providerId": "zai-coding-plan",
+          "model": "GLM-5.3-Flash"
+        },
+        {
+          "providerId": "xiaomi-mimo",
+          "model": "mimo-v2.6-pro"
+        },
+        {
+          "providerId": "stepfun",
+          "model": "step-5-preview"
+        }
+      ],
+      "aggregator": {
+        "providerId": "zai-coding-plan",
+        "model": "GLM-5.3-Flash"
+      },
+      "proposerTimeoutMs": 240000
+    },
+    "workflows": [
+      {
+        "name": "adversarial-solve",
+        "taskArg": "task",
+        "shape": "a problem with several plausible solutions \u2014 or one naming multiple approaches like A vs B, or asking to build/try more than one \u2014 where competing independent attempts and a judge picking the best beats one opinion"
+      },
+      {
+        "name": "asr-calibrate",
+        "taskArg": "task",
+        "shape": "On a schedule or before trusting any gen1-rendered narration, when the question is which ASR legs are accurate enough to promote out of eval-only."
+      },
+      {
+        "name": "bug-hunt",
+        "taskArg": "symptom",
+        "shape": "something is broken or misbehaving and the request is to find the root cause, not to fix it yet"
+      },
+      {
+        "name": "content-production",
+        "taskArg": "brief",
+        "shape": "producing written content from a brief \u2014 a report, article, deck content, or long-form document"
+      },
+      {
+        "name": "coverage-push",
+        "taskArg": "target",
+        "shape": "adding tests or improving test coverage for a module or a codebase"
+      },
+      {
+        "name": "cross-env-data-comparison",
+        "taskArg": "question",
+        "shape": "comparing the same data across environments \u2014 staging vs production, or two datasets \u2014 where counts must be reproduced independently and access stays read-only"
+      },
+      {
+        "name": "data-triage",
+        "taskArg": "bugReport",
+        "shape": "data is wrong or a data-shaped bug needs reproducing, root-causing, and confirming against the source of truth"
+      },
+      {
+        "name": "decision-memo",
+        "taskArg": "question",
+        "shape": "a decision between plausible options \u2014 architecture choices, build-vs-buy, strategy calls \u2014 where the user wants a reasoned recommendation"
+      },
+      {
+        "name": "deep-dive",
+        "taskArg": "scope",
+        "shape": "understanding, explaining, or assessing how a system works \u2014 architecture questions, onboarding, improvement shortlists"
+      },
+      {
+        "name": "design-review",
+        "taskArg": "target",
+        "shape": "a screen, view, or product surface needs a scored design audit \u2014 hierarchy, spacing, and anti-slop checks \u2014 with a prioritized fix plan rather than a vague impression"
+      },
+      {
+        "name": "diagram-refresh",
+        "taskArg": "scope",
+        "shape": "After a code wave, before the diagrams are believed \u2014 or on a schedule, as the freshness row `kit doctor` already computes."
+      },
+      {
+        "name": "media-budget-watch",
+        "taskArg": "scope",
+        "shape": "Daily after the render cadence, or before a batch of narration work, when the question is what the next day's media seconds cost and whether they fit the budget."
+      },
+      {
+        "name": "migration",
+        "taskArg": "task",
+        "shape": "moving code from one approach, library, or pattern to another across a repository"
+      },
+      {
+        "name": "ocr-code-review",
+        "taskArg": "from",
+        "shape": "a wide range of files needs a uniform, coverage-checked review \u2014 every file accounted for and every finding confirmed \u2014 rather than a sampled read"
+      },
+      {
+        "name": "plan-backlog-generation",
+        "taskArg": "scope",
+        "shape": "a scope of work needs a structured plan backlog with sequenced, committable steps"
+      },
+      {
+        "name": "postmortem",
+        "taskArg": "incident",
+        "shape": "an incident, outage, or data problem happened and the request is to understand and write up what occurred and why"
+      },
+      {
+        "name": "regression-claim-verification",
+        "taskArg": "claim",
+        "shape": "someone claims a regression and the question is whether the evidence supports it before anything is reverted"
+      },
+      {
+        "name": "render-watch",
+        "taskArg": "dir",
+        "shape": "After a visual deliverable wave, when the question is how much judge spend an unchanged re-render would have cost."
+      },
+      {
+        "name": "research-report",
+        "taskArg": "topic",
+        "shape": "researching a topic and producing a written report or state-of-the-landscape with sources"
+      },
+      {
+        "name": "review-sweep",
+        "taskArg": "task",
+        "shape": "reviewing changes \u2014 a diff, a PR, or modified files \u2014 where findings must be confirmed before anyone acts on them",
+        "defaults": {
+          "base": ""
+        }
+      },
+      {
+        "name": "spec-compliance-review",
+        "taskArg": "plan",
+        "shape": "work is claimed done against a written plan or spec and the question is whether every acceptance criterion actually holds, with the plan's own verification commands re-executed rather than trusted"
+      },
+      {
+        "name": "swarm",
+        "taskArg": "task",
+        "shape": "a large task that decomposes into several substantial independent parts \u2014 build or analyze something big where parallel builders with reviews and an integrated deliverable win"
+      },
+      {
+        "name": "ui-implementation-review",
+        "taskArg": "target",
+        "shape": "a frontend change needs a line-by-line implementation audit against a UI checklist \u2014 loading, empty, and error states, API-shape reads, dead styles, theme tokens \u2014 where every finding is confirmed before anyone acts on it"
+      }
+    ],
+    "capsByModel": {
+      "mimo-v2.6-pro": {
+        "ctxWindow": 1000000
+      },
+      "mimo-v2.6-flash": {
+        "ctxWindow": 1000000
+      }
+    }
+  },
+  "extraUpstreams": {
+    "zai-coding-plan": {
+      "baseUrl": "https://api.z.ai/api/coding/paas/v4",
+      "apiKeyEnv": "ZAI_CODING_API_KEY"
+    },
+    "blend1": {
+      "baseUrl": "http://127.0.0.1:8420/v1",
+      "apiKeyEnv": "BLEND1_BEARER_TOKEN"
+    }
+  },
+  "workflowLibrary": [
+    {
+      "name": "adversarial-solve",
+      "description": "Solves a problem with several plausible solutions by competition: champions build competing solutions independently (no peeking), a judge compares them head to head and names the winner's weaknesses and the elements worth adopting from the rest, and the winner is finalized with those elements folded in.",
+      "whenToUse": "When a problem has several plausible solutions or approaches and the best answer should emerge from competing independent attempts rather than one opinion.",
+      "args": [
+        {
+          "name": "task",
+          "type": "string",
+          "required": true,
+          "description": "The problem to solve, including any constraints the solutions must respect."
+        }
+      ],
+      "autoArg": "task",
+      "registered": true,
+      "skipReason": null,
+      "taskArg": "task",
+      "shape": "a problem with several plausible solutions \u2014 or one naming multiple approaches like A vs B, or asking to build/try more than one \u2014 where competing independent attempts and a judge picking the best beats one opinion",
+      "defaults": null,
+      "overridden": true
+    },
+    {
+      "name": "asr-calibrate",
+      "description": "The media lane's promotion engine, as a batch loop: the pinned ASR fixture is round-tripped through the live gen1 legs into the shared feedback store (task `asr_roundtrip`, head `asr_faithful` \u2014 the join key calibration already reads), and every provider leg's accuracy and mean token agreement are graded against a named floor and a minimum row count. A leg that clears both is promotion evidence: the loop names it, escalates once that these legs are calibrated, and stops \u2014 lifting the `gen1_raw` eval-only tag is the owner's call, exactly as applying floors is theirs. Report-only by law: the loop reads the graded rows the verb just printed, never re-opens the feedback store, and has no write path to the engine's config or the tag. Fails open by name: no dev-decisions, a refusing leg, or every fixture refused ends the loop with the refusal verbatim and the tag standing.",
+      "whenToUse": "On a schedule or before trusting any gen1-rendered narration, when the question is which ASR legs are accurate enough to promote out of eval-only. Run with `--grant media`. The loop produces evidence only \u2014 the promotion is the owner's.",
+      "args": [
+        {
+          "name": "task",
+          "type": "string",
+          "required": false,
+          "description": "The calibration task key the graded rows land under (default \"asr_roundtrip\" \u2014 the engine's own constant, named here so the evidence says where it joins)."
+        },
+        {
+          "name": "fixtures",
+          "type": "string",
+          "required": false,
+          "description": "Fixture directory with .mp3/.txt pairs to grade (default the engine's pinned fixtures/media)."
+        },
+        {
+          "name": "floor",
+          "type": "number",
+          "required": false,
+          "description": "Accuracy and mean agreement a leg must reach to clear (default 0.9)."
+        },
+        {
+          "name": "minRows",
+          "type": "number",
+          "required": false,
+          "description": "Graded rows a leg needs before its score means anything (default 3)."
+        }
+      ],
+      "autoArg": "task",
+      "registered": true,
+      "skipReason": null,
+      "taskArg": "task",
+      "shape": "On a schedule or before trusting any gen1-rendered narration, when the question is which ASR legs are accurate enough to promote out of eval-only.",
+      "defaults": null,
+      "overridden": false
+    },
+    {
+      "name": "bug-hunt",
+      "description": "Finds out why something is broken: a detective lists 3-5 distinct plausible causes, testers try to prove each one in parallel, and an independent confirmer reproduces the winning cause. Returns the diagnosed cause and a proposed fix, with unconfirmed hypotheses labelled.",
+      "whenToUse": "When something is broken or misbehaving and the request is to find the root cause, not to fix it yet.",
+      "args": [
+        {
+          "name": "symptom",
+          "type": "string",
+          "required": true,
+          "description": "\"What is broken: the symptom, error, or misbehavior.\""
+        }
+      ],
+      "autoArg": "symptom",
+      "registered": true,
+      "skipReason": null,
+      "taskArg": "symptom",
+      "shape": "something is broken or misbehaving and the request is to find the root cause, not to fix it yet",
+      "defaults": null,
+      "overridden": true
+    },
+    {
+      "name": "calibrate-floors",
+      "description": "Floor calibration as a batch loop: dev-decisions' override-prior scores the kit's shared calibration store \u2014 the judge and swarm gates already feed it \u2014 into per-head override probabilities, and the loop renders each head's suggested confidence floor beside the roster's static ones (0.6 for agent asks, 0.4 for workflow escalations) as an artifact. It then asks the owner one question \u2014 apply these floors? \u2014 and does nothing else: v1 proposes and never writes, because learned floors crossing into the roster is the owner's `kit apply`, not a loop's. Deterministic tool-flow: no agents, no asks, no model calls. Fails open by name: no store to read or a refusing scorer ends the loop with the refusal verbatim and the static floors standing unchanged.",
+      "whenToUse": "After enough judged runs have accrued in the calibration store, when the question is whether the roster's static confidence floors still fit. Run with `--grant tabular`. The loop has no roster write path \u2014 the proposal is the owner's to apply by editing the roster and running `kit apply`.",
+      "args": [],
+      "autoArg": null,
+      "registered": false,
+      "skipReason": "no task argument could be derived and none is set in the roster",
+      "taskArg": null,
+      "shape": "After enough judged runs have accrued in the calibration store, when the question is whether the roster's static confidence floors still fit.",
+      "defaults": null,
+      "overridden": false
+    },
+    {
+      "name": "content-production",
+      "description": "Produces a document, report, or deck content from a brief: an outliner shapes the thesis and sections, section writers draft in parallel, and a fresh reviewer with a fix pass polishes the assembled draft before it is written to its final file. With the media grant, the finished piece also gains a voice track \u2014 spoken and gated through dev-decisions, advisory, and never a block.",
+      "whenToUse": "When the request is to produce written content \u2014 a report, article, deck content, or long-form document \u2014 from a brief.",
+      "args": [
+        {
+          "name": "brief",
+          "type": "string",
+          "required": true,
+          "description": "\"What to produce: the content, audience, format, and purpose.\""
+        }
+      ],
+      "autoArg": "brief",
+      "registered": true,
+      "skipReason": null,
+      "taskArg": "brief",
+      "shape": "producing written content from a brief \u2014 a report, article, deck content, or long-form document",
+      "defaults": null,
+      "overridden": true
+    },
+    {
+      "name": "coverage-push",
+      "description": "Adds the missing tests: per-area gap finders and test writers work chained in parallel, then the test suite decides \u2014 fix rounds until npm test passes. Each area reports which gaps its new tests cover.",
+      "whenToUse": "When the request is to add tests or improve test coverage for a module or the whole codebase.",
+      "args": [
+        {
+          "name": "target",
+          "type": "string",
+          "required": true,
+          "description": "\"The scope to add tests for: a module, directory, or the codebase.\""
+        }
+      ],
+      "autoArg": "target",
+      "registered": true,
+      "skipReason": null,
+      "taskArg": "target",
+      "shape": "adding tests or improving test coverage for a module or a codebase",
+      "defaults": null,
+      "overridden": true
+    },
+    {
+      "name": "cross-env-data-comparison",
+      "description": "Compares data across two environments: generates read-only compare scripts per entity, measures staging and production counts, confirms every count with an independent recount, and reports divergences behind an owner approval gate before any remediation. Embodies the cross-env-data-comparison skill. Never writes to either database.",
+      "whenToUse": "When staging and production data need a count-by-count comparison with independently confirmed divergences. Needs read access to both databases.",
+      "args": [
+        {
+          "name": "entities",
+          "type": "json",
+          "required": false,
+          "description": "Entities to compare across environments."
+        },
+        {
+          "name": "question",
+          "type": "string",
+          "required": false,
+          "description": "The question the comparison should answer."
+        }
+      ],
+      "autoArg": "question",
+      "registered": true,
+      "skipReason": null,
+      "taskArg": "question",
+      "shape": "comparing the same data across environments \u2014 staging vs production, or two datasets \u2014 where counts must be reproduced independently and access stays read-only",
+      "defaults": null,
+      "overridden": false
+    },
+    {
+      "name": "data-drift-detection",
+      "description": "Detects data drift: runs the drift checks, measures the drift with independent confirmation, proposes redacted fixes behind an owner approval gate, and publishes the drift report. Embodies the data-drift-detection skill. Never writes without explicit owner approval.",
+      "whenToUse": "When data may have drifted from its source of truth and needs measurement, confirmation, and gated fixes.",
+      "args": [],
+      "autoArg": null,
+      "registered": false,
+      "skipReason": "no task argument could be derived and none is set in the roster",
+      "taskArg": null,
+      "shape": "When data may have drifted from its source of truth and needs measurement, confirmation, and gated fixes.",
+      "defaults": null,
+      "overridden": false
+    },
+    {
+      "name": "data-triage",
+      "description": "Triages a data bug end to end: reproduces from the bug report, verifies data prerequisites and xlsx row gates via the skill's own scripts, audits six data-integrity categories against the database, confirms the root cause independently, implements the fix with a human approval gate before any data write, and publishes a triage report. Embodies the data-triage skill.",
+      "whenToUse": "When data is wrong or a data-shaped bug needs reproducing, root-causing, and fixing with a human approval gate before writes. Needs a reachable database for the audit stages.",
+      "args": [
+        {
+          "name": "bugReport",
+          "type": "json",
+          "required": true,
+          "description": "\"The bug report context: what is wrong, where, and any error text.\""
+        },
+        {
+          "name": "pageOrEndpoint",
+          "type": "string",
+          "required": false,
+          "description": "The user-facing page or endpoint that misbehaves."
+        },
+        {
+          "name": "sourceFile",
+          "type": "string",
+          "required": false,
+          "description": "The source file or export suspected, for prerequisite checks."
+        },
+        {
+          "name": "stagingEndpoint",
+          "type": "string",
+          "required": false,
+          "description": "Staging endpoint to verify against, when one exists."
+        }
+      ],
+      "autoArg": "bugReport",
+      "registered": true,
+      "skipReason": null,
+      "taskArg": "bugReport",
+      "shape": "data is wrong or a data-shaped bug needs reproducing, root-causing, and confirming against the source of truth",
+      "defaults": null,
+      "overridden": false
+    },
+    {
+      "name": "decision-memo",
+      "description": "Decides between options with a written memo: independent advocates make each option's strongest honest case in parallel, a judge picks (and says if a merged recommendation would beat the single best), and the memo gets an independent read before handover.",
+      "whenToUse": "When the request is a decision between plausible options \u2014 architecture choices, build-vs-buy, strategy calls \u2014 and the user wants a reasoned recommendation.",
+      "args": [
+        {
+          "name": "question",
+          "type": "string",
+          "required": true,
+          "description": "The decision to make, including the context and any options already on the table."
+        }
+      ],
+      "autoArg": "question",
+      "registered": true,
+      "skipReason": null,
+      "taskArg": "question",
+      "shape": "a decision between plausible options \u2014 architecture choices, build-vs-buy, strategy calls \u2014 where the user wants a reasoned recommendation",
+      "defaults": null,
+      "overridden": true
+    },
+    {
+      "name": "deep-dive",
+      "description": "Explains or assesses a system: explorers cover the subsystems in parallel and flag risks, a writer integrates one architecture assessment with the highest-impact improvements, and a cold reader closes the gaps before handover. Risks are labelled as judged, not reproduced.",
+      "whenToUse": "When the request is to understand, explain, or assess how a system works \u2014 architecture questions, onboarding, improvement shortlists.",
+      "args": [
+        {
+          "name": "scope",
+          "type": "string",
+          "required": true,
+          "description": "The system or question to explain or assess."
+        }
+      ],
+      "autoArg": "scope",
+      "registered": true,
+      "skipReason": null,
+      "taskArg": "scope",
+      "shape": "understanding, explaining, or assessing how a system works \u2014 architecture questions, onboarding, improvement shortlists",
+      "defaults": null,
+      "overridden": true
+    },
+    {
+      "name": "design-review",
+      "description": "Runs a deep 30-item design critique of a UI surface: an independent read-only auditor per checklist item across the skill's dimensions, the mechanical anti-pattern checks run as real command gates whose exit codes decide, and one independent reader over the composed report before handover. Embodies the design-review skill.",
+      "whenToUse": "When a screen, view, or product surface needs a scored design audit \u2014 visual hierarchy, cramped or empty layout, inconsistent spacing, and anti-slop patterns \u2014 with a P0-P3 fix plan rather than a vague impression.",
+      "args": [
+        {
+          "name": "target",
+          "type": "string",
+          "required": false,
+          "description": "Optional glob naming the surfaces to audit, for example src/screens/**. A plain-language hint naming one surface works too \u2014 the run discovers surfaces itself either way. Omit to audit every design surface in the workspace."
+        }
+      ],
+      "autoArg": "target",
+      "registered": true,
+      "skipReason": null,
+      "taskArg": "target",
+      "shape": "a screen, view, or product surface needs a scored design audit \u2014 hierarchy, spacing, and anti-slop checks \u2014 with a prioritized fix plan rather than a vague impression",
+      "defaults": null,
+      "overridden": true
+    },
+    {
+      "name": "diagram-refresh",
+      "description": "The archify diagrams kept anchored to the code. Every source ref in a *.candidate.json pins a path and a line range at a revision; this loop audits those pins against the revision they name \u2014 byte identity over the whole pinned range, never label similarity \u2014 and re-pins the refs whose anchored bytes merely moved, finalizes the candidates it touched through the archify CLI (receipts moved back beside the candidate, a fresh refresh-<n> per round), and renders the stills. That is the mechanical four-fifths of the refresh procedure, executed and re-runnable. The judgment fifth is not in this file: what a wave's new node should say, whether a claim whose bytes changed is still true, and whether the still looks right are an agent's and a reader's. Fails open by name \u2014 no git, no candidates, an absent archify CLI, a refused layout each end the loop with the refusal verbatim and the diagrams exactly as they were authored.",
+      "whenToUse": "After a code wave, before the diagrams are believed \u2014 or on a schedule, as the freshness row `kit doctor` already computes. Run with `--grant diagram,process` (process covers the stills leg only). The loop never authors a node, never verifies a claim's meaning, never repairs a rejected layout, and never looks at the PNGs.",
+      "args": [
+        {
+          "name": "dir",
+          "type": "string",
+          "required": false,
+          "description": "Directory holding the *.candidate.json diagrams and render-png.mjs (default \"docs/architecture\")."
+        },
+        {
+          "name": "revision",
+          "type": "string",
+          "required": false,
+          "description": "Revision to audit against when a candidate pins none (default \"HEAD\"; a candidate's own meta.repository.revision always wins)."
+        },
+        {
+          "name": "dryRun",
+          "type": "boolean",
+          "required": false,
+          "description": "Audit and report only \u2014 no candidate is written, no finalize runs (default false)."
+        },
+        {
+          "name": "scope",
+          "type": "string",
+          "required": false,
+          "description": "Comma-separated diagram names to finalize even when the re-pin did not touch them (default: the re-pinned diagrams only)."
+        },
+        {
+          "name": "stills",
+          "type": "string",
+          "required": false,
+          "description": "The render leg \u2014 \"check\" (verify the stills' sizes against the HTML viewBoxes, no Chrome, writes nothing: the default), \"write\" (re-render; needs headless Chrome), or \"skip\"."
+        }
+      ],
+      "autoArg": "scope",
+      "registered": true,
+      "skipReason": null,
+      "taskArg": "scope",
+      "shape": "After a code wave, before the diagrams are believed \u2014 or on a schedule, as the freshness row `kit doctor` already computes.",
+      "defaults": null,
+      "overridden": false
+    },
+    {
+      "name": "document-to-action-items",
+      "description": "Turns documents into tracked action items: extracts proposed actions from each document in parallel, confirms them, files approved ones to the tracker behind an owner approval gate, and verifies every written record independently. Embodies the document-to-action-items skill.",
+      "whenToUse": "When documents (specs, notes, reports) should become assigned, tracked action items.",
+      "args": [
+        {
+          "name": "documents",
+          "type": "json",
+          "required": false,
+          "description": "Documents to convert into action items."
+        },
+        {
+          "name": "outputSchema",
+          "type": "json",
+          "required": false,
+          "description": "Schema for the produced records."
+        },
+        {
+          "name": "tracker",
+          "type": "string",
+          "required": false,
+          "description": "Issue tracker to file action items into."
+        },
+        {
+          "name": "trackerTarget",
+          "type": "string",
+          "required": false,
+          "description": "Tracker project/repo target."
+        }
+      ],
+      "autoArg": null,
+      "registered": false,
+      "skipReason": "no task argument could be derived and none is set in the roster",
+      "taskArg": null,
+      "shape": "When documents (specs, notes, reports) should become assigned, tracked action items.",
+      "defaults": null,
+      "overridden": false
+    },
+    {
+      "name": "documentation-consolidation",
+      "description": "Consolidates a documentation set: inventories docs, audits each for staleness and overlap in parallel with independent confirmation, plans merges/deduplications, applies them, and reports what changed. Embodies the documentation-consolidation skill (its SKILL.md and references/ are read at runtime for detail).",
+      "whenToUse": "When a docs set has grown overlapping or stale and needs auditing, merging, and deduplication as one piece of work.",
+      "args": [
+        {
+          "name": "commit",
+          "type": "string",
+          "required": false,
+          "description": "Commit or ref to consolidate documentation at; empty uses the working tree."
+        }
+      ],
+      "autoArg": null,
+      "registered": false,
+      "skipReason": "no task argument could be derived and none is set in the roster",
+      "taskArg": null,
+      "shape": "When a docs set has grown overlapping or stale and needs auditing, merging, and deduplication as one piece of work.",
+      "defaults": null,
+      "overridden": false
+    },
+    {
+      "name": "documentation-staleness-audit",
+      "description": "Audits documentation staleness: inventories docs, checks each against the code and drift signals in parallel (deep audits on the worst, confirmed findings), brokers open decisions to the run owner, and publishes a staleness report. Embodies the documentation-staleness-audit skill; its detect-* drift scripts are used as gates when the audited repo has them.",
+      "whenToUse": "When a docs tree needs a staleness audit \u2014 which pages lie about the code, with confirmed findings and open decisions surfaced.",
+      "args": [],
+      "autoArg": null,
+      "registered": false,
+      "skipReason": "no task argument could be derived and none is set in the roster",
+      "taskArg": null,
+      "shape": "When a docs tree needs a staleness audit \u2014 which pages lie about the code, with confirmed findings and open decisions surfaced.",
+      "defaults": null,
+      "overridden": false
+    },
+    {
+      "name": "dupe-watch",
+      "description": "Calibration-store hygiene as a batch loop: dev-decisions' semantic lane indexes what each graded row still references (plan files, claims, notes \u2014 the stores are redacted, so the index is over surrogate text) and reports near-dupe pairs joined against the feedback store. Pairs whose two sides carry divergent grades escalate \u2014 that is an ambivalence in the calibration moat an owner must see; pairs with agreeing grades render a merge proposal; ungraded pairs are leads. Report-only by law: nothing merges, nothing annotates, rows stay eval-only (embeddings propose, sys1/sdm1 dispose). Fails open by name: no dev-decisions, no sem1, or no index ends the loop with the refusal verbatim and calibration unchanged.",
+      "whenToUse": "On a schedule or after calibration-heavy sessions, when the question is which graded inputs are near-duplicates of each other and whether their grades agree. Run with `--grant semantic`. The loop only reads and rebuilds the eval-only index \u2014 it never writes the stores.",
+      "args": [
+        {
+          "name": "corpus",
+          "type": "string",
+          "required": false,
+          "description": "Which corpus to dedup (default \"calibration\" \u2014 the graded stores' index)."
+        },
+        {
+          "name": "limit",
+          "type": "number",
+          "required": false,
+          "description": "Max near-dupe pairs to render (default 20)."
+        }
+      ],
+      "autoArg": null,
+      "registered": false,
+      "skipReason": "no task argument could be derived and none is set in the roster",
+      "taskArg": null,
+      "shape": "On a schedule or after calibration-heavy sessions, when the question is which graded inputs are near-duplicates of each other and whether their grades agree.",
+      "defaults": null,
+      "overridden": false
+    },
+    {
+      "name": "email-inbox-triage",
+      "description": "Triages an inbox: retrieves threads through the named connector, classifies each by disposition with parallel classifiers and an independent review, drafts replies or actions per disposition, and escalates one whole-batch approval gate to the run owner before any send/write. Embodies the email-inbox-triage skill.",
+      "whenToUse": "When an inbox needs triage \u2014 classify, draft replies, and get owner approval before anything is sent.",
+      "args": [
+        {
+          "name": "connector",
+          "type": "string",
+          "required": false,
+          "description": "Mailbox connector to use."
+        },
+        {
+          "name": "mailbox",
+          "type": "string",
+          "required": false,
+          "description": "Mailbox to triage."
+        },
+        {
+          "name": "replyGuidance",
+          "type": "string",
+          "required": false,
+          "description": "Guidance for drafted replies."
+        }
+      ],
+      "autoArg": null,
+      "registered": false,
+      "skipReason": "no task argument could be derived and none is set in the roster",
+      "taskArg": null,
+      "shape": "When an inbox needs triage \u2014 classify, draft replies, and get owner approval before anything is sent.",
+      "defaults": null,
+      "overridden": false
+    },
+    {
+      "name": "flake-watch",
+      "description": "Flake watch as a batch loop: the probe-outcomes table every `npm test` appends to is scored by dev-decisions' history-gate, and the loop reports each suite's run count, flake probability, and a chase-or-quarantine verdict \u2014 naming, for any suite that both failed recently and scores as a high-probability flake, that it is the likely known flake: quarantine, don't chase. Report-only by design \u2014 quarantine is an owner decision, because it changes what green means for every future run, so v1 never escalates, never edits CI, never silences anything. Deterministic tool-flow: no agents, no asks, no model calls. Fails open by name: no table or a refusing scorer ends the loop with the refusal verbatim and every suite chased exactly as today.",
+      "whenToUse": "After probe runs or on a schedule, when the question is which suites are flaky rather than broken. Run with `--grant tabular`. The loop only reads \u2014 `npm test` (through run-probes) is what grows the table.",
+      "args": [
+        {
+          "name": "suites",
+          "type": "string",
+          "required": false,
+          "description": "Comma-separated suite-name filters (substring match) \u2014 omit to score every suite the table declares."
+        }
+      ],
+      "autoArg": null,
+      "registered": false,
+      "skipReason": "no task argument could be derived and none is set in the roster",
+      "taskArg": null,
+      "shape": "After probe runs or on a schedule, when the question is which suites are flaky rather than broken.",
+      "defaults": null,
+      "overridden": false
+    },
+    {
+      "name": "git-history-analytics",
+      "description": "Turns a repository's history into measured analytics: pulls every commit through the skill's own script as a deterministic gate, runs the analytics dimensions in parallel with independent audit rounds against measured command output, and publishes the analytics report. Embodies the git-history-analytics skill.",
+      "whenToUse": "When a repository's history needs measured analytics \u2014 activity, churn, fix rates \u2014 grounded in the commit record.",
+      "args": [
+        {
+          "name": "branch",
+          "type": "string",
+          "required": false,
+          "description": "Branch to analyze; empty uses the current branch."
+        },
+        {
+          "name": "repo",
+          "type": "string",
+          "required": false,
+          "description": "Repository slug or path to analyze."
+        },
+        {
+          "name": "skillDir",
+          "type": "string",
+          "required": false,
+          "description": "Path to the git-history-analytics skill dir holding scripts/."
+        },
+        {
+          "name": "timezone",
+          "type": "string",
+          "required": false,
+          "description": "Timezone for date handling."
+        }
+      ],
+      "autoArg": null,
+      "registered": false,
+      "skipReason": "no task argument could be derived and none is set in the roster",
+      "taskArg": null,
+      "shape": "When a repository's history needs measured analytics \u2014 activity, churn, fix rates \u2014 grounded in the commit record.",
+      "defaults": null,
+      "overridden": false
+    },
+    {
+      "name": "git-history-project-retrospective",
+      "description": "Turns a repository's full GitHub history into an evidence-based project retrospective: pulls every commit through the skill's own analysis script as a deterministic gate, assembles and cross-checks headline figures against measured command output with independent audit rounds, and writes the retrospective. Embodies the git-history-project-retrospective skill.",
+      "whenToUse": "When the request is a project retrospective or history analysis grounded in the actual commit record rather than memory.",
+      "args": [
+        {
+          "name": "branch",
+          "type": "string",
+          "required": false,
+          "description": "Branch to analyze; empty uses the current branch."
+        },
+        {
+          "name": "repo",
+          "type": "string",
+          "required": false,
+          "description": "Repository path to analyze; empty uses the workspace."
+        },
+        {
+          "name": "skillDir",
+          "type": "string",
+          "required": false,
+          "description": "Path to the git-history-project-retrospective skill dir holding scripts/."
+        }
+      ],
+      "autoArg": null,
+      "registered": false,
+      "skipReason": "no task argument could be derived and none is set in the roster",
+      "taskArg": null,
+      "shape": "When the request is a project retrospective or history analysis grounded in the actual commit record rather than memory.",
+      "defaults": null,
+      "overridden": false
+    },
+    {
+      "name": "media-budget-watch",
+      "description": "Media spend watched as a batch loop: gen1's telemetry sink is ingested into the tabular lane's media-seconds table (occurrence-keyed, so a re-run lands nothing twice), and the next day's audio-seconds are forecast per provider through sdm1 against a named budget. A provider with fewer than four recorded days degrades to recorded stats with the reason named \u2014 never a fabricated band \u2014 and degradation never escalates: a named reason is information, not a crossing. An estimate over the budget is reported and escalated exactly once. Report-only by law: the loop writes nothing of its own \u2014 the ingest verb owns its table \u2014 and it reads no file, so the forecast is the engine's row, never the loop's arithmetic. Fails open by name: no dev-decisions, no telemetry sink, or an empty table ends the loop with the refusal verbatim and the spend unjudged.",
+      "whenToUse": "Daily after the render cadence, or before a batch of narration work, when the question is what the next day's media seconds cost and whether they fit the budget. Run with `--grant media`. The daily ingest is `npm run record:media`; this loop is the reading of what that cadence lands.",
+      "args": [
+        {
+          "name": "budgetSeconds",
+          "type": "number",
+          "required": false,
+          "description": "Next-day media-seconds budget; the estimate over it is the one escalation. Absent = report only, no crossing judged."
+        },
+        {
+          "name": "scope",
+          "type": "string",
+          "required": false,
+          "description": "Comma-separated provider tags to report on (default every provider in the row). A view filter, never the math: the estimate stays the engine's whole-provider number."
+        },
+        {
+          "name": "telemetry",
+          "type": "string",
+          "required": false,
+          "description": "gen1 telemetry JSONL to ingest (default the engine's own sink: GEN1_TELEMETRY_FILE or ~/.config/gen1/telemetry.jsonl)."
+        }
+      ],
+      "autoArg": "scope",
+      "registered": true,
+      "skipReason": null,
+      "taskArg": "scope",
+      "shape": "Daily after the render cadence, or before a batch of narration work, when the question is what the next day's media seconds cost and whether they fit the budget.",
+      "defaults": null,
+      "overridden": false
+    },
+    {
+      "name": "meeting-action-items",
+      "description": "Turns a meeting into tracked action items: extracts items from transcripts in parallel, resolves owners, files each to the issue tracker behind an owner approval gate, and reads every record back with independent verification. Embodies the meeting-action-items skill.",
+      "whenToUse": "When a meeting's transcript or notes should become assigned, tracked action items.",
+      "args": [
+        {
+          "name": "meetingContext",
+          "type": "json",
+          "required": false,
+          "description": "Context about the meeting and its participants."
+        },
+        {
+          "name": "meetingSources",
+          "type": "json",
+          "required": false,
+          "description": "Transcript/notes sources for the meeting."
+        },
+        {
+          "name": "tracker",
+          "type": "string",
+          "required": false,
+          "description": "Issue tracker to file action items into."
+        },
+        {
+          "name": "trackerTarget",
+          "type": "string",
+          "required": false,
+          "description": "Tracker project/repo target."
+        }
+      ],
+      "autoArg": null,
+      "registered": false,
+      "skipReason": "no task argument could be derived and none is set in the roster",
+      "taskArg": null,
+      "shape": "When a meeting's transcript or notes should become assigned, tracked action items.",
+      "defaults": null,
+      "overridden": false
+    },
+    {
+      "name": "migration",
+      "description": "Migrates a codebase from one approach to another with command gates: a planner splits the work into independent areas, migrators work in parallel, and the test suite and build decide when it is done \u2014 fix rounds until npm test passes, then npm run build before handover.",
+      "whenToUse": "When the request is to move code from one approach, library, or pattern to another across a repository.",
+      "args": [
+        {
+          "name": "task",
+          "type": "string",
+          "required": true,
+          "description": "What to migrate from, to what."
+        }
+      ],
+      "autoArg": "task",
+      "registered": true,
+      "skipReason": null,
+      "taskArg": "task",
+      "shape": "moving code from one approach, library, or pattern to another across a repository",
+      "defaults": null,
+      "overridden": true
+    },
+    {
+      "name": "narrate",
+      "description": "The media lane's narration seam, as a one-pass batch loop: render a request file of lines through gen1's speak legs, assemble the hyperframes `audio_meta.json` from the engine's own accountable rows, and gate the result against the script through the ASR round-trip. Verify mode is the default \u2014 a `--script`/`--audio` pair or an existing `--request`/`--meta`/`--project` render is gated with nothing rendered. Render mode speaks each line into `outDir` and gates the seam it just built. The verdict is advisory by the lane's law: `gaps` reports and escalates once, and the loop never blocks, because the engine's gate never blocks. A `--project` path-escape is the engine's refusal by name \u2014 the loop resolves nothing itself and passes the refusal through verbatim. Fails open by name: no dev-decisions, an unreadable request, or a refusing leg ends the loop with the refusal verbatim and nothing rendered.",
+      "whenToUse": "Before or after rendering narration, when the question is whether the spoken audio still says what the script says. Run with `--grant media`. Hand-launched by design \u2014 the args are structured, and a render spends real provider seconds, so nothing here is router-assignable.",
+      "args": [
+        {
+          "name": "script",
+          "type": "string",
+          "required": false,
+          "description": "Ground-truth script text (verify mode, single-file). Pair with `audio`."
+        },
+        {
+          "name": "audio",
+          "type": "string",
+          "required": false,
+          "description": "Rendered audio file to verify against `script` (verify mode, single-file)."
+        },
+        {
+          "name": "request",
+          "type": "string",
+          "required": false,
+          "description": "Request file of lines (a JSON array of {id, text}, or an object with a \"lines\" array). With `meta` it is an existing render to verify; without it, render mode speaks these lines."
+        },
+        {
+          "name": "meta",
+          "type": "string",
+          "required": false,
+          "description": "An existing audio_meta.json \u2014 its presence puts the loop in verify-seam mode against the render already on disk."
+        },
+        {
+          "name": "project",
+          "type": "string",
+          "required": false,
+          "description": "Render project dir the meta's audio paths resolve against (default \".\" \u2014 the workspace root; the loop's own meta paths are workspace-relative)."
+        },
+        {
+          "name": "outDir",
+          "type": "string",
+          "required": false,
+          "description": "Where renders land and the loop's own audio_request.json / audio_meta.json are written (default assets/voice). Project-relative: a path outside the workspace is the engine's path-escape refusal, by name."
+        },
+        {
+          "name": "voice",
+          "type": "string",
+          "required": false,
+          "description": "Voice id forwarded to every speak leg (default the provider catalog's own)."
+        },
+        {
+          "name": "language",
+          "type": "string",
+          "required": false,
+          "description": "Language forwarded to the speak legs and the ASR gate (default en)."
+        },
+        {
+          "name": "speed",
+          "type": "number",
+          "required": false,
+          "description": "Speech rate multiplier forwarded to the speak legs (default the provider's own)."
+        },
+        {
+          "name": "format",
+          "type": "string",
+          "required": false,
+          "description": "Audio format the render is named for and forwarded to the speak legs (default mp3). Every provider serves its own container and the row says which \u2014 a disagreement is named, never hidden."
+        },
+        {
+          "name": "dryRun",
+          "type": "boolean",
+          "required": false,
+          "description": "Verify without rendering: no speak leg is called and no meta is written; the gate still runs against whatever seam is already on disk."
+        }
+      ],
+      "autoArg": null,
+      "registered": false,
+      "skipReason": "no task argument could be derived and none is set in the roster",
+      "taskArg": null,
+      "shape": "Before or after rendering narration, when the question is whether the spoken audio still says what the script says.",
+      "defaults": null,
+      "overridden": false
+    },
+    {
+      "name": "ocr-code-review",
+      "description": "Runs a coverage-guaranteed code review over a git range using the alibaba open-code-review CLI as its scaffolding: the delegate preview fixes the manifest up front, every file on it is reviewed and its findings confirmed as they land, a ledger accounts for every file and every finding so nothing is silently skipped, the paid review round runs behind an owner gate, and this repository's OCR GitHub Action is audited against the hardening rules. Embodies the ocr-code-review skill.",
+      "whenToUse": "When a wide range of files needs a uniform, coverage-checked review \u2014 every file accounted for, every finding confirmed \u2014 rather than a sampled read.",
+      "args": [
+        {
+          "name": "from",
+          "type": "string",
+          "required": false,
+          "description": "Git ref the reviewed range starts at. Defaults to HEAD~1."
+        },
+        {
+          "name": "to",
+          "type": "string",
+          "required": false,
+          "description": "Git ref the reviewed range ends at. Defaults to HEAD."
+        },
+        {
+          "name": "skillPath",
+          "type": "string",
+          "required": false,
+          "description": "Optional override for the path to the skill's SKILL.md, for a checkout that lives somewhere other than this machine's default."
+        }
+      ],
+      "autoArg": null,
+      "registered": true,
+      "skipReason": null,
+      "taskArg": "from",
+      "shape": "a wide range of files needs a uniform, coverage-checked review \u2014 every file accounted for and every finding confirmed \u2014 rather than a sampled read",
+      "defaults": null,
+      "overridden": true
+    },
+    {
+      "name": "pipeline-event-log",
+      "description": "Audits a workspace implementation against the pipeline-event-log skill's verification checklist: one auditor plus independent confirmers per checklist item, a synthesizer that reconciles verdicts, and a checklist report where every pass rests on named evidence or is labelled unconfirmed. Embodies the pipeline-event-log skill.",
+      "whenToUse": "When a pipeline implementation needs auditing against the pipeline-event-log pattern's verification checklist.",
+      "args": [],
+      "autoArg": null,
+      "registered": false,
+      "skipReason": "no task argument could be derived and none is set in the roster",
+      "taskArg": null,
+      "shape": "When a pipeline implementation needs auditing against the pipeline-event-log pattern's verification checklist.",
+      "defaults": null,
+      "overridden": false
+    },
+    {
+      "name": "plan-backlog-generation",
+      "description": "Generates a plan backlog: scans scope for gaps in parallel, writes numbered plan files with dependency waves, settles sequencing with the run owner by escalation, commits the batch behind an explicit owner yes, and appends the post-recap section. Embodies the plan-backlog-generation skill.",
+      "whenToUse": "When a scope of work needs a structured plan backlog with sequenced, committed plan files.",
+      "args": [
+        {
+          "name": "scope",
+          "type": "string",
+          "required": false,
+          "description": "Scope to build the backlog from."
+        }
+      ],
+      "autoArg": "scope",
+      "registered": true,
+      "skipReason": null,
+      "taskArg": "scope",
+      "shape": "a scope of work needs a structured plan backlog with sequenced, committable steps",
+      "defaults": null,
+      "overridden": false
+    },
+    {
+      "name": "plan-status-audit",
+      "description": "Audits existing plans: discovers candidate plans with deterministic gates, runs each plan's evidence checks (git history, branches, recaps) through a verifier and independent confirmer, renders the verdict table with a fresh-eyes review, and flips only owner-approved plan statuses. Embodies the plan-status-audit skill.",
+      "whenToUse": "When plan files need an evidence-based status audit and owner-approved status flips.",
+      "args": [],
+      "autoArg": null,
+      "registered": false,
+      "skipReason": "no task argument could be derived and none is set in the roster",
+      "taskArg": null,
+      "shape": "When plan files need an evidence-based status audit and owner-approved status flips.",
+      "defaults": null,
+      "overridden": false
+    },
+    {
+      "name": "postmortem",
+      "description": "Writes up an incident: investigators reconstruct the timeline from each evidence source in parallel, one analyst finds the root cause and contributing factors, an independent confirmer checks the causal claim against the evidence, and a blameless postmortem is written with concrete actions.",
+      "whenToUse": "When an incident, outage, or data problem happened and the request is to understand and write up what occurred and why.",
+      "args": [
+        {
+          "name": "incident",
+          "type": "string",
+          "required": true,
+          "description": "\"What happened: the incident, its symptoms, and the time window if known.\""
+        }
+      ],
+      "autoArg": "incident",
+      "registered": true,
+      "skipReason": null,
+      "taskArg": "incident",
+      "shape": "an incident, outage, or data problem happened and the request is to understand and write up what occurred and why",
+      "defaults": null,
+      "overridden": true
+    },
+    {
+      "name": "production-sync-procedure",
+      "description": "Prepares and verifies a production database sync: enforces the never-sync-before-deprecating sequencing with the owner-supplied classification authoritative, builds the migration plan with dry-run gates, runs compliance review and post-sync drift checks from the skill's own scripts where present, and publishes a ready-to-execute plan whose verdicts are labelled as attestation where nothing measured them. Embodies the production-sync-procedure skill.",
+      "whenToUse": "When a production database sync is planned and needs the deprecation-first sequencing, dry-run gates, and compliance review. Meant to run in the workspace that holds the drift evidence (the CI/data repo).",
+      "args": [
+        {
+          "name": "destructiveApproved",
+          "type": "boolean",
+          "required": false,
+          "description": "Owner has approved destructive steps. default: false"
+        },
+        {
+          "name": "isCleanupSync",
+          "type": "boolean",
+          "required": false,
+          "description": "This is a cleanup sync after deprecation (never sync before deprecating). default: false"
+        }
+      ],
+      "autoArg": null,
+      "registered": false,
+      "skipReason": "no task argument could be derived and none is set in the roster",
+      "taskArg": null,
+      "shape": "When a production database sync is planned and needs the deprecation-first sequencing, dry-run gates, and compliance review.",
+      "defaults": null,
+      "overridden": false
+    },
+    {
+      "name": "quota-forecast",
+      "description": "Quota forecast as a batch loop: the kit's own spend table \u2014 quota-spend.csv, written by `npm run record:quota` \u2014 is scored by dev-decisions' budget-gate (an sdm1 quantile band over each plan's weighted spend series), and the loop renders each plan's forecast band and exhaustion estimate beside the table's own freshness. A plan whose earliest band edge lands inside the horizon escalates \u2014 the ladder exists so an owner answer can re-route tiers before anything dies. Deterministic tool-flow throughout: no agents, no asks, no model calls; the one blocking judgment is the owner's. Fails open by name: no table, no dev-decisions, or an empty answer ends the loop with the refusal verbatim and routing unchanged.",
+      "whenToUse": "Between sessions or on a schedule, when the question is which token plans are burning toward exhaustion inside the horizon. Run with `--grant tabular`. The loop only reads \u2014 `npm run record:quota` is what refreshes the table it reads.",
+      "args": [
+        {
+          "name": "plan",
+          "type": "string",
+          "required": false,
+          "description": "One plan (providerId) to forecast \u2014 omit to forecast every plan the spend table declares."
+        },
+        {
+          "name": "horizonHours",
+          "type": "number",
+          "required": false,
+          "description": "The forecast window in hours (default 72) \u2014 a plan whose earliest exhaustion estimate lands inside it escalates."
+        }
+      ],
+      "autoArg": null,
+      "registered": false,
+      "skipReason": "no task argument could be derived and none is set in the roster",
+      "taskArg": null,
+      "shape": "Between sessions or on a schedule, when the question is which token plans are burning toward exhaustion inside the horizon.",
+      "defaults": null,
+      "overridden": false
+    },
+    {
+      "name": "regression-claim-verification",
+      "description": "Verifies a regression claim against evidence in three branches (code audit, production audit, prerequisite check): independent confirmers reproduce each finding from served bytes and git history rather than trusting the finder, handoff conditions are evaluated at the end, and the verdict separates script-observed facts from subagent-reported ones. Embodies the regression-claim-verification skill. Assumes a Railway-deployed project with hashed CSS bundles.",
+      "whenToUse": "When someone claims a regression and the question is whether the evidence supports it \u2014 before anyone fixes or reverts anything.",
+      "args": [
+        {
+          "name": "claim",
+          "type": "string",
+          "required": true,
+          "description": "The regression claim to verify (e.g. 'the new CSS broke the pricing page')."
+        }
+      ],
+      "autoArg": "claim",
+      "registered": true,
+      "skipReason": null,
+      "taskArg": "claim",
+      "shape": "someone claims a regression and the question is whether the evidence supports it before anything is reverted",
+      "defaults": null,
+      "overridden": false
+    },
+    {
+      "name": "render-watch",
+      "description": "The visual drift pre-filter, in shadow: a rendered wave's PNGs are embedded into a named corpus (dev-decisions' st-worker image leg \u2014 deterministic re-encode, so an unchanged render re-embeds at exactly 1.0000 cosine), and each render is compared against the last-accepted baseline. A 1.0000 match is logged as would-skip \u2014 the visual-judge dispatch a future wave could skip \u2014 and everything else is logged as dispatch-needed. SHADOW LAW: this loop skips nothing and dispatches nothing; it counts, and its counts are the promotion evidence. The one flip it owns is the baseline: with promote (or the owner's escalation answer) the wave's renders become the next baseline. Fails open by name.",
+      "whenToUse": "After a visual deliverable wave, when the question is how much judge spend an unchanged re-render would have cost. Run with `--grant semantic`. The loop never touches the visual judge \u2014 it reads geometry and counts.",
+      "args": [
+        {
+          "name": "dir",
+          "type": "string",
+          "required": true,
+          "description": "Directory of this wave's rendered images (PNG/JPEG; indexed as the current corpus)."
+        },
+        {
+          "name": "baselineCorpus",
+          "type": "string",
+          "required": false,
+          "description": "The corpus holding the last-accepted renders (default \"renders-baseline\")."
+        },
+        {
+          "name": "currentCorpus",
+          "type": "string",
+          "required": false,
+          "description": "Where this wave's renders are indexed (default \"renders-current\")."
+        },
+        {
+          "name": "promote",
+          "type": "boolean",
+          "required": false,
+          "description": "Index this wave into the baseline corpus after comparison (default false \u2014 the escalation can grant it instead)."
+        }
+      ],
+      "autoArg": "dir",
+      "registered": true,
+      "skipReason": null,
+      "taskArg": "dir",
+      "shape": "After a visual deliverable wave, when the question is how much judge spend an unchanged re-render would have cost.",
+      "defaults": null,
+      "overridden": false
+    },
+    {
+      "name": "research-report",
+      "description": "Researches a topic and writes it up with sources: parallel scouts cover 4-6 angles, checkers verify each angle's load-bearing claims against their cited sources, a writer synthesizes with citations, and a cold reader closes the gaps before handover.",
+      "whenToUse": "When the request is to research a topic and produce a written report or state-of-the-landscape.",
+      "args": [
+        {
+          "name": "topic",
+          "type": "string",
+          "required": true,
+          "description": "The research question or topic."
+        }
+      ],
+      "autoArg": "topic",
+      "registered": true,
+      "skipReason": null,
+      "taskArg": "topic",
+      "shape": "researching a topic and producing a written report or state-of-the-landscape with sources",
+      "defaults": null,
+      "overridden": true
+    },
+    {
+      "name": "review-sweep",
+      "description": "Reviews changed files with confirmed findings: one reviewer per changed file, one independent confirmer per finding chained as reviews land, findings sorted by severity and published as a review report. Every finding is either reproduced by a confirmer who did not produce the review or labelled unconfirmed.",
+      "whenToUse": "When the request is to review changes \u2014 a diff, a PR, or modified files \u2014 and findings should be confirmed before anyone acts on them.",
+      "args": [
+        {
+          "name": "base",
+          "type": "string",
+          "required": false,
+          "description": "Diff base ref; empty reviews working-tree changes. default: \""
+        },
+        {
+          "name": "task",
+          "type": "string",
+          "required": true,
+          "description": "\"What to review for: the review's focus or the change's purpose.\""
+        }
+      ],
+      "autoArg": "task",
+      "registered": true,
+      "skipReason": null,
+      "taskArg": "task",
+      "shape": "reviewing changes \u2014 a diff, a PR, or modified files \u2014 where findings must be confirmed before anyone acts on them",
+      "defaults": {
+        "base": ""
+      },
+      "overridden": true
+    },
+    {
+      "name": "spec-compliance-review",
+      "description": "Grades a plan against itself acceptance criterion by acceptance criterion: the checklist is read by a subagent that did not write the plan, every verification command the plan claims passed is re-executed as a real gate, findings are independently confirmed, gaps are adjudicated and challenged by a fresh session, and the verdict is a go, no-go, or go-with-caveats. Embodies the spec-compliance-review skill.",
+      "whenToUse": "When work is claimed done against a written plan or spec and the question is whether every acceptance criterion actually holds \u2014 especially before treating a plan's own passed checks as evidence.",
+      "args": [
+        {
+          "name": "plan",
+          "type": "string",
+          "required": false,
+          "description": "Optional path to the plan document to grade. Omit to discover the plan from the repository's plan files."
+        },
+        {
+          "name": "base",
+          "type": "string",
+          "required": false,
+          "description": "Optional git ref anchoring the changes under review. Omit to use the working tree."
+        },
+        {
+          "name": "commit",
+          "type": "string",
+          "required": false,
+          "description": "Optional commit sha or range identifying the phase under review."
+        }
+      ],
+      "autoArg": null,
+      "registered": true,
+      "skipReason": null,
+      "taskArg": "plan",
+      "shape": "work is claimed done against a written plan or spec and the question is whether every acceptance criterion actually holds, with the plan's own verification commands re-executed rather than trusted",
+      "defaults": null,
+      "overridden": true
+    },
+    {
+      "name": "swarm",
+      "description": "Runs a task as a multi-agent swarm with router-decided topology: the auto-router decides single vs mixture vs swarm, the swarm path decomposes the task, builds parts in parallel with per-part reviewers and a bounded fix loop, integrates one deliverable, and gives it an independent read before handover. Fails loudly when no task is provided. Subagents run on the router's auto model, so every delegation call routes by workload.",
+      "whenToUse": "When a task is large, hard, or important enough to deserve multi-agent execution \u2014 parallel builders, independent review, and an integrated deliverable \u2014 and you want the router to decide whether it needs the full swarm or one focused worker.",
+      "args": [
+        {
+          "name": "task",
+          "type": "string",
+          "required": true,
+          "description": "The task the swarm should execute end to end."
+        }
+      ],
+      "autoArg": "task",
+      "registered": true,
+      "skipReason": null,
+      "taskArg": "task",
+      "shape": "a large task that decomposes into several substantial independent parts \u2014 build or analyze something big where parallel builders with reviews and an integrated deliverable win",
+      "defaults": null,
+      "overridden": true
+    },
+    {
+      "name": "ui-implementation-review",
+      "description": "Runs a deep, checklist-driven UI implementation review: the skill's grep recipes run as deterministic gates with absence never recorded as clean, per-domain auditors fan out over the checklist, every finding they return is independently confirmed up to a per-domain cap, live checks run where the skill demands them, and the findings are deduplicated, triaged, and ranked before the report is written. Embodies the ui-implementation-review skill.",
+      "whenToUse": "When a frontend change needs a line-by-line implementation audit against a UI review checklist \u2014 error, empty, and loading states, destructured API shapes, dead styles, theme tokens \u2014 where findings must be confirmed before anyone acts on them.",
+      "args": [
+        {
+          "name": "target",
+          "type": "string",
+          "required": false,
+          "description": "Optional path or glob naming the implementation to review. Omit to review the working tree at HEAD."
+        },
+        {
+          "name": "base",
+          "type": "string",
+          "required": false,
+          "description": "Optional git ref to diff against. Omit for the whole working tree rather than a diff."
+        }
+      ],
+      "autoArg": "target",
+      "registered": true,
+      "skipReason": null,
+      "taskArg": "target",
+      "shape": "a frontend change needs a line-by-line implementation audit against a UI checklist \u2014 loading, empty, and error states, API-shape reads, dead styles, theme tokens \u2014 where every finding is confirmed before anyone acts on it",
+      "defaults": null,
+      "overridden": true
+    },
+    {
+      "name": "weekly-review-planning",
+      "description": "Runs a weekly review and planning cycle: gathers the week's evidence across systems in parallel, reviews what happened against the plan, holds the criteria walks and decisions with the run owner by escalation, and produces the next week's plan. Embodies the weekly-review-planning skill.",
+      "whenToUse": "When it is time for a weekly review: reflect on the week against the plan and produce next week's plan with owner sign-off.",
+      "args": [
+        {
+          "name": "planningHorizon",
+          "type": "string",
+          "required": false,
+          "description": "Planning horizon for the review."
+        },
+        {
+          "name": "reviewWindow",
+          "type": "string",
+          "required": false,
+          "description": "Window the review covers."
+        },
+        {
+          "name": "systems",
+          "type": "json",
+          "required": false,
+          "description": "Systems to include in the review."
+        },
+        {
+          "name": "timezone",
+          "type": "string",
+          "required": false,
+          "description": "Timezone for date handling."
+        }
+      ],
+      "autoArg": null,
+      "registered": false,
+      "skipReason": "no task argument could be derived and none is set in the roster",
+      "taskArg": null,
+      "shape": "When it is time for a weekly review: reflect on the week against the plan and produce next week's plan with owner sign-off.",
+      "defaults": null,
+      "overridden": false
+    },
+    {
+      "name": "write-session-recap",
+      "description": "Writes a session recap: walks the session's git evidence and areas with parallel walkers and proposers, holds shape/criteria/doc decisions with the run owner by escalation, fills the recap template with per-line substitution safety (concurrent-session-safe append/replace semantics), and runs the recap sweep with owner approval. Embodies the write-session-recap skill.",
+      "whenToUse": "When a session's work should be written up as a structured recap in the skills' template format.",
+      "args": [],
+      "autoArg": null,
+      "registered": false,
+      "skipReason": "no task argument could be derived and none is set in the roster",
+      "taskArg": null,
+      "shape": "When a session's work should be written up as a structured recap in the skills' template format.",
+      "defaults": null,
+      "overridden": false
+    }
+  ]
+}

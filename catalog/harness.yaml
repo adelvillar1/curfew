@@ -1,0 +1,37 @@
+# The harness path. Stopping these is not forbidden by the schema, but every bundle that acts
+# excludes them, and `harness-core` protects their ports (bundle file) rather than their labels —
+# a port survives a reinstall that renames a job.
+
+entries:
+  - id: com.adelvillar1.sem1-llama
+    kind: agent
+    lever: stop
+    supervised: launchd
+    status: draft
+    hazards: [socket]
+    stop:
+      run:
+        - [/bin/launchctl, bootout, {domain}/com.adelvillar1.sem1-llama]
+      expect: the llama-server pid is gone and port 8901 is released
+      quiesce: no sem1 embed call in flight
+    start:
+      run:
+        - [/bin/launchctl, bootstrap, {domain}, /Users/alejandrodelvillar/Library/LaunchAgents/com.adelvillar1.sem1-llama.plist]
+      meansReady: port 8901 answers a models request with embeddinggemma
+    depends: []
+
+  - id: dev.dsh.bridge
+    kind: agent
+    lever: stop
+    supervised: launchd
+    status: draft
+    hazards: [socket]
+    stop:
+      run:
+        - [/bin/launchctl, bootout, {domain}/dev.dsh.bridge]
+      expect: port 7426 is released
+    start:
+      run:
+        - [/bin/launchctl, bootstrap, {domain}, /Users/alejandrodelvillar/Library/LaunchAgents/dev.dsh.bridge.plist]
+      meansReady: port 7426 answers an MCP initialize
+    depends: []
