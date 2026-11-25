@@ -108,8 +108,21 @@ struct CatalogTests {
     @Test("loads the repository's own catalog")
     func loadsRepoCatalog() throws {
         let catalog = try CatalogLoader.load(directory: Self.repoCatalog)
-        #expect(catalog.entries.count == 6)
-        #expect(catalog.bundles.count == 4)
+        // Counts rot on every catalog change and prove nothing; these are the invariants instead.
+        #expect(!catalog.entries.isEmpty)
+        #expect(!catalog.bundles.isEmpty)
+        for bundle in catalog.bundles {
+            for member in bundle.members {
+                #expect(catalog.entry(member) != nil, "\(bundle.name) names \(member), which no entry defines")
+            }
+        }
+        // A bundle that acts must not include an entry that says it cannot be stopped.
+        for bundle in catalog.bundles where bundle.kind == .stop {
+            for member in bundle.members {
+                #expect(catalog.entry(member)?.stoppable != false,
+                        "\(bundle.name) includes \(member), which is marked unstoppable")
+            }
+        }
         #expect(catalog.entry("sh.brew.postgresql@18")?.lever == .command)
         #expect(catalog.entry("laya")?.lever == Lever.none, "Lever.none, not Optional.none — `== .none` on an optional reads as nil")
         #expect(catalog.bundle("harness-core")?.kind == .protect)
@@ -238,7 +251,11 @@ struct CatalogTests {
         let catalog = Catalog(entries: [bad], bundles: [], files: ["x"])
         #expect(CatalogValidator.validate(catalog).contains { $0.kind == .malformed })
 
-        let good = entry("a.b", stop: recipe(["/bin/launchctl", "bootout", "{domain}/a.b"]))
+        // A bootout needs a restorable start recipe, or it is a one-way door (and that is a
+        // different rule than the one under test here).
+        var good = entry("a.b", stop: recipe(["/bin/launchctl", "bootout", "{domain}/a.b"]))
+        good.start = Recipe(run: [["/bin/launchctl", "bootstrap", "{domain}", "{plist}"]], needsRoot: false,
+                            expect: nil, quiesce: nil, hold: .none, meansReady: nil, verify: nil)
         let ok = Catalog(entries: [good], bundles: [], files: ["x"])
         #expect(CatalogValidator.validate(ok).isEmpty)
     }
@@ -326,5 +343,65 @@ struct CatalogReadOnlyTests {
             #expect(!text.contains("Process("), "\(name) must not spawn anything — planning is arithmetic")
             #expect(!text.contains("executableURL"))
         }
+    }
+}
+
+@Suite("One-way doors")
+struct OneWayBootoutTests {
+
+    func entry(stop: [[String]], start: [[String]]?) -> CatalogEntry {
+        CatalogEntry(
+            id: "a.b", kind: .agent, lever: .disable, supervised: .launchd, status: .draft,
+            stop: Recipe(run: stop, needsRoot: false, expect: nil, quiesce: nil, hold: .none, meansReady: nil, verify: nil),
+            start: start.map {
+                Recipe(run: $0, needsRoot: false, expect: nil, quiesce: nil, hold: .none, meansReady: nil, verify: nil)
+            },
+            hazards: [], depends: [], evidence: nil as String?,
+            stoppable: true, coldStartCost: nil, ports: [], file: "x.yaml"
+        )
+    }
+
+    @Test("a bootout with no bootstrap is refused")
+    func bootoutWithoutBootstrap() {
+        let catalog = Catalog(
+            entries: [entry(stop: [["/bin/launchctl", "bootout", "{domain}/a.b"]], start: nil)],
+            bundles: [], files: ["x"]
+        )
+        #expect(CatalogValidator.validate(catalog).contains { $0.kind == .oneWayBootout })
+    }
+
+    @Test("a bootout with no plist to restore from is refused")
+    func bootoutWithoutPlist() {
+        let catalog = Catalog(
+            entries: [entry(
+                stop: [["/bin/launchctl", "bootout", "{domain}/a.b"]],
+                start: [["/bin/launchctl", "bootstrap", "{domain}"]]
+            )],
+            bundles: [], files: ["x"]
+        )
+        #expect(CatalogValidator.validate(catalog).contains { $0.kind == .oneWayBootout },
+                "bootstrap without a plist names no job to load")
+    }
+
+    @Test("bootout with a plist-backed bootstrap passes")
+    func bootoutWithBootstrap() {
+        let catalog = Catalog(
+            entries: [entry(
+                stop: [["/bin/launchctl", "bootout", "{domain}/a.b"]],
+                start: [["/bin/launchctl", "bootstrap", "{domain}", "{plist}"]]
+            )],
+            bundles: [], files: ["x"]
+        )
+        #expect(CatalogValidator.validate(catalog).isEmpty)
+    }
+
+    @Test("a disable-only recipe passes — that is the reversible shape")
+    func disableOnly() {
+        let catalog = Catalog(
+            entries: [entry(stop: [["/bin/launchctl", "disable", "{domain}/a.b"]],
+                            start: [["/bin/launchctl", "enable", "{domain}/a.b"]])],
+            bundles: [], files: ["x"]
+        )
+        #expect(CatalogValidator.validate(catalog).isEmpty)
     }
 }

@@ -16,7 +16,7 @@ entries:
       quiesce: no sem1 embed call in flight
     start:
       run:
-        - [/bin/launchctl, bootstrap, {domain}, /Users/alejandrodelvillar/Library/LaunchAgents/com.adelvillar1.sem1-llama.plist]
+        - [/bin/launchctl, bootstrap, {domain}, {plist}]
       meansReady: port 8901 answers a models request with embeddinggemma
     depends: []
 
@@ -32,6 +32,6 @@ entries:
       expect: port 7426 is released
     start:
       run:
-        - [/bin/launchctl, bootstrap, {domain}, /Users/alejandrodelvillar/Library/LaunchAgents/dev.dsh.bridge.plist]
+        - [/bin/launchctl, bootstrap, {domain}, {plist}]
       meansReady: port 7426 answers an MCP initialize
     depends: []

@@ -15,14 +15,27 @@ bundles:
   - name: never-cold
     kind: protect
     summary: entries whose absence costs minutes rather than bytes
-    members: [laya]
+    members: [laya, com.github.facebook.watchman, com.ollama.ollama]
 
   - name: vendor-noise
     kind: stop
     summary: updaters and launchers nothing needs during a build
-    members: [us.zoom.updater, com.microsoft.OneDriveStandaloneUpdater]
+    members:
+      - us.zoom.updater
+      - com.microsoft.OneDriveStandaloneUpdater
+      - com.microsoft.update.agent
+      - com.microsoft.SyncReporter
+      - us.zoom.updater.login.check
+      - com.google.GoogleUpdater.wake
+      - com.valvesoftware.steamclean
 
   - name: data-services
     kind: stop
     summary: databases, stopped cleanly and held
     members: [sh.brew.postgresql@18]
+
+  - name: dev-tools
+    kind: protect
+    summary: development tooling that must never be quieted — file watchers, local model servers
+    protectPorts: [11434]
+    members: [com.github.facebook.watchman, com.ollama.ollama]

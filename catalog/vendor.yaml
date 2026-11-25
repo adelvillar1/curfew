@@ -29,6 +29,106 @@ entries:
       meansReady: launchctl print resolves the label and print-disabled says enabled
     depends: []
 
+  - id: com.microsoft.update.agent
+    kind: agent
+    lever: disable
+    supervised: launchd
+    status: verified
+    hazards: [vendor]
+    evidence: "2026-11-24 · this Mac · disable→disabled; bootout→unloaded; enable+bootstrap {plist}→loaded (full cycle)"
+    stop:
+      run:
+        - [/bin/launchctl, disable, {domain}/com.microsoft.update.agent]
+        - [/bin/launchctl, bootout, {domain}/com.microsoft.update.agent]
+      verify:
+        kind: label_not_running
+        value: com.microsoft.update.agent
+    start:
+      run:
+        - [/bin/launchctl, enable, {domain}/com.microsoft.update.agent]
+        - [/bin/launchctl, bootstrap, {domain}, {plist}]
+    depends: []
+
+  - id: com.microsoft.SyncReporter
+    kind: agent
+    lever: disable
+    supervised: launchd
+    status: verified
+    hazards: [vendor]
+    evidence: "2026-11-24 · this Mac · disable→disabled; bootout→unloaded; enable+bootstrap {plist}→loaded (full cycle)"
+    stop:
+      run:
+        - [/bin/launchctl, disable, {domain}/com.microsoft.SyncReporter]
+        - [/bin/launchctl, bootout, {domain}/com.microsoft.SyncReporter]
+      verify:
+        kind: label_not_running
+        value: com.microsoft.SyncReporter
+    start:
+      run:
+        - [/bin/launchctl, enable, {domain}/com.microsoft.SyncReporter]
+        - [/bin/launchctl, bootstrap, {domain}, {plist}]
+    depends: []
+
+  - id: us.zoom.updater.login.check
+    kind: agent
+    lever: disable
+    supervised: launchd
+    status: verified
+    hazards: [vendor]
+    evidence: "2026-11-24 · this Mac · disable→disabled; bootout→unloaded; enable+bootstrap {plist}→loaded (full cycle)"
+    stop:
+      run:
+        - [/bin/launchctl, disable, {domain}/us.zoom.updater.login.check]
+        - [/bin/launchctl, bootout, {domain}/us.zoom.updater.login.check]
+      verify:
+        kind: label_not_running
+        value: us.zoom.updater.login.check
+    start:
+      run:
+        - [/bin/launchctl, enable, {domain}/us.zoom.updater.login.check]
+        - [/bin/launchctl, bootstrap, {domain}, {plist}]
+    depends: []
+
+  # Disable-only. Verified reversible (enable restores it), but a bootout is not used: the plist
+  # lives in ~/Library/LaunchAgents and one bootout there did not come back on the first try
+  # (KI-033 — cause unverified). Disable alone is enough to stop the job running, and it cannot be
+  # a one-way door.
+  - id: com.google.GoogleUpdater.wake
+    kind: agent
+    lever: disable
+    supervised: launchd
+    status: verified
+    hazards: [vendor]
+    evidence: "2026-11-24 · this Mac · disable→print-disabled says disabled; enable→enabled. Bootout deliberately not used (KI-033)"
+    stop:
+      run:
+        - [/bin/launchctl, disable, {domain}/com.google.GoogleUpdater.wake]
+      verify:
+        kind: label_not_running
+        value: com.google.GoogleUpdater.wake
+    start:
+      run:
+        - [/bin/launchctl, enable, {domain}/com.google.GoogleUpdater.wake]
+    depends: []
+
+  - id: com.valvesoftware.steamclean
+    kind: agent
+    lever: disable
+    supervised: launchd
+    status: verified
+    hazards: [vendor]
+    evidence: "2026-11-24 · this Mac · disable→disabled; enable→enabled. Bootout deliberately not used (KI-033)"
+    stop:
+      run:
+        - [/bin/launchctl, disable, {domain}/com.valvesoftware.steamclean]
+      verify:
+        kind: label_not_running
+        value: com.valvesoftware.steamclean
+    start:
+      run:
+        - [/bin/launchctl, enable, {domain}/com.valvesoftware.steamclean]
+    depends: []
+
   - id: com.microsoft.OneDriveStandaloneUpdater
     kind: agent
     lever: disable

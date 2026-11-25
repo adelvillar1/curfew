@@ -107,6 +107,7 @@ public struct CatalogViolation: Sendable, Equatable, CustomStringConvertible {
         case freezeWithSocket
         case verifiedWithoutEvidence
         case verifiedWithoutPostcondition
+        case oneWayBootout
         case unsupervisedWithoutStart
         case noneLeverOutsideNeverCold
         case bundleProtectsProtectedEntry
@@ -351,6 +352,23 @@ public enum CatalogValidator {
                     file: entry.file
                 ))
             }
+            // A bootout without a bootstrap is a one-way door: the job is gone and only relaunching
+            // its parent app brings it back. Seven jobs on this machine are submitted by an app and
+            // have no plist at all — those may only be disabled, never booted out.
+            if let stop = entry.stop,
+               stop.run.contains(where: { $0.contains("bootout") }) {
+                let canRestore = entry.start?.run.contains(where: { step in
+                    step.contains("bootstrap") && step.contains(where: { $0.contains("{plist}") })
+                }) ?? false
+                if !canRestore {
+                    violations.append(.init(
+                        kind: .oneWayBootout, subject: entry.id,
+                        detail: "boots the job out with no `bootstrap {plist}` to bring it back — that is a one-way door; use the disable lever instead",
+                        file: entry.file
+                    ))
+                }
+            }
+
             // "Verified" must be something the tool can assert, not a word about a return code.
             if entry.status == .verified, let stop = entry.stop, stop.verify == nil {
                 violations.append(.init(

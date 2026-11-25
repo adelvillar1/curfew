@@ -258,6 +258,31 @@ crash test in one command.
 replaced by a "Privilege — no signing required" section, and the environment table no longer claims a
 notarised release.
 
+## Round 11 — the catalog gets entries, and a one-way door gets a rule
+
+L3.2 advanced: **7 vendor entries verified, 2 dev tools catalogued as unstoppable**, 13 entries total.
+
+But the round's real product was a validator rule that found a bug in my own work. Bootout without a
+`bootstrap {plist}` is a **one-way door** — the job is gone and only relaunching its parent app brings
+it back. Seven jobs on this machine are submitted by an app and have no plist at all. The rule fired
+immediately on `sem1-llama` and `dev.dsh.bridge`, whose start recipes hardcoded a path instead of
+taking `{plist}` — the same habit KI-030 punished. Both now use the token.
+
+**The verification run produced an honest unknown.** Five services took the full cycle; three restored
+on the first bootstrap and two (`GoogleUpdater.wake`, `steamclean`) returned `Input/output error` twice
+before loading. I hypothesised the `com.apple.quarantine`/`provenance` xattrs — then tested it, and the
+job loaded *with* quarantine applied. So the attribute is **not** proven to be the cause, and KI-033
+records it as an open, unverified gap. Both services are loaded and enabled, confirmed before moving on.
+
+The catalog's response is a design one, not a guess: **`~/Library/LaunchAgents` jobs get disable-only
+recipes.** Disable is reversible with `enable`, needs no plist, and cannot be a one-way door.
+
+Also fixed: a test asserted `entries.count == 6`, which would rot on every catalog change. It now
+asserts the invariants — every bundle member resolves, and no act-on bundle contains an unstoppable
+entry.
+
+**4 new tests; 159 total in 23 suites.**
+
 ## Criteria status
 
 All met except two, **deliberately revised** (recorded in the plan, not silently dropped):

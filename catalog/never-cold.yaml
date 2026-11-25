@@ -11,3 +11,28 @@ entries:
     stoppable: false
     coldStartCost: up to 180 s on the first sys1 call after a restart
     hazards: []
+
+  # Not vendor noise: these are development tooling that a build or an agent run may need. They are
+  # catalogued so the classification is explicit and testable, and marked unstoppable so no bundle
+  # that acts can ever include them.
+  - id: com.github.facebook.watchman
+    kind: agent
+    lever: none
+    supervised: launchd
+    status: verified
+    hazards: [dev-tool]
+    evidence: "2026-11-24 · this Mac · file watcher used by bundlers and test runners; stopping it breaks HMR and watch mode"
+    stoppable: false
+    coldStartCost: instant to start, but every in-flight watcher must re-register
+    depends: []
+
+  - id: com.ollama.ollama
+    kind: agent
+    lever: none
+    supervised: launchd
+    status: verified
+    hazards: [dev-tool, socket]
+    evidence: "2026-11-24 · this Mac · local model server on :11434; a cold start reloads the model into RAM"
+    stoppable: false
+    coldStartCost: model reload, tens of seconds
+    depends: []
