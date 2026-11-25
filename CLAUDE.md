@@ -38,7 +38,7 @@ There is no production server. "Production" is the copy installed on the user's 
 
 **Ledgers — read before building anything, append before finishing anything**
 - Known issues → `docs/known-issues.md` (`KI-n`; every defect, gap, risk, environmental item, *including* "not my code")
-- Design decisions → `docs/plans/CURFEW-DESIGN-DECISIONS.md` (`D0–D23`; a plan that contradicts a settled `D` is wrong by construction)
+- Design decisions → `docs/plans/CURFEW-DESIGN-DECISIONS.md` (`D0–D24`; a plan that contradicts a settled `D` is wrong by construction)
 - Contracts → `docs/plans/CURFEW-CONTRACTS.md` (`C0–C14`; offers/expects/consumed-by + the external JSON and exit-code shapes)
 - Decomposition → `docs/plans/CURFEW-DECOMPOSITION.md` (`L0.1–L6.3`, 27 atoms; the build map and critical path)
 - Police all four with `python3 scripts/ledger_check.py`
@@ -46,7 +46,7 @@ There is no production server. "Production" is the copy installed on the user's 
 **Architecture**
 - **Design synthesis — read this first when building** → `docs/architecture/blueprint.md`
 - Tech stack, module layout, privilege model → `docs/architecture/overview.md`
-- Service catalog design → `docs/features/service-catalog.md` (when written)
+- Service catalog design and the full entry inventory → `docs/features/service-catalog.md`
 - Safety model and tiers → `docs/research/core-os-services.md`
 
 **Research (dated, evidence-backed, the basis for the catalog)**
@@ -119,7 +119,7 @@ make app                                    # build Curfew.app (menu bar); `make
 
 ## Today's state
 
-- **The read-only slice and the catalog layer shipped 2026-11-24.** `curfew 0.1.0`: `list` (472 jobs in 1.19 s), `why`, `doctor` (17 real findings), `catalog validate|list|plan` over `catalog/*.yaml`, `status` over the write-ahead journal. **165 tests in 24 suites, green. 22 of 27 atoms done, 4 dropped by scope, 1 left (L3.2's remaining drafts).**
+- **The read-only slice and the catalog layer shipped 2026-11-24.** `curfew 0.1.0`: `list` (472 jobs in 1.19 s), `why`, `doctor` (17 real findings), `catalog validate|list|plan` over `catalog/*.yaml`, `status` over the write-ahead journal. **165 tests in 24 suites, green. 23 of 27 atoms done, 4 dropped by scope. No atom left.**
 - **The mutating half is built but has never run.** `apply` refuses draft entries, root recipes, protected ports and our own pid; `--execute` needs `--yes` off a TTY. The executor's pipeline is refuse → journal intent → act → verify → journal outcome, with the runner injected so the ordering is tested, not asserted. The recovery path is proven two ways: unit tests over a post-crash journal artifact, and `scripts/crash-test.sh`, which SIGKILLs a real apply between intent and outcome and asserts `resume` restores it. Recipes use `{plist}`, resolved from what `launchctl print` reports — a hand-written path in a restore recipe left a live updater unloaded once (KI-030).
 - **The reframe that came out of the research:** the measured waste is not only vendor updaters. Crash loops are invisible to every process tool because they have no PID. Three were found and **all are now resolved (2026-11-24)**: `com.zcode.model-router` (255,645 runs) and `com.agnostic-router.model-router` (255,646) were respawning on a dangling `~/.local/bin/node` symlink and were removed with the dead router PoC; `sh.brew.postgresql@14` (82,103 runs) was retired outright after a stray `postgres@14` was found squatting on `:5434` — the port commissiontracker's own container maps. **No crash loops remain on the machine.** The detector is still the right first product: it found all three, and nothing else would have.
 - **Key safety number:** 733 of 887 system plists register a `MachServices` port, so freezing is dangerous by default; 453 of 887 have `LaunchEvents`, so `bootout` alone is not quiet mode.
@@ -127,7 +127,7 @@ make app                                    # build Curfew.app (menu bar); `make
 - **The largest footprints are not launchd services, and most are now gone.** With the owner's approval on 2026-11-24: OpenBot Desktop was uninstalled entirely (app, `~/OpenBot`, its podman machine — 4 CPU / 6 GiB / 60 GiB — and every container); **LayerFS is gone as a runtime** (worker, image, volumes, source repos, `~/dsh-layerfs`, `~/.fleet/layerfs-home`, `~/.cache/layerfs-worktrees`, and the `layerfs` section of `~/.fleet/config.json`, backed up); the layerfs repos' uncommitted work was archived to `docs/archive/layerfs-work-2026-11-24/` first; the mlx-lm weights (4.7 GB) were deleted with the service stopped; and `pampa-dev-postgres` was stopped with its volume and 4 databases intact. Host free space went 60 → **79 GB**; swap 5.36 → 4.72 GB; free RAM 33% → 42%. **fleet is unaffected** — `fleet doctor` reports the feature `off` by design and `fleet memories` still lists 93 facts.
 - **fleet is retired, but its repo is still load-bearing.** The owner has wound the agent down ("the salvage lives in dsh-salvage" is its own HEAD commit), but DSH's five MCP servers are Python entrypoints *inside* `~/Projects/fleet/services/*/service/mcp_server.py`, and sys1 reads `~/.fleet/venvs/laya`. The retired agent's dead weight was removed — `target/` (15 GB Rust build output) and `~/.fleet/checkpoints` (5.2 GB) — leaving the repo at 543 MB with `services/` intact. **Verified after deletion:** `sem1_probe` still returns 768 dims from `embeddinggemma-2-BF16`. The remaining layerfs *code* inside fleet was left alone by the owner's decision.
 - **Kiri-side deletions do not return host space.** Its VM disk is a 23 GB sparse `data.img` that refuses discard (`fstrim` → "discard operation is not supported"), so the 17 GB BuildKit cache pruned there shows as VM headroom only. Any future "reclaim" plan must say which side of the VM it is counting.
-- **Laya is not a daemon.** It is an in-process vega engine in `~/.fleet/venvs/laya` (815 MB), spawned by sys1, first call up to **180 s**. There is nothing to suspend; making it cold is the cost. Hence the `never-cold` anti-bundle.
+- **Laya is not a daemon, and it stays warm by owner decision (D24).** An in-process vega engine in `~/.fleet/venvs/laya` (815 MB) spawned by sys1, first call up to **180 s**. There is nothing to suspend — keeping it warm is the point, which is why `never-cold` exists.
 - **Open decisions** (`blueprint.md` §8): memory-vs-determinism pitch; Apple Tier-2 agents in or out of v1; whether unsupervised daemons (`kanzo`, no launchd job) may be stopped at all.
 - **Not yet verified:** `launchctl bootstrap` from a sandboxed agent session (EIO); per-service memory reclaim (`footprint -p` needs a normal shell); whether `disable` survives an OS update.
 

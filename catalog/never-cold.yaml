@@ -7,10 +7,12 @@ entries:
     kind: inProcess
     lever: none
     supervised: none
-    status: draft
+    status: verified
     stoppable: false
+    hazards: [always-on]
+    evidence: "owner decision 2026-11-25: kept running so the sys1 warm-up penalty is already paid. Nothing to stop — it is an in-process engine inside sys1, so this is a decision, not a recipe."
     coldStartCost: up to 180 s on the first sys1 call after a restart
-    hazards: []
+    depends: []
 
   # Not vendor noise: these are development tooling that a build or an agent run may need. They are
   # catalogued so the classification is explicit and testable, and marked unstoppable so no bundle

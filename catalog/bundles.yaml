@@ -28,6 +28,12 @@ bundles:
       - us.zoom.updater.login.check
       - com.google.GoogleUpdater.wake
       - com.valvesoftware.steamclean
+      - com.docker.helper
+      - com.microsoft.OneDriveLauncher
+      - com.microsoft.VSCode.ShipIt
+      - com.deepseek.dsh.ShipIt
+      - dev.zcode.app.ShipIt
+      - com.microsoft.teams2.agent
 
   - name: data-services
     kind: stop

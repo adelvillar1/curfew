@@ -15,22 +15,15 @@ entries:
     coldStartCost: first embed call reloads embeddinggemma-2 into RAM
     depends: []
 
-  # Built for OpenBot, but NOT redundant: the bridge is what an agent uses to reach the Kanzo board
-  # over Tailscale. 119 requests in its access log, 111 of them on 2026-11-25 (kanzo_list_tasks,
-  # kanzo_list_projects, kanzo_update_task). It stays.
+  # Built for OpenBot, but NOT redundant: the bridge is how an agent reaches the Kanzo board over
+  # Tailscale (119 requests, 111 of them on 2026-11-25). Owner decision: it stays.
   - id: dev.dsh.bridge
     kind: agent
-    lever: stop
+    lever: none
     supervised: launchd
-    status: draft
-    hazards: [socket]
-    evidence: "not verified as a stop target — it is in active use (see the note above). Stopping it cuts the agent path to Kanzo"
-    stop:
-      run:
-        - [/bin/launchctl, bootout, {domain}/dev.dsh.bridge]
-      expect: port 7426 is released
-    start:
-      run:
-        - [/bin/launchctl, bootstrap, {domain}, {plist}]
-      meansReady: port 7426 answers an MCP initialize
+    status: verified
+    stoppable: false
+    hazards: [socket, always-on]
+    evidence: "owner decision 2026-11-25: the Kanzo bridge stays up. It is the agent path to the board — stopping it cuts that path, and there is no recipe to verify because it is not a stop target."
+    coldStartCost: the board is unreachable until the bridge restarts
     depends: []

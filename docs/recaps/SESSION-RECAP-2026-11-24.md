@@ -353,6 +353,30 @@ afterwards.
 **L5.2 is now fully verified.** The plan criterion that was honestly left unticked is ticked with
 evidence.
 
+## Round 15 — L3.2 closed: every entry has a verdict
+
+Two owner rulings, and the last atom.
+
+**D24** — the Kanzo bridge stays, and laya stays warm so the sys1 warm-up penalty is already paid. Both
+stop being "draft stop targets" and become **always-on**: `lever: none`, `stoppable: false`, no recipe.
+An entry that says "do not stop this" has nothing to verify, and carrying a recipe would imply
+otherwise.
+
+**Six more entries verified**, all disable-only because they are submitted by their parent app and have
+no plist to bootstrap from: Docker's helper, OneDrive's launcher, VS Code's updater, the harness's own
+`ShipIt`, ZCode's `ShipIt`, and the Teams agent. Each run: `disable` → `print-disabled` says disabled →
+`enable` → enabled.
+
+**The catalog is complete: 19 entries, every one with a verdict, zero `draft`.** 13 acting (5 full-cycle,
+8 disable-only), 6 always-on. `vendor-noise` plans 13 steps and refuses nothing.
+
+Also closed the docs debt the completion created: **`docs/features/service-catalog.md`** now exists —
+what the catalog is, both entry kinds, every entry and why, the bundle map, and the seven invariants the
+validator enforces. `data-services` is documented as **intentionally empty** rather than deleted,
+because the emptiness is the decision.
+
+**Nothing is left on the decomposition: 23 done, 4 dropped by scope.**
+
 ## Criteria status
 
 All met except two, **deliberately revised** (recorded in the plan, not silently dropped):

@@ -66,6 +66,17 @@ Rules:
 - **D14 — In-process engines are `never-cold`, not suspend candidates.**
   Rationale: Laya has no port and no process to signal; its cost is a **180 s** reload on the next sys1 call. A quiet mode that frees 2 GB and adds three minutes is a net loss the user must be told about before choosing it. *Constrains:* the `never-cold` anti-bundle, the catalog's `in-process` kind, the cold-start field.
 
+## What must never be stopped
+
+- **D24 — The Kanzo bridge and laya stay up; neither is a stop target.**
+  Rationale: owner decision 2026-11-25 — *"the kanzo bridge should stay, and laya should be running at
+  all times so that we incur in the warmup penalty for the system 1 model"*. The bridge is the agent
+  path to the board (119 requests in its log, 111 of them in one day) and laya is an in-process engine
+  whose 180 s cold start is paid on the first sys1 call — keeping it warm is the point. Both are
+  `lever: none`, `stoppable: false`, with no recipe: the decision is not to stop them, so there is
+  nothing to verify. *Constrains:* `harness-core` and `never-cold` are protect bundles; the validator's
+  `alwaysOnHasNoRecipe` test refuses any acting bundle that includes either.
+
 ## Front ends
 
 - **D23 — The menu bar shows state and restores; it never applies.**

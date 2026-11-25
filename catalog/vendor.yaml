@@ -150,3 +150,123 @@ entries:
         - [/bin/launchctl, bootstrap, {domain}, {plist}]
       meansReady: launchctl print resolves the label and print-disabled says enabled
     depends: []
+
+  # Submitted by its parent app, so it has no plist to bootstrap. Disable-only by design: the
+  # one-way-door rule forbids a bootout it could not undo (KI-033 class).
+  - id: com.docker.helper
+    kind: agent
+    lever: disable
+    supervised: launchd
+    status: verified
+    hazards: [vendor]
+    evidence: "2026-11-25 · this Mac · disable→print-disabled says disabled; enable→enabled. No bootout: Docker's privileged helper is app-submitted and has no plist to restore from."
+    stop:
+      run:
+        - [/bin/launchctl, disable, {domain}/com.docker.helper]
+      verify:
+        kind: label_not_running
+        value: com.docker.helper
+    start:
+      run:
+        - [/bin/launchctl, enable, {domain}/com.docker.helper]
+    depends: []
+
+  # Submitted by its parent app, so it has no plist to bootstrap. Disable-only by design: the
+  # one-way-door rule forbids a bootout it could not undo (KI-033 class).
+  - id: com.microsoft.OneDriveLauncher
+    kind: agent
+    lever: disable
+    supervised: launchd
+    status: verified
+    hazards: [vendor]
+    evidence: "2026-11-25 · this Mac · disable→print-disabled says disabled; enable→enabled. No bootout: OneDrive's login launcher is app-submitted and has no plist to restore from."
+    stop:
+      run:
+        - [/bin/launchctl, disable, {domain}/com.microsoft.OneDriveLauncher]
+      verify:
+        kind: label_not_running
+        value: com.microsoft.OneDriveLauncher
+    start:
+      run:
+        - [/bin/launchctl, enable, {domain}/com.microsoft.OneDriveLauncher]
+    depends: []
+
+  # Submitted by its parent app, so it has no plist to bootstrap. Disable-only by design: the
+  # one-way-door rule forbids a bootout it could not undo (KI-033 class).
+  - id: com.microsoft.VSCode.ShipIt
+    kind: agent
+    lever: disable
+    supervised: launchd
+    status: verified
+    hazards: [vendor]
+    evidence: "2026-11-25 · this Mac · disable→print-disabled says disabled; enable→enabled. No bootout: VS Code's updater is app-submitted and has no plist to restore from."
+    stop:
+      run:
+        - [/bin/launchctl, disable, {domain}/com.microsoft.VSCode.ShipIt]
+      verify:
+        kind: label_not_running
+        value: com.microsoft.VSCode.ShipIt
+    start:
+      run:
+        - [/bin/launchctl, enable, {domain}/com.microsoft.VSCode.ShipIt]
+    depends: []
+
+  # Submitted by its parent app, so it has no plist to bootstrap. Disable-only by design: the
+  # one-way-door rule forbids a bootout it could not undo (KI-033 class).
+  - id: com.deepseek.dsh.ShipIt
+    kind: agent
+    lever: disable
+    supervised: launchd
+    status: verified
+    hazards: [vendor]
+    evidence: "2026-11-25 · this Mac · disable→print-disabled says disabled; enable→enabled. No bootout: the harness's own updater — restoring re-enables its auto-update is app-submitted and has no plist to restore from."
+    stop:
+      run:
+        - [/bin/launchctl, disable, {domain}/com.deepseek.dsh.ShipIt]
+      verify:
+        kind: label_not_running
+        value: com.deepseek.dsh.ShipIt
+    start:
+      run:
+        - [/bin/launchctl, enable, {domain}/com.deepseek.dsh.ShipIt]
+    depends: []
+
+  # Submitted by its parent app, so it has no plist to bootstrap. Disable-only by design: the
+  # one-way-door rule forbids a bootout it could not undo (KI-033 class).
+  - id: dev.zcode.app.ShipIt
+    kind: agent
+    lever: disable
+    supervised: launchd
+    status: verified
+    hazards: [vendor]
+    evidence: "2026-11-25 · this Mac · disable→print-disabled says disabled; enable→enabled. No bootout: ZCode's updater is app-submitted and has no plist to restore from."
+    stop:
+      run:
+        - [/bin/launchctl, disable, {domain}/dev.zcode.app.ShipIt]
+      verify:
+        kind: label_not_running
+        value: dev.zcode.app.ShipIt
+    start:
+      run:
+        - [/bin/launchctl, enable, {domain}/dev.zcode.app.ShipIt]
+    depends: []
+
+  # Submitted by its parent app, so it has no plist to bootstrap. Disable-only by design: the
+  # one-way-door rule forbids a bootout it could not undo (KI-033 class).
+  - id: com.microsoft.teams2.agent
+    kind: agent
+    lever: disable
+    supervised: launchd
+    status: verified
+    hazards: [vendor]
+    evidence: "2026-11-25 · this Mac · disable→print-disabled says disabled; enable→enabled. No bootout: the Teams agent is app-submitted and has no plist to restore from."
+    stop:
+      run:
+        - [/bin/launchctl, disable, {domain}/com.microsoft.teams2.agent]
+      verify:
+        kind: label_not_running
+        value: com.microsoft.teams2.agent
+    start:
+      run:
+        - [/bin/launchctl, enable, {domain}/com.microsoft.teams2.agent]
+    depends: []
