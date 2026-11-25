@@ -3,9 +3,66 @@
 <plist version="1.0">
 <dict>
 	<key>files</key>
-	<dict/>
+	<dict>
+		<key>Resources/catalog/bundles.yaml</key>
+		<data>
+		M2isPjnxI5cwr9NtUGsAd+WU4io=
+		</data>
+		<key>Resources/catalog/dev-stack.yaml</key>
+		<data>
+		J+Z6+GVOnePrkT/uDR6tf7rbGfw=
+		</data>
+		<key>Resources/catalog/harness.yaml</key>
+		<data>
+		fnGCsNmwll55aF7bLvvNxfUO8CQ=
+		</data>
+		<key>Resources/catalog/never-cold.yaml</key>
+		<data>
+		R1UwvLtAdRbY73gh5fDLyjfoR70=
+		</data>
+		<key>Resources/catalog/vendor.yaml</key>
+		<data>
+		Ug154+fxXn0jITQQUxLY+7mw95I=
+		</data>
+	</dict>
 	<key>files2</key>
-	<dict/>
+	<dict>
+		<key>Resources/catalog/bundles.yaml</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			1aqbMEJ42+zkwziWX1D0PD/m/I91hfhuNViY1LlXBZc=
+			</data>
+		</dict>
+		<key>Resources/catalog/dev-stack.yaml</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			eapnzI2u/JeZZWEPKO2GThKHI/t1SB8Nz3NXlOCAffg=
+			</data>
+		</dict>
+		<key>Resources/catalog/harness.yaml</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			p5k8jK/Jd8965mYdQ3jAoEpfS3Z+YUuwG6e5rPTByQY=
+			</data>
+		</dict>
+		<key>Resources/catalog/never-cold.yaml</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			W3akcWnIhd7eO+OObetJrjNBuNJ6EFaCrERCUPANtRQ=
+			</data>
+		</dict>
+		<key>Resources/catalog/vendor.yaml</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			FrvHelD/3kZmRnRVIYvhQsEOPnauM8z7kroyabqSaeU=
+			</data>
+		</dict>
+	</dict>
 	<key>rules</key>
 	<dict>
 		<key>^Resources/</key>

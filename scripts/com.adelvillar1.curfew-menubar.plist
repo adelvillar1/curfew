@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.adelvillar1.curfew-menubar</string>
+	<!--
+	  Curfew.app is an LSUIElement app: no Dock icon, no app-switcher entry, by design — it is a status
+	  item. The consequence, learned the hard way, is that once it is not running there is nothing to
+	  click, so "open the app" has no answer. This opener runs `open -a` at login and gives the status
+	  item back without the owner having to find the bundle.
+
+	  `open` exits immediately (the app then stays up on its own), so KeepAlive is false: keeping it
+	  true would respawn the opener in a loop.
+	-->
+	<key>ProgramArguments</key>
+	<array>
+		<!-- The binary, not `open -a`. `open` depends on LaunchServices having registered the bundle,
+		     which is not guaranteed on a fresh login — measured: `open -a` exited 0 and started nothing
+		     until the app had been exec'd once directly. Running the binary needs no resolution step. -->
+		<string>/Users/alejandrodelvillar/Applications/Curfew.app/Contents/MacOS/Curfew</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<false/>
+	<key>LimitLoadToSessionType</key>
+	<string>Aqua</string>
+	<key>ProcessType</key>
+	<string>Background</string>
+	<key>StandardErrorPath</key>
+	<string>/tmp/curfew-menubar-opener.log</string>
+	<key>StandardOutPath</key>
+	<string>/tmp/curfew-menubar-opener.log</string>
+</dict>
+</plist>

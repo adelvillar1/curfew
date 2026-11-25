@@ -1,0 +1,272 @@
+# Vendor updaters, sync agents and launchers. Nothing here is needed to compile a project or run an
+# agent overnight; the disable lever is used because several of them re-register themselves when
+# their parent app launches.
+#
+# Bootstrap recipes use {plist}, resolved from what `launchctl print` reports — never a hand-written
+# path. Writing one by hand cost a live service: the updater lives in /Library/LaunchAgents and the
+# recipe said ~/Library/LaunchAgents, so the restore failed and left it unloaded (KI-030).
+
+entries:
+  - id: us.zoom.updater
+    kind: agent
+    lever: disable
+    supervised: launchd
+    status: verified
+    hazards: [vendor]
+    evidence: "2026-11-24 · this Mac · disable→print-disabled says disabled; bootout→label unloaded; enable+bootstrap {plist}→loaded, state not running"
+    stop:
+      run:
+        - [/bin/launchctl, disable, {domain}/us.zoom.updater]
+        - [/bin/launchctl, bootout, {domain}/us.zoom.updater]
+      expect: print-disabled lists the label as disabled and launchctl print no longer resolves it
+      verify:
+        kind: label_not_running
+        value: us.zoom.updater
+    start:
+      run:
+        - [/bin/launchctl, enable, {domain}/us.zoom.updater]
+        - [/bin/launchctl, bootstrap, {domain}, {plist}]
+      meansReady: launchctl print resolves the label and print-disabled says enabled
+    depends: []
+
+  - id: com.microsoft.update.agent
+    kind: agent
+    lever: disable
+    supervised: launchd
+    status: verified
+    hazards: [vendor]
+    evidence: "2026-11-24 · this Mac · disable→disabled; bootout→unloaded; enable+bootstrap {plist}→loaded (full cycle)"
+    stop:
+      run:
+        - [/bin/launchctl, disable, {domain}/com.microsoft.update.agent]
+        - [/bin/launchctl, bootout, {domain}/com.microsoft.update.agent]
+      verify:
+        kind: label_not_running
+        value: com.microsoft.update.agent
+    start:
+      run:
+        - [/bin/launchctl, enable, {domain}/com.microsoft.update.agent]
+        - [/bin/launchctl, bootstrap, {domain}, {plist}]
+    depends: []
+
+  - id: com.microsoft.SyncReporter
+    kind: agent
+    lever: disable
+    supervised: launchd
+    status: verified
+    hazards: [vendor]
+    evidence: "2026-11-24 · this Mac · disable→disabled; bootout→unloaded; enable+bootstrap {plist}→loaded (full cycle)"
+    stop:
+      run:
+        - [/bin/launchctl, disable, {domain}/com.microsoft.SyncReporter]
+        - [/bin/launchctl, bootout, {domain}/com.microsoft.SyncReporter]
+      verify:
+        kind: label_not_running
+        value: com.microsoft.SyncReporter
+    start:
+      run:
+        - [/bin/launchctl, enable, {domain}/com.microsoft.SyncReporter]
+        - [/bin/launchctl, bootstrap, {domain}, {plist}]
+    depends: []
+
+  - id: us.zoom.updater.login.check
+    kind: agent
+    lever: disable
+    supervised: launchd
+    status: verified
+    hazards: [vendor]
+    evidence: "2026-11-24 · this Mac · disable→disabled; bootout→unloaded; enable+bootstrap {plist}→loaded (full cycle)"
+    stop:
+      run:
+        - [/bin/launchctl, disable, {domain}/us.zoom.updater.login.check]
+        - [/bin/launchctl, bootout, {domain}/us.zoom.updater.login.check]
+      verify:
+        kind: label_not_running
+        value: us.zoom.updater.login.check
+    start:
+      run:
+        - [/bin/launchctl, enable, {domain}/us.zoom.updater.login.check]
+        - [/bin/launchctl, bootstrap, {domain}, {plist}]
+    depends: []
+
+  # Disable-only. Verified reversible (enable restores it), but a bootout is not used: the plist
+  # lives in ~/Library/LaunchAgents and one bootout there did not come back on the first try
+  # (KI-033 — cause unverified). Disable alone is enough to stop the job running, and it cannot be
+  # a one-way door.
+  - id: com.google.GoogleUpdater.wake
+    kind: agent
+    lever: disable
+    supervised: launchd
+    status: verified
+    hazards: [vendor]
+    evidence: "2026-11-24 · this Mac · disable→print-disabled says disabled; enable→enabled. Bootout deliberately not used (KI-033)"
+    stop:
+      run:
+        - [/bin/launchctl, disable, {domain}/com.google.GoogleUpdater.wake]
+      verify:
+        kind: label_not_running
+        value: com.google.GoogleUpdater.wake
+    start:
+      run:
+        - [/bin/launchctl, enable, {domain}/com.google.GoogleUpdater.wake]
+    depends: []
+
+  - id: com.valvesoftware.steamclean
+    kind: agent
+    lever: disable
+    supervised: launchd
+    status: verified
+    hazards: [vendor]
+    evidence: "2026-11-24 · this Mac · disable→disabled; enable→enabled. Bootout deliberately not used (KI-033)"
+    stop:
+      run:
+        - [/bin/launchctl, disable, {domain}/com.valvesoftware.steamclean]
+      verify:
+        kind: label_not_running
+        value: com.valvesoftware.steamclean
+    start:
+      run:
+        - [/bin/launchctl, enable, {domain}/com.valvesoftware.steamclean]
+    depends: []
+
+  - id: com.microsoft.OneDriveStandaloneUpdater
+    kind: agent
+    lever: disable
+    supervised: launchd
+    status: verified
+    hazards: [vendor]
+    evidence: "2026-11-24 · this Mac · disable→disabled; bootout→unloaded; enable+bootstrap {plist}→loaded, state not running"
+    stop:
+      run:
+        - [/bin/launchctl, disable, {domain}/com.microsoft.OneDriveStandaloneUpdater]
+        - [/bin/launchctl, bootout, {domain}/com.microsoft.OneDriveStandaloneUpdater]
+      expect: print-disabled lists the label as disabled and launchctl print no longer resolves it
+      verify:
+        kind: label_not_running
+        value: com.microsoft.OneDriveStandaloneUpdater
+    start:
+      run:
+        - [/bin/launchctl, enable, {domain}/com.microsoft.OneDriveStandaloneUpdater]
+        - [/bin/launchctl, bootstrap, {domain}, {plist}]
+      meansReady: launchctl print resolves the label and print-disabled says enabled
+    depends: []
+
+  # Submitted by its parent app, so it has no plist to bootstrap. Disable-only by design: the
+  # one-way-door rule forbids a bootout it could not undo (KI-033 class).
+  - id: com.docker.helper
+    kind: agent
+    lever: disable
+    supervised: launchd
+    status: verified
+    hazards: [vendor]
+    evidence: "2026-11-25 · this Mac · disable→print-disabled says disabled; enable→enabled. No bootout: Docker's privileged helper is app-submitted and has no plist to restore from."
+    stop:
+      run:
+        - [/bin/launchctl, disable, {domain}/com.docker.helper]
+      verify:
+        kind: label_not_running
+        value: com.docker.helper
+    start:
+      run:
+        - [/bin/launchctl, enable, {domain}/com.docker.helper]
+    depends: []
+
+  # Submitted by its parent app, so it has no plist to bootstrap. Disable-only by design: the
+  # one-way-door rule forbids a bootout it could not undo (KI-033 class).
+  - id: com.microsoft.OneDriveLauncher
+    kind: agent
+    lever: disable
+    supervised: launchd
+    status: verified
+    hazards: [vendor]
+    evidence: "2026-11-25 · this Mac · disable→print-disabled says disabled; enable→enabled. No bootout: OneDrive's login launcher is app-submitted and has no plist to restore from."
+    stop:
+      run:
+        - [/bin/launchctl, disable, {domain}/com.microsoft.OneDriveLauncher]
+      verify:
+        kind: label_not_running
+        value: com.microsoft.OneDriveLauncher
+    start:
+      run:
+        - [/bin/launchctl, enable, {domain}/com.microsoft.OneDriveLauncher]
+    depends: []
+
+  # Submitted by its parent app, so it has no plist to bootstrap. Disable-only by design: the
+  # one-way-door rule forbids a bootout it could not undo (KI-033 class).
+  - id: com.microsoft.VSCode.ShipIt
+    kind: agent
+    lever: disable
+    supervised: launchd
+    status: verified
+    hazards: [vendor]
+    evidence: "2026-11-25 · this Mac · disable→print-disabled says disabled; enable→enabled. No bootout: VS Code's updater is app-submitted and has no plist to restore from."
+    stop:
+      run:
+        - [/bin/launchctl, disable, {domain}/com.microsoft.VSCode.ShipIt]
+      verify:
+        kind: label_not_running
+        value: com.microsoft.VSCode.ShipIt
+    start:
+      run:
+        - [/bin/launchctl, enable, {domain}/com.microsoft.VSCode.ShipIt]
+    depends: []
+
+  # Submitted by its parent app, so it has no plist to bootstrap. Disable-only by design: the
+  # one-way-door rule forbids a bootout it could not undo (KI-033 class).
+  - id: com.deepseek.dsh.ShipIt
+    kind: agent
+    lever: disable
+    supervised: launchd
+    status: verified
+    hazards: [vendor]
+    evidence: "2026-11-25 · this Mac · disable→print-disabled says disabled; enable→enabled. No bootout: the harness's own updater — restoring re-enables its auto-update is app-submitted and has no plist to restore from."
+    stop:
+      run:
+        - [/bin/launchctl, disable, {domain}/com.deepseek.dsh.ShipIt]
+      verify:
+        kind: label_not_running
+        value: com.deepseek.dsh.ShipIt
+    start:
+      run:
+        - [/bin/launchctl, enable, {domain}/com.deepseek.dsh.ShipIt]
+    depends: []
+
+  # Submitted by its parent app, so it has no plist to bootstrap. Disable-only by design: the
+  # one-way-door rule forbids a bootout it could not undo (KI-033 class).
+  - id: dev.zcode.app.ShipIt
+    kind: agent
+    lever: disable
+    supervised: launchd
+    status: verified
+    hazards: [vendor]
+    evidence: "2026-11-25 · this Mac · disable→print-disabled says disabled; enable→enabled. No bootout: ZCode's updater is app-submitted and has no plist to restore from."
+    stop:
+      run:
+        - [/bin/launchctl, disable, {domain}/dev.zcode.app.ShipIt]
+      verify:
+        kind: label_not_running
+        value: dev.zcode.app.ShipIt
+    start:
+      run:
+        - [/bin/launchctl, enable, {domain}/dev.zcode.app.ShipIt]
+    depends: []
+
+  # Submitted by its parent app, so it has no plist to bootstrap. Disable-only by design: the
+  # one-way-door rule forbids a bootout it could not undo (KI-033 class).
+  - id: com.microsoft.teams2.agent
+    kind: agent
+    lever: disable
+    supervised: launchd
+    status: verified
+    hazards: [vendor]
+    evidence: "2026-11-25 · this Mac · disable→print-disabled says disabled; enable→enabled. No bootout: the Teams agent is app-submitted and has no plist to restore from."
+    stop:
+      run:
+        - [/bin/launchctl, disable, {domain}/com.microsoft.teams2.agent]
+      verify:
+        kind: label_not_running
+        value: com.microsoft.teams2.agent
+    start:
+      run:
+        - [/bin/launchctl, enable, {domain}/com.microsoft.teams2.agent]
+    depends: []

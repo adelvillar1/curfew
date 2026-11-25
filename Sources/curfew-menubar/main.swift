@@ -7,12 +7,27 @@ import CurfewKit
 /// `--dump-menu` prints the same model without touching AppKit, so the content is verifiable from a
 /// script — the only part a session without a GUI can check.
 
+/// Where the catalogue lives when the app was not started from the project.
+///
+/// launchd starts an app with `/` as the working directory, so a cwd-relative lookup silently gives an
+/// empty catalogue — a status item that offers to restore nothing. Resolution order: an explicit env
+/// override, then the copy shipped inside the bundle, then the working directory for a dev run.
+func catalogDirectory() -> URL {
+    if let override = ProcessInfo.processInfo.environment["CURFEW_CATALOG"] {
+        return URL(fileURLWithPath: override)
+    }
+    if let resources = Bundle.main.resourceURL {
+        let shipped = resources.appendingPathComponent("catalog")
+        if FileManager.default.fileExists(atPath: shipped.path) { return shipped }
+    }
+    return URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("catalog")
+}
+
 func liveModel() -> MenuBarModel {
     let records = LaunchdInventory().records(in: Domain.effective(), findings: FindingsEngine()).records
     let journal = Journal()
-    let catalog = (try? CatalogLoader.load(
-        directory: URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("catalog")
-    )) ?? Catalog(entries: [], bundles: [], files: [])
+    let catalog = (try? CatalogLoader.load(directory: catalogDirectory()))
+        ?? Catalog(entries: [], bundles: [], files: [])
     let running = records.filter { $0.state == .running }.count
     let findings = records.reduce(0) { $0 + $1.findings.count }
     return MenuBarModel.build(
@@ -72,9 +87,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func restore() {
         let journal = Journal()
         guard !journal.restorePlan().isEmpty else { return }
-        let catalog = (try? CatalogLoader.load(
-            directory: URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("catalog")
-        )) ?? Catalog(entries: [], bundles: [], files: [])
+        let catalog = (try? CatalogLoader.load(directory: catalogDirectory()))
+            ?? Catalog(entries: [], bundles: [], files: [])
         let context = ExecutionContext(domain: Domain.effective().target)
         _ = Executor(journal: journal).resume(context: context, catalog: catalog)
         rebuild()

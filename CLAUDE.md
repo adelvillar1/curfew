@@ -115,6 +115,7 @@ swift run curfew                            # the dashboard (needs a terminal)
 make check                                  # every gate: tests, ledgers, catalog, crash test
 make install                                # put curfew on PATH (~/.local/bin)
 make app                                    # build Curfew.app (menu bar); `make run-app` opens it
+make install-app                            # install to ~/Applications + login opener (survives reboot)
 ./scripts/crash-test.sh                     # SIGKILL mid-action, then assert recovery
 ```
 
@@ -122,7 +123,7 @@ make app                                    # build Curfew.app (menu bar); `make
 
 ## Today's state
 
-- **The read-only slice and the catalog layer shipped 2026-11-24.** `curfew 0.1.0`: `list` (472 jobs in 1.19 s), `why`, `doctor` (17 real findings), `catalog validate|list|plan` over `catalog/*.yaml`, `status` over the write-ahead journal. **207 tests in 29 suites, green.** 23 of 27 original atoms done (4 dropped), plus **L7.1–L7.4 complete**: the model-assisted layer is built. Nothing mutating has run against a live service.
+- **The read-only slice and the catalog layer shipped 2026-11-24.** `curfew 0.1.0`: `list` (472 jobs in 1.19 s), `why`, `doctor` (17 real findings), `catalog validate|list|plan` over `catalog/*.yaml`, `status` over the write-ahead journal. **207 tests in 29 suites, green.** The menu bar app installs to `~/Applications` with a login opener and its catalogue sealed inside the bundle. 23 of 27 original atoms done (4 dropped), plus **L7.1–L7.4 complete**: the model-assisted layer is built. Nothing mutating has run against a live service.
 - **The mutating half is built but has never run.** `apply` refuses draft entries, root recipes, protected ports and our own pid; `--execute` needs `--yes` off a TTY. The executor's pipeline is refuse → journal intent → act → verify → journal outcome, with the runner injected so the ordering is tested, not asserted. The recovery path is proven two ways: unit tests over a post-crash journal artifact, and `scripts/crash-test.sh`, which SIGKILLs a real apply between intent and outcome and asserts `resume` restores it. Recipes use `{plist}`, resolved from what `launchctl print` reports — a hand-written path in a restore recipe left a live updater unloaded once (KI-030).
 - **The reframe that came out of the research:** the measured waste is not only vendor updaters. Crash loops are invisible to every process tool because they have no PID. Three were found and **all are now resolved (2026-11-24)**: `com.zcode.model-router` (255,645 runs) and `com.agnostic-router.model-router` (255,646) were respawning on a dangling `~/.local/bin/node` symlink and were removed with the dead router PoC; `sh.brew.postgresql@14` (82,103 runs) was retired outright after a stray `postgres@14` was found squatting on `:5434` — the port commissiontracker's own container maps. **No crash loops remain on the machine.** The detector is still the right first product: it found all three, and nothing else would have.
 - **Key safety number:** 733 of 887 system plists register a `MachServices` port, so freezing is dangerous by default; 453 of 887 have `LaunchEvents`, so `bootout` alone is not quiet mode.

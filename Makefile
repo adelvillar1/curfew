@@ -7,7 +7,7 @@ PREFIX ?= $(HOME)/.local/bin
 # SwiftPM cannot build from a sandboxed agent session: see KI-019.
 SWIFT := swift build --disable-sandbox --cache-path .build/spm-cache --config-path .build/spm-config
 
-.PHONY: build release test check install uninstall app run-app clean
+.PHONY: build release test check install uninstall app run-app install-app clean
 
 build:
 	$(SWIFT)
@@ -41,14 +41,44 @@ APP := build/Curfew.app
 app:
 	$(SWIFT) -c release
 	rm -rf $(APP)
-	mkdir -p $(APP)/Contents/MacOS
+	mkdir -p $(APP)/Contents/MacOS $(APP)/Contents/Resources
 	cp .build/release/curfew-menubar $(APP)/Contents/MacOS/Curfew
 	cp scripts/Info.plist $(APP)/Contents/Info.plist
+	# The catalogue ships inside the bundle: a login-launched app gets `/` as its cwd, so a
+	# cwd-relative lookup finds nothing. It must be copied BEFORE signing — adding a sealed resource
+	# afterwards invalidates the signature and macOS then refuses to launch the app, silently.
+	cp -R catalog $(APP)/Contents/Resources/catalog
 	codesign --force --sign - $(APP)
-	@echo "built $(APP) — run it with: open $(APP)"
+	codesign -v $(APP)
+	@echo "built and signed $(APP) — run it with: open $(APP)"
 
 run-app: app
 	open $(APP)
+
+## Install where it survives: ~/Applications, with the catalogue inside the bundle and a login opener.
+## A login-launched app gets `/` as its working directory, so a cwd-relative catalogue would be empty —
+## the catalogue ships in Contents/Resources and the app looks there (CURFEW_CATALOG overrides).
+APP_INSTALL := $(HOME)/Applications/Curfew.app
+AGENT := com.adelvillar1.curfew-menubar
+
+install-app: app
+	mkdir -p $(HOME)/Applications $(HOME)/Library/LaunchAgents
+	rm -rf $(APP_INSTALL)
+	cp -R $(APP) $(APP_INSTALL)
+	codesign -v $(APP_INSTALL)
+	# register the bundle so `open -a` works for a manual launch too; the agent itself execs the binary
+	-/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f $(APP_INSTALL)
+	cp scripts/$(AGENT).plist $(HOME)/Library/LaunchAgents/$(AGENT).plist
+	-launchctl bootout gui/$(shell id -u)/$(AGENT) 2>/dev/null
+	launchctl bootstrap gui/$(shell id -u) $(HOME)/Library/LaunchAgents/$(AGENT).plist
+	@echo "installed $(APP_INSTALL) and the login opener"
+	@echo "restore the status item with: launchctl kickstart gui/$$(id -u)/$(AGENT)"
+
+uninstall-app:
+	-launchctl bootout gui/$(shell id -u)/$(AGENT) 2>/dev/null
+	rm -f $(HOME)/Library/LaunchAgents/$(AGENT).plist
+	rm -rf $(APP_INSTALL)
+	@echo "removed the app and its opener"
 
 clean:
 	rm -rf .build
