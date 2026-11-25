@@ -1,10 +1,11 @@
 import Foundation
 
-/// The one outbound network call in Curfew (D28).
+/// The outbound call Curfew makes, kept as its own seam.
 ///
-/// It lives in its own file because the project's invariant is "no network path" and the test that
-/// enforces it now allows exactly this file and nothing else. Keeping the carve-out to a single named
-/// file means a second socket appearing anywhere else still fails the build.
+/// There is no "no network" rule any more (D29 — this is a tool for one person, not something shipped
+/// to a store). It stays in its own file for two reasons that survive that ruling: the tests inject a
+/// fake transport and never dial out, and the diagnostic path is asserted not to depend on this layer,
+/// so `list` / `why` / `doctor` keep working with no network and no key.
 public struct JevHTTPTransport: JevTransport {
     public var url: URL
     public var apiKey: String

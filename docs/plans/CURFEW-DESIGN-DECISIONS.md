@@ -119,7 +119,7 @@ Rules:
 
 ## Model-assisted decisions
 
-- **D28 — Exactly one file may make an outbound network call, and it is named.**
+- **D28 — *(superseded by D29)* — Exactly one file may make an outbound network call.**
   Rationale: the project's standing invariant was "no network path" (asserted by
   `ContractShapeTests` over every source file), and D27 puts a model call in the tool. Pretending the
   call is not a network call would be worse than an honest exception. So `JevHTTPTransport.swift` is
@@ -127,6 +127,20 @@ Rules:
   fails — the carve-out cannot spread. *Constrains:* the transport stays a separate injected seam (tests
   still never touch the network), the key is read from a 0600 file, and the invariant test asserts
   `networkFiles == [JevHTTPTransport.swift]` rather than merely skipping it.
+
+## Model-assisted decisions
+
+- **D29 — There is no no-network rule; the diagnostic path is offline-capable instead.**
+  Rationale: owner ruling 2026-11-25 — *"change the invariant, this is a tool for me, not something I'm
+  going to put out on an app store"*. The old ban (D18's second half) existed because "nothing leaves
+  the machine" was enforceable only by having no networking code; that stopped being the right trade the
+  moment a decision model became a feature. What replaces it is the property the ban was a proxy for:
+  **every diagnostic surface works with no network and no key** — `list`, `why`, `doctor`, `catalog
+  validate|list|plan`, `status`, the TUI and the menu bar. Model-assisted surfaces may call out, and
+  must fail *visibly* (a named error, an `unknown` confidence) rather than by guessing.
+  *Constrains:* `JevClient.liveClient()` throws `missingKey` with the path it looked at; a transport
+  failure is `unknown`, never a confident answer; and the diagnostic modules must not depend on the Jev
+  layer at all — asserted structurally, so the core cannot quietly grow a dependency on the model.
 
 ## Privilege
 
@@ -162,8 +176,12 @@ Rules:
   Rationale: a sandboxed app cannot drive `launchctl` against arbitrary services. *Constrains:* the
   binary runs as a plain CLI from PATH.
 
-- **D18 — No argv and no environment values in any log; v1 has no network path at all.**
-  Rationale: `--api-key=…` in argv is the obvious leak, and a diagnostic tool that reads every plist on the machine is exactly the wrong place to be sloppy. "Nothing leaves the machine" is enforceable only if there is no networking code. *Constrains:* the disagreement log's fields, the redaction test, the no-network assertion.
+- **D18 — No argv and no environment values in any log.** *(The "no network path at all" half is
+  retired by D29.)*
+  Rationale: `--api-key=…` in argv is the obvious leak, and a diagnostic tool that reads every plist on
+  the machine is exactly the wrong place to be sloppy. *Constrains:* the disagreement log's fields and
+  the redaction test. This half does not move: a model call is a new outbound path, not a licence to
+  start writing argv or environment values into logs.
 
 - **D19 — The ledgers are the record: a plan that contradicts a settled `D` is wrong by construction, and a ledger change is policed before it is committed.**
   Rationale: `/skill:project-methodology`'s ledger discipline — stable ids, append don't rewrite, close with evidence, one home per fact. *Constrains:* every plan's citation duty, `scripts/ledger_check.py` in the recap loop.

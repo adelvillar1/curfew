@@ -200,7 +200,9 @@ Rules:
 - **Rotate at 5 MB, keep 3 files.** Unbounded logs are how `router.log` reached 94 MB today.
 - **No secrets, ever.** Never log env values; never log a full argv — record `argc` and the basename
   only (a `--api-key=…` in argv is the obvious leak); strip credentials from any URL.
-- **Local only.** v1 has no network path in the binary at all; there is nothing to opt out of because
+- **Local only.** ~~v1 has no network path in the binary at all~~ — **superseded 2026-11-25 by D29**: a
+  decision-model client is now a feature. What survives is that every diagnostic surface works with no
+  network and no key. The original wording: there is nothing to opt out of because
   nothing leaves the machine.
 - **Surfaced in the terminal, not just the file:** `curfew doctor --disagreements` prints counts by
   fingerprint with first-seen/last-seen, so triage starts where the user is already looking.

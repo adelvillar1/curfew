@@ -94,9 +94,10 @@ struct ContractShapeTests {
     }
 }
 
-/// D18: v1 has no network path at all. Enforced by reading the sources, not by trusting intent.
-@Suite("No network")
-struct NoNetworkTests {
+/// D29 replaced the "no network path" ban — a model call is a feature now, not a violation. What
+/// survives is the property that ban stood for: the diagnostic path needs no network and no key.
+@Suite("Offline by default")
+struct OfflineTests {
 
     static var sourcesRoot: URL {
         URL(fileURLWithPath: #filePath)
@@ -106,27 +107,33 @@ struct NoNetworkTests {
             .appendingPathComponent("Sources")
     }
 
-    @Test("no source file imports a networking framework or opens a socket")
-    func noNetworking() throws {
-        let forbidden = ["import Network", "import CFNetwork", "URLSession", "NWConnection", "socket(", "getaddrinfo"]
-        // D28: exactly one file may make an outbound call — the decision-model transport. Any second
-        // file containing a network token still fails, so the carve-out cannot quietly spread.
-        let allowed = "JevHTTPTransport.swift"
-        let files = FileManager.default.enumerator(at: Self.sourcesRoot, includingPropertiesForKeys: nil)
+    @Test("the diagnostic core has no dependency on the decision-model layer")
+    func coreIsIndependentOfTheModel() throws {
+        let core = [
+            "LaunchdInventory.swift", "LaunchdParser.swift", "Findings.swift", "Classification.swift",
+            "ListenerScan.swift", "NeverList.swift", "WitrClient.swift", "Catalog.swift",
+            "Journal.swift", "Executor.swift", "TUI.swift", "MenuBarModel.swift",
+        ]
+        let modelTokens = ["JevClient", "JevHTTPTransport", "JevQuestion", "DecisionLog"]
         var checked = 0
-        var networkFiles: [String] = []
-        while let url = files?.nextObject() as? URL {
-            guard url.pathExtension == "swift" else { continue }
-            let text = try String(contentsOf: url, encoding: .utf8)
+        for name in core {
+            let url = Self.sourcesRoot.appendingPathComponent("CurfewKit").appendingPathComponent(name)
+            guard let text = try? String(contentsOf: url, encoding: .utf8) else { continue }
             checked += 1
-            let hits = forbidden.filter { text.contains($0) }
-            if !hits.isEmpty { networkFiles.append(url.lastPathComponent) }
-            guard url.lastPathComponent != allowed else { continue }
-            for token in forbidden {
-                #expect(!text.contains(token), "\(url.lastPathComponent) contains \(token) — only \(allowed) may make an outbound call (D28)")
+            for token in modelTokens {
+                #expect(!text.contains(token),
+                        "\(name) references \(token) — the diagnostic path must work with no network and no key (D29)")
             }
         }
-        #expect(networkFiles == [allowed], "exactly one file may hold the network path, found \(networkFiles)")
-        #expect(checked > 5, "expected to scan the source tree, scanned \(checked) files")
+        #expect(checked >= 10, "expected to scan the diagnostic core, scanned \(checked)")
+    }
+
+    @Test("with no key, the model client refuses by name and sends nothing")
+    func noKeyIsANamedRefusal() {
+        let missing = FileManager.default.temporaryDirectory
+            .appendingPathComponent("no-such-key-\(UUID().uuidString)")
+        setenv("CURFEW_JEV_KEY", missing.path, 1)
+        defer { unsetenv("CURFEW_JEV_KEY") }
+        #expect(throws: JevError.self) { try JevClient.liveClient() }
     }
 }
