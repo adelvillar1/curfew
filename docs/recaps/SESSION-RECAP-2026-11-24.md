@@ -512,6 +512,42 @@ ranking, on one client, one confidence policy and one audit log.
 
 **8 new tests; 207 total in 29 suites.**
 
+## Round 20 — known-issues burndown: 17 open → 1
+
+The ledger had 17 open items. Nine were already closed in code and only lacked the evidence; four were
+permanent constraints wearing an "open" label; two were real fixes I could make; one was moot.
+
+**Fixed on the machine:**
+- **KI-001** — the dangling `~/.local/bin/node` symlink pointed at a deleted Hermes install. Repointed to
+  Homebrew's; `node -v` → v26.13.1.
+- **KI-010** — `com.fleet.gui.plist` carried two relay secrets at **mode 644**. Now **600**. Removing the
+  job or moving them to `fleet.env` stays the owner's call.
+
+**Closed with the code that already did the work:** KI-005 (the witr client checks the JSON `Error`, not
+the exit code), KI-007 (the crash-loop rule is a *four*-part guard, not the three the ledger claimed),
+KI-014 (the findings engine ships), KI-019 (the Makefile exports the toolchain flag), KI-033 (disable-only
+recipes plus the one-way-door rule), KI-035 (moot — laya is gone), KI-002 (characterised: the EIO follows
+the plist, not the sandbox — bootstraps from `~/Library` succeeded repeatedly today).
+
+**Reclassified as accepted, because they are constraints and not work:** KI-003 and KI-004 (witr's
+upstream limits, which are *why* launchd is the state source), KI-009 (Kiri's VM disk, D13), KI-011 (the
+inline key, redaction rule).
+
+**KI-008 finally has a number, and it kills the memory pitch.** `footprint -p` works under full access:
+the whole acting set holds **20 MB** — one Teams agent; the other twelve are idle. Quiet mode saves
+wakeups and crash loops, **not memory**.
+
+**And the burndown found a new one.** KI-016 (second-brain-pg, 27,010 restarts, exit 1) is not flagged
+because `Findings.crashLoop` deliberately excludes a running job — the guard's own comment names that
+label. That is right for a healthy job, but a *fast* loop is almost always observed running or between
+runs, so it can hide indefinitely. Logged as **KI-040** with the honest fix: compare `runs` deltas between
+scans rather than trusting the instant state.
+
+Also added `fixtureCoversThisMacOS`, which fails the build when the OS outruns every `launchctl print`
+fixture — KI-006's missing half.
+
+**208 tests in 29 suites.**
+
 ## Criteria status
 
 All met except two, **deliberately revised** (recorded in the plan, not silently dropped):

@@ -10,7 +10,7 @@ struct LaunchdParserTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .appendingPathComponent("Fixtures")
-    }
+}
 
     static func fixture(_ name: String) throws -> String {
         try String(contentsOf: fixtures.appendingPathComponent(name), encoding: .utf8)
@@ -139,4 +139,25 @@ struct LaunchdParserTests {
         #expect(!labels.isEmpty)
         #expect(labels.allSatisfy { !$0.isEmpty })
     }
+
+    
+    /// KI-006: the parser knows one `launchctl print` format, and the fixture set proves it only for the
+    /// macOS versions it names. This fails the build when the OS has moved past every fixture, which is
+    /// the moment the tolerant-scan rules need re-checking against a real dump.
+    @Test("at least one fixture covers the running macOS major")
+    func fixtureCoversThisMacOS() throws {
+        let fixtures = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("Fixtures")
+        let names = try FileManager.default.contentsOfDirectory(atPath: fixtures.path)
+        let majors = Set(names.compactMap { name -> String? in
+            guard let range = name.range(of: "macos-") else { return nil }
+            return String(name[range.upperBound...].prefix(while: { $0.isNumber }))
+        })
+        let running = String(ProcessInfo.processInfo.operatingSystemVersion.majorVersion)
+        #expect(!majors.isEmpty, "no fixture names a macOS version")
+        #expect(majors.contains(running),
+                "no fixture covers macOS \(running) (have \(majors.sorted().joined(separator: ", "))) — capture one before trusting the parser")
+    }
+
 }
