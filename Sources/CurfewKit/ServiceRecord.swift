@@ -26,6 +26,20 @@ public enum Domain: Hashable, Sendable, Codable {
 
     public static var currentUser: Domain { .gui(getuid()) }
 
+    /// The user whose services we are talking about.
+    ///
+    /// Under `sudo` the effective uid is 0 and `gui/0` does not exist: enumerating it would report an
+    /// empty machine. The domain of a sudo'd run is the invoking user's, which the environment names.
+    public static func effective(
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        isRoot: Bool = geteuid() == 0
+    ) -> Domain {
+        if isRoot, let sudoUID = environment["SUDO_UID"].flatMap(UInt32.init) {
+            return .gui(sudoUID)
+        }
+        return .gui(getuid())
+    }
+
     public init?(name: String) {
         if name == "system" {
             self = .system

@@ -54,7 +54,7 @@ struct ExecutorDelegationTests {
         ExecutionContext(domain: "gui/501", records: [], listeners: [], protectedPorts: [], ownAncestry: [])
     }
 
-    @Test("without a helper a root recipe is refused, naming L4")
+    @Test("without root a root recipe is refused, naming sudo")
     func noHelperRefuses() {
         let recorder = ExecutorTests.Recorder()
         let outcomes = Executor(runner: recorder.run, journal: Journal(url: tempJournal()), probes: .live)
@@ -62,9 +62,9 @@ struct ExecutorDelegationTests {
 
         #expect(recorder.calls.isEmpty)
         if case .refused(let reason) = outcomes.first?.result {
-            #expect(reason.contains("L4"))
+            #expect(reason.contains("sudo"))
         } else {
-            Issue.record("expected a refusal naming L4")
+            Issue.record("expected a refusal naming sudo")
         }
     }
 

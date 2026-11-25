@@ -59,12 +59,12 @@ enum TUILoop {
     }
 
     private static func buildState(selectedBundle: String? = nil) -> TUIState {
-        let records = LaunchdInventory().records(in: .currentUser, findings: FindingsEngine()).records
+        let records = LaunchdInventory().records(in: Domain.effective(), findings: FindingsEngine()).records
         let catalog = catalog()
         return TUIBuilder.state(
             records: records, catalog: catalog,
             quietMode: !Journal().unresolved().isEmpty,
-            title: "curfew \(curfewVersion) · gui/\(getuid())",
+            title: "curfew \(curfewVersion) · \(Domain.effective().target)",
             selectedBundle: selectedBundle
         )
     }

@@ -85,19 +85,24 @@ public struct Executor: Sendable {
     private let runner: Runner
     private let journal: Journal
     private let probes: Probes
-    /// Nil when no helper is registered — a root recipe is then refused, which is today's behaviour.
+    /// Nil for an internal, single-user install: privilege comes from running under sudo, not from a
+    /// signed daemon (D21). Kept as a seam for anything that later wants a helper.
     private let privileged: PrivilegedTransport?
+    /// True when this process already is root.
+    private let isRoot: Bool
 
     public init(
         runner: @escaping Runner = Executor.systemRunner,
         journal: Journal,
         probes: Probes = .live,
-        privileged: PrivilegedTransport? = nil
+        privileged: PrivilegedTransport? = nil,
+        isRoot: Bool = geteuid() == 0
     ) {
         self.runner = runner
         self.journal = journal
         self.probes = probes
         self.privileged = privileged
+        self.isRoot = isRoot
     }
 
     public static let systemRunner: Runner = { argv in
@@ -138,7 +143,7 @@ public struct Executor: Sendable {
         context: ExecutionContext,
         execute: Bool
     ) -> [StepOutcome] {
-        let plan = CatalogPlanner.plan(bundle: name, in: catalog, helperAvailable: privileged != nil)
+        let plan = CatalogPlanner.plan(bundle: name, in: catalog, privilegedAvailable: isRoot || privileged != nil)
         var outcomes: [StepOutcome] = []
 
         // A planner refusal is already a decision: report it and touch nothing.
@@ -187,13 +192,18 @@ public struct Executor: Sendable {
         // A root recipe never runs here: it goes to the helper, which will re-decide everything
         // itself (D20). Without a helper it stays refused.
         if recipe.needsRoot {
-            guard let privileged else {
+            // Under sudo the executor *is* the privileged process; the catalog rules still apply,
+            // which is what keeps "as root, only reviewed recipes" true without a daemon (D21).
+            if isRoot {
+                // fall through and run it locally
+            } else if let privileged {
+                return runPrivileged(entry: entry, action: action, recipe: recipe, transport: privileged)
+            } else {
                 return StepOutcome(
                     entryId: entry.id, action: action,
-                    result: .refused("recipe needs the privileged helper (L4)")
+                    result: .refused("recipe needs root — run \(suggestion())")
                 )
             }
-            return runPrivileged(entry: entry, action: action, recipe: recipe, transport: privileged)
         }
 
         guard let argv = substitute(recipe.run, domain: context.domain, plist: context.record(entry.id)?.plistPath) else {
@@ -275,6 +285,11 @@ public struct Executor: Sendable {
         }
         try? journal.appendOutcome(intent: seq, result: "ok", verified: response.verified)
         return StepOutcome(entryId: entry.id, action: action, result: .executed(verified: response.verified ?? true))
+    }
+
+    /// What the operator should type. A refusal that does not say the next step is a dead end.
+    private func suggestion() -> String {
+        "`sudo curfew apply --bundle <name> --execute --yes`"
     }
 
     // MARK: Resume

@@ -76,6 +76,17 @@ Rules:
   for operations that were already reviewed and recorded. *Constrains:* the XPC protocol shape, the
   helper's authorization function, and the fact that non-root recipes never cross the boundary at all.
 
+- **D21 — Curfew is an internal, single-user tool: privilege comes from `sudo`, not from a signed
+  daemon. Supersedes the distribution half of D17 and the daemon half of the L4 plan.**
+  Rationale: `SMAppService`, XPC and code-signature validation exist so a *distributed* app can be
+  trusted with root. For one person on one machine, `sudo` does that — and it deletes a $99/year
+  membership, a certificate, a daemon, a wire protocol and a registration prompt. The property worth
+  keeping survives in-process: **as root, the executor still runs only verified, cataloged,
+  root-requiring recipes** (`SudoPrivilegeTests`), so root is never a licence to run anything the
+  catalog has not reviewed. *Constrains:* `Domain.effective` (under sudo the domain is the invoking
+  user's, `gui/$SUDO_UID`, not `gui/0`), the refusal that names `sudo`, and the absence of any
+  signing, notarisation or cask work.
+
 ## Engineering
 
 - **D15 — Swift 6 + Swift Package Manager; one engine (`CurfewKit`) with thin front ends. No Electron.**
@@ -84,8 +95,10 @@ Rules:
 - **D16 — The helper owns journal state; front ends are stateless views.**
   Rationale: if the process that stopped twenty services is also the process that dies, nothing restores them. *Constrains:* L4 atoms, the `status` command reading from the helper, fail-open restore.
 
-- **D17 — Not sandboxed, not on the Mac App Store; Developer ID + notarisation.**
-  Rationale: a sandboxed app cannot drive `launchctl` against arbitrary services, and App Review rejects daemons with this reach. *Constrains:* signing, the cask, the release checklist.
+- **D17 — Not sandboxed, not on the Mac App Store.** *(The Developer ID + notarisation half is
+  superseded by D21: there is nothing to distribute.)*
+  Rationale: a sandboxed app cannot drive `launchctl` against arbitrary services. *Constrains:* the
+  binary runs as a plain CLI from PATH.
 
 - **D18 — No argv and no environment values in any log; v1 has no network path at all.**
   Rationale: `--api-key=…` in argv is the obvious leak, and a diagnostic tool that reads every plist on the machine is exactly the wrong place to be sloppy. "Nothing leaves the machine" is enforceable only if there is no networking code. *Constrains:* the disagreement log's fields, the redaction test, the no-network assertion.

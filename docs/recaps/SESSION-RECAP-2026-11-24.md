@@ -229,6 +229,35 @@ same automatically — so the screen can be read from a script, which is how it 
 
 **11 new tests; 149 total in 21 suites, green.**
 
+## Round 10 — the scope correction that deleted a layer
+
+"An internal tool for my use, not a commercial app." That one sentence removed the largest remaining
+blocker and four atoms with it.
+
+**D21 — privilege comes from `sudo`, not from a signed daemon.** `SMAppService`, XPC and
+code-signature validation exist so a *distributed* app can be trusted with root. For one person on one
+machine, `sudo` does that, and it deletes a $99/year membership, a certificate, a daemon, a wire
+protocol and a registration prompt.
+
+The property worth keeping survived: **as root, the executor still runs only verified, cataloged,
+root-requiring recipes.** `SudoPrivilegeTests` (6) proves root refuses a draft entry and a never-list
+label, so root is never a licence to run something the catalog has not reviewed.
+
+One trap fell out of it, and it would have been silent: under `sudo` the effective uid is 0 and
+`gui/0` does not exist — enumerating it reports an empty machine. `Domain.effective` resolves
+`gui/$SUDO_UID`, with a test for both branches.
+
+Dropped: L4.1 (daemon), L4.2 (XPC), L6.1 (signing/notarisation), L6.2 (cask). Added: L6.3,
+`make install` to `~/.local/bin` plus `make check` as the single gate. Hard rule 10 lost its
+"releases are notarised" half.
+
+**6 new tests; 155 total in 22 suites.** `make check` runs tests, ledgers, catalog validation and the
+crash test in one command.
+
+**`CLAUDE.local.md` changed and leaves no git trace:** the "Signing and notarisation" section is
+replaced by a "Privilege — no signing required" section, and the environment table no longer claims a
+notarised release.
+
 ## Criteria status
 
 All met except two, **deliberately revised** (recorded in the plan, not silently dropped):

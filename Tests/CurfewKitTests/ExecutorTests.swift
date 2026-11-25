@@ -154,7 +154,7 @@ struct ExecutorTests {
         if case .refused = outcomes.first?.result {} else { Issue.record("expected refusal") }
     }
 
-    @Test("a root-requiring recipe is refused and names the helper")
+    @Test("a root-requiring recipe is refused and names sudo")
     func rootRefused() {
         let url = tempJournal()
         defer { try? FileManager.default.removeItem(at: url) }
@@ -164,9 +164,9 @@ struct ExecutorTests {
 
         #expect(recorder.calls.isEmpty)
         if case .refused(let reason) = outcomes.first?.result {
-            #expect(reason.contains("L4"))
+            #expect(reason.contains("sudo"))
         } else {
-            Issue.record("expected a refusal naming L4")
+            Issue.record("expected a refusal naming sudo")
         }
     }
 

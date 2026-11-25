@@ -23,7 +23,7 @@ CONTRACTS = ROOT / "docs" / "plans" / "CURFEW-CONTRACTS.md"
 DECOMPOSITION = ROOT / "docs" / "plans" / "CURFEW-DECOMPOSITION.md"
 
 SEVERITIES = {"blocker", "defect", "gap", "improvement", "environmental", "risk"}
-STATUSES = {"planned", "drafted", "building", "done"}
+STATUSES = {"planned", "drafted", "building", "done", "dropped"}
 BLOCK_STARTS = ("OFFERS", "EXPECTS", "CONSUMED BY", "```", "## ")
 
 problems: list[str] = []

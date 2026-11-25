@@ -20,7 +20,7 @@ These are the rules that keep the tool from corrupting a database or stranding a
 7. **Whitelist by ancestry, not by name.** The tool must never suspend its own process tree, the calling terminal, `sshd`, or the remote-access path (Tailscale). Walk the parent chain.
 8. **No secrets in the catalog, the journal, or the logs.** No `sudo` inside a long-lived watcher; privileged work goes through the helper over XPC.
 9. **Apple per-user agents are opt-in per label and never part of "easy mode."** They rot with every OS release. A label enters that list only with a dated verification note.
-10. **`main` is the only branch.** No staging environment, no auto-deploy. Releases are notarised and published deliberately.
+10. **`main` is the only branch, and there is no release pipeline.** This is an internal tool for one user (D21): no notarisation, no Homebrew cask, no distribution. `make install` puts the binary on PATH. Privilege comes from `sudo`, and even as root the executor runs only verified, cataloged, root-requiring recipes.
 
 ---
 
@@ -38,9 +38,9 @@ There is no production server. "Production" is the copy installed on the user's 
 
 **Ledgers — read before building anything, append before finishing anything**
 - Known issues → `docs/known-issues.md` (`KI-n`; every defect, gap, risk, environmental item, *including* "not my code")
-- Design decisions → `docs/plans/CURFEW-DESIGN-DECISIONS.md` (`D0–D20`; a plan that contradicts a settled `D` is wrong by construction)
+- Design decisions → `docs/plans/CURFEW-DESIGN-DECISIONS.md` (`D0–D21`; a plan that contradicts a settled `D` is wrong by construction)
 - Contracts → `docs/plans/CURFEW-CONTRACTS.md` (`C0–C13`; offers/expects/consumed-by + the external JSON and exit-code shapes)
-- Decomposition → `docs/plans/CURFEW-DECOMPOSITION.md` (`L0.1–L6.2`, 26 atoms; the build map and critical path)
+- Decomposition → `docs/plans/CURFEW-DECOMPOSITION.md` (`L0.1–L6.3`, 27 atoms; the build map and critical path)
 - Police all four with `python3 scripts/ledger_check.py`
 
 **Architecture**
@@ -109,15 +109,16 @@ swift run curfew apply --bundle vendor-noise --execute  # needs --yes when not a
 swift run curfew resume                     # preview the restore plan
 swift run curfew tui --frame                # one dashboard frame, from live data
 swift run curfew                            # the dashboard (needs a terminal)
+make check                                  # every gate: tests, ledgers, catalog, crash test
+make install                                # put curfew on PATH (~/.local/bin)
 ./scripts/crash-test.sh                     # SIGKILL mid-action, then assert recovery
-# release only:                  xcrun notarytool submit ...  (TECHNICAL-DOCUMENTATION.md §9)
 ```
 
 ---
 
 ## Today's state
 
-- **The read-only slice and the catalog layer shipped 2026-11-24.** `curfew 0.1.0`: `list` (472 jobs in 1.19 s), `why`, `doctor` (17 real findings), `catalog validate|list|plan` over `catalog/*.yaml`, `status` over the write-ahead journal. **149 tests in 21 suites, green. 20 of 26 atoms done (L4 partially: policy proven, daemon pending).**
+- **The read-only slice and the catalog layer shipped 2026-11-24.** `curfew 0.1.0`: `list` (472 jobs in 1.19 s), `why`, `doctor` (17 real findings), `catalog validate|list|plan` over `catalog/*.yaml`, `status` over the write-ahead journal. **155 tests in 22 suites, green. 21 of 27 atoms done, 4 dropped by scope.**
 - **The mutating half is built but has never run.** `apply` refuses draft entries, root recipes, protected ports and our own pid; `--execute` needs `--yes` off a TTY. The executor's pipeline is refuse → journal intent → act → verify → journal outcome, with the runner injected so the ordering is tested, not asserted. The recovery path is proven two ways: unit tests over a post-crash journal artifact, and `scripts/crash-test.sh`, which SIGKILLs a real apply between intent and outcome and asserts `resume` restores it. Recipes use `{plist}`, resolved from what `launchctl print` reports — a hand-written path in a restore recipe left a live updater unloaded once (KI-030).
 - **The reframe that came out of the research:** the measured waste is not only vendor updaters. Crash loops are invisible to every process tool because they have no PID. Three were found and **all are now resolved (2026-11-24)**: `com.zcode.model-router` (255,645 runs) and `com.agnostic-router.model-router` (255,646) were respawning on a dangling `~/.local/bin/node` symlink and were removed with the dead router PoC; `sh.brew.postgresql@14` (82,103 runs) was retired outright after a stray `postgres@14` was found squatting on `:5434` — the port commissiontracker's own container maps. **No crash loops remain on the machine.** The detector is still the right first product: it found all three, and nothing else would have.
 - **Key safety number:** 733 of 887 system plists register a `MachServices` port, so freezing is dangerous by default; 453 of 887 have `LaunchEvents`, so `bootout` alone is not quiet mode.

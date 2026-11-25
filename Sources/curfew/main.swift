@@ -80,8 +80,8 @@ read-only: every command inspects; none changes a service.
 let domains: [Domain] = {
     switch value(for: "--domain") {
     case "system": return [.system]
-    case "all": return [.currentUser, .system]
-    default: return [.currentUser]
+    case "all": return [Domain.effective(), .system]
+    default: return [Domain.effective()]
     }
 }()
 
@@ -176,7 +176,7 @@ func runList() -> Never {
 }
 
 func runDoctor() -> Never {
-    let (records, skipped, _) = collect([.currentUser, .system])
+    let (records, skipped, _) = collect([Domain.effective(), .system])
     var scan = ScanState()
     if skipped > 0 { scan.markIncomplete("unparsedRows") }
 
@@ -332,7 +332,7 @@ func printWhy(_ record: ServiceRecord?, report: WitrReport?, ancestry: [Ancestry
 }
 
 func whyByLabel(_ label: String) -> Never {
-    let (records, _, _) = collect([.currentUser, .system])
+    let (records, _, _) = collect([Domain.effective(), .system])
     guard let record = records.first(where: { $0.id == label }) else {
         fail("no launchd job named \(label) in gui/\(getuid()) or system", .notFound)
     }
@@ -402,7 +402,7 @@ func whyByName(_ name: String) -> Never {
 
 func buildTUIState() -> TUIState {
     let inventory = LaunchdInventory()
-    let records = inventory.records(in: .currentUser, findings: FindingsEngine()).records
+    let records = inventory.records(in: Domain.effective(), findings: FindingsEngine()).records
     let catalog = (try? CatalogLoader.load(directory: catalogDirectory()))
         ?? Catalog(entries: [], bundles: [], files: [])
     let quiet = !Journal().unresolved().isEmpty
@@ -446,11 +446,11 @@ func loadCatalogOrFail() -> Catalog {
 
 func executionContext(_ catalog: Catalog) -> ExecutionContext {
     let inventory = LaunchdInventory()
-    let records = inventory.records(in: .currentUser, findings: FindingsEngine()).records
+    let records = inventory.records(in: Domain.effective(), findings: FindingsEngine()).records
     let listeners = ListenerScanner().scan()
     let protectedPorts = Set(catalog.bundles.filter { $0.kind == .protect }.flatMap(\.protectPorts))
     return ExecutionContext(
-        domain: Domain.currentUser.target,
+        domain: Domain.effective().target,
         records: records,
         listeners: listeners,
         protectedPorts: protectedPorts
@@ -662,7 +662,7 @@ func runCatalog() -> Never {
         guard let bundleName = value(for: "--bundle") else {
             fail("catalog plan needs --bundle NAME", .badInput)
         }
-        let plan = CatalogPlanner.plan(bundle: bundleName, in: catalog, helperAvailable: false)
+        let plan = CatalogPlanner.plan(bundle: bundleName, in: catalog, privilegedAvailable: geteuid() == 0)
         if has("--json") {
             emit(CatalogPlanOutput(
                 sources: sources(), bundle: bundleName,

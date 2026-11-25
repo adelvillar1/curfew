@@ -6,7 +6,7 @@ Every atom traces four ways: **atom → plan** (where it is built), **atom → c
 
 Siblings: [`CURFEW-DESIGN-DECISIONS.md`](CURFEW-DESIGN-DECISIONS.md) (the choices), [`CURFEW-CONTRACTS.md`](CURFEW-CONTRACTS.md) (the seams), [`../known-issues.md`](../known-issues.md) (what is broken).
 
-**26 atoms across 7 layers.** L0 + L1 + L2 shipped 2026-11-24 (read-only slice, 57 tests); L3–L6 are the map, not a commitment.
+**27 atoms across 7 layers: 21 done, 4 dropped by D21, 2 planned.** L0 + L1 + L2 shipped 2026-11-24 (read-only slice, 57 tests); L3–L6 are the map, not a commitment.
 
 ---
 
@@ -66,8 +66,8 @@ Plan 3 (executor + journal) is next; entries are verified *through* it.
 
 | Atom | Builds | Depends | Choices | Status | Evidence |
 |---|---|---|---|---|---|
-| L4.1 | Helper daemon registered via `SMAppService.daemon`; the approval flow | L0.1 | D16, D17 | planned | partial: the policy and wire types are done and tested (`HelperProtocol.swift`, `HelperPolicyTests` 9); the daemon target and registration need a signing identity |
-| L4.2 | XPC protocol + `SecCodeCheckValidity` on every call | L4.1 | D17 | planned | partial: `HelperPolicy.decide` refuses an invalid signature and a foreign team id; the listener and the `SecCodeCheckValidity` call itself are unbuilt |
+| L4.1 | ~~Helper daemon via `SMAppService`~~ — **dropped by D21** | — | D21 | dropped | not built, deliberately: an internal tool takes root from `sudo`. The policy it was going to enforce is tested and still applies in-process |
+| L4.2 | ~~XPC protocol + `SecCodeCheckValidity`~~ — **replaced by the in-process gate** | L4.1 | D21 | dropped | `HelperPolicy` survives as the gate; `SudoPrivilegeTests` proves root still refuses drafts and never-list labels |
 
 ## L5 — Faces (thin, stateless)
 
@@ -80,8 +80,9 @@ Plan 3 (executor + journal) is next; entries are verified *through* it.
 
 | Atom | Builds | Depends | Choices | Status | Evidence |
 |---|---|---|---|---|---|
-| L6.1 | Signing, notarisation, stapling, DMG | L4.2, L5.2 | D17 | planned | — |
-| L6.2 | Homebrew cask + version bump procedure | L6.1 | D17 | planned | — |
+| L6.1 | ~~Signing, notarisation, DMG~~ — **dropped by D21** | — | D21 | dropped | nothing to distribute |
+| L6.2 | ~~Homebrew cask~~ — **dropped by D21** | — | D21 | dropped | replaced by L6.3 |
+| L6.3 | Install target: `make install` copies the release binary to `~/.local/bin`, `make test` and `make check` run the gates | L0.1 | D21 | done | `Makefile` |
 
 ---
 

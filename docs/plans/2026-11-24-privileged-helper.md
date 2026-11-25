@@ -1,11 +1,17 @@
 ---
-status: active
+status: abandoned
 created: 2026-11-24
 updated: 2026-11-24
 slug: privileged-helper
 ---
 
 # Plan — the privileged helper (L4.1, L4.2)
+
+> **Abandoned 2026-11-24 by D21.** Curfew is an internal, single-user tool: privilege comes from
+> `sudo`, so there is no `SMAppService` daemon, no XPC wire, and no code-signature check. The half
+> that mattered — *as root, only verified cataloged recipes run* — was kept and is enforced
+> in-process (`HelperPolicy`, `SudoPrivilegeTests`). Kept here as the record of why the daemon was
+> the wrong shape for this scope.
 
 ## Context
 
