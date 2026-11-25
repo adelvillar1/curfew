@@ -156,6 +156,21 @@ Every request sends `User-Agent: curfew` — Cloudflare answers 403/1010 to urll
 twice on this machine. The transport, clock and cache are injected, so the whole surface is testable
 without a network. `unknown` is a first-class outcome: a transport failure is never read as confidence.
 
+## C18 — `QuiesceGate` — Sources/CurfewKit/QuiesceGate.swift
+
+```text
+OFFERS   QuiesceGate::question() -> JevQuestion · state(entry:record:listeners:connections:) -> String
+         evaluate(state) -> QuiesceVerdict (.idle / .busy / .unsettled / .unavailable)
+         QuiesceMode::applies(to:) · fromEnvironment(_:)
+EXPECTS  an injected ask closure (the real one wraps JevClient, C15) · Executor::liveConnections (lsof)
+CONSUMED BY  Executor::run — after every deterministic refusal, before any journal intent
+```
+
+Bands: `p ≥ 0.65` busy → refuse; `p ≤ 0.35` idle → the ordinary checks proceed; the band between
+refuses unless `--allow-unsettled`. **An unreachable model is `unavailable`, which refuses** — never
+"assume idle". `QuiesceMode.auto` asks only where the entry declares a `quiesce:` probe, which today is
+nowhere, so the gate is dark until a state-holding service is catalogued.
+
 ## C17 — `Proposer` / `ProposeRunner` — Sources/CurfewKit/Propose.swift
 
 ```text

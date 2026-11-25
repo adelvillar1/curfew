@@ -138,7 +138,7 @@ connections on its ports, recent client processes, runs in the last minute).
 | 0.35–0.65 (unsettled) | refuse with `unknown` and name the evidence, or proceed **only** with `--allow-unsettled` |
 | ≤ 0.35 (idle) | proceed to the recipe |
 
-**It narrows only.** It runs after `NeverList`, port, ancestry and draft checks — it can never make
+**It runs on `--execute` only**, so the dry run stays offline (rule 3 and D29 both hold). It narrows only: it runs after `NeverList`, port, ancestry and draft checks — it can never make
 something stoppable that those rules refuse.
 
 **When it runs: `auto` — if and only if the entry declares a `quiesce:` probe** (owner ruling
@@ -147,6 +147,17 @@ author's statement of risk; the gate checks that statement live rather than inve
 Today it therefore never runs, which is correct: the 11 acting entries are updaters and launchers with no
 clients, and a model call per entry would add latency for an answer that is always "idle". It arms
 itself the moment an entry is catalogued that holds state and is not on the never-list.
+
+**The question was measured before shipping it** (2026-11-25, live via the Go endpoint):
+
+| state given to the model | `in_use` |
+|---|---|
+| idle updater, no ports, no connections | **0.05** → idle |
+| postgres **with 3 established connections** | **0.92** → busy |
+| the *same* postgres, nobody connected | **0.07** → idle |
+
+The two postgres rows are the point: the answer tracks **live use**, not the service's identity. That is
+what distinguishes this from the triage question, which asks about the service in general.
 
 **Acceptance criteria**
 
@@ -218,7 +229,7 @@ swift test                                  # everything below is fixture-driven
 curfew catalog propose dev.kiri.daemon       # prints a draft, writes nothing
 curfew catalog propose us.zoom.updater --json
 curfew doctor --rank | head -20
-CURFEW_QUIESCE_GATE=1 curfew apply --bundle vendor-noise   # dry run: the gate's answers in the plan
+CURFEW_QUIESCE_GATE=always curfew apply --bundle vendor-noise --execute --yes   # the gate runs here
 ```
 
 ## Linked artifacts

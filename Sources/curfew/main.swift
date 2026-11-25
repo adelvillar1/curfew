@@ -71,7 +71,7 @@ usage:
   curfew catalog propose <label> | --all                 [--json] [--write FILE]
   curfew status                                          [--json]
   curfew tui   [--frame]                                 the dashboard; --frame prints one screen
-  curfew apply  --bundle NAME [--execute [--yes]] [--json]      dry run unless --execute
+  curfew apply  --bundle NAME [--execute [--yes]] [--allow-unsettled] [--json]
   curfew resume [--execute [--yes]] [--json]
   curfew --version
 
@@ -614,7 +614,21 @@ func runApply() -> Never {
     requireExecuteConsent("apply")
     let catalog = loadCatalogOrFail()
     let execute = has("--execute")
-    let outcomes = Executor(journal: Journal())
+
+    // L7.3: the quiesce screen. Off unless the entry declares a quiesce probe (auto), and never
+    // built at all when no key is present — the diagnostic path must not need one (D29).
+    let gateMode = QuiesceMode.fromEnvironment(ProcessInfo.processInfo.environment["CURFEW_QUIESCE_GATE"])
+    var gate: QuiesceGate?
+    if gateMode != .off, let client = try? JevClient.liveClient() {
+        gate = QuiesceGate.live(client: client)
+    }
+
+    let outcomes = Executor(
+        journal: Journal(),
+        gate: gate,
+        gateMode: gateMode,
+        allowUnsettled: has("--allow-unsettled")
+    )
         .apply(bundle: bundle, catalog: catalog, context: executionContext(catalog), execute: execute)
         .map(report)
 

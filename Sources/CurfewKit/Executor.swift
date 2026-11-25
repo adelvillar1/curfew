@@ -90,19 +90,49 @@ public struct Executor: Sendable {
     private let privileged: PrivilegedTransport?
     /// True when this process already is root.
     private let isRoot: Bool
+    /// The quiesce screen (L7.3). Nil means it is switched off, which is the default (D27).
+    private let gate: QuiesceGate?
+    private let gateMode: QuiesceMode
+    /// A verdict in the middle band refuses unless the caller says otherwise.
+    private let allowUnsettled: Bool
+    /// Established connections per port, injected so tests need no `lsof`.
+    private let connections: @Sendable (UInt16) -> Int
 
     public init(
         runner: @escaping Runner = Executor.systemRunner,
         journal: Journal,
         probes: Probes = .live,
         privileged: PrivilegedTransport? = nil,
-        isRoot: Bool = geteuid() == 0
+        isRoot: Bool = geteuid() == 0,
+        gate: QuiesceGate? = nil,
+        gateMode: QuiesceMode = .auto,
+        allowUnsettled: Bool = false,
+        connections: @escaping @Sendable (UInt16) -> Int = Executor.liveConnections
     ) {
         self.runner = runner
         self.journal = journal
         self.probes = probes
         self.privileged = privileged
         self.isRoot = isRoot
+        self.gate = gate
+        self.gateMode = gateMode
+        self.allowUnsettled = allowUnsettled
+        self.connections = connections
+    }
+
+    /// Established connections on a port, from `lsof`. Only called when the gate actually runs.
+    public static let liveConnections: @Sendable (UInt16) -> Int = { port in
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/sbin/lsof")
+        process.arguments = ["-nP", "-iTCP:\(port)", "-sTCP:ESTABLISHED"]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = FileHandle.nullDevice
+        guard (try? process.run()) != nil else { return 0 }
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        let lines = String(decoding: data, as: UTF8.self).split(separator: "\n")
+        return max(0, lines.count - 1) // minus the header
     }
 
     public static let systemRunner: Runner = { argv in
@@ -187,6 +217,32 @@ public struct Executor: Sendable {
 
         guard let recipe = entry.stop else {
             return StepOutcome(entryId: entry.id, action: action, result: .refused("no stop recipe"))
+        }
+
+        // L7.3: the quiesce screen. It runs *after* every deterministic refusal above and can only
+        // narrow — a busy answer refuses, and no answer ever turns a refusal into an allow (D27).
+        if let gate, gateMode.applies(to: entry) {
+            let ports = context.listeners.filter { $0.port > 0 }.map(\.port)
+            var perPort: [UInt16: Int] = [:]
+            for port in Set(ports) { perPort[port] = connections(port) }
+            let state = QuiesceGate.state(
+                entry: entry, record: context.record(entry.id), listeners: context.listeners,
+                connections: perPort)
+            switch gate.evaluate(state) {
+            case .idle:
+                break  // nothing is using it: the ordinary checks proceed unchanged
+            case .busy(let p):
+                return StepOutcome(entryId: entry.id, action: action,
+                                   result: .refused("in use right now (p=\(Self.two(p))) — the quiesce screen refused"))
+            case .unsettled(let p) where !allowUnsettled:
+                return StepOutcome(entryId: entry.id, action: action,
+                                   result: .refused("quiesce unsettled (p=\(Self.two(p))) — pass --allow-unsettled to proceed"))
+            case .unsettled:
+                break
+            case .unavailable(let why):
+                return StepOutcome(entryId: entry.id, action: action,
+                                   result: .refused("quiesce screen unavailable (\(why)) — refusing rather than assuming idle"))
+            }
         }
 
         // A root recipe never runs here: it goes to the helper, which will re-decide everything
@@ -286,6 +342,8 @@ public struct Executor: Sendable {
         try? journal.appendOutcome(intent: seq, result: "ok", verified: response.verified)
         return StepOutcome(entryId: entry.id, action: action, result: .executed(verified: response.verified ?? true))
     }
+
+    static func two(_ value: Double) -> String { String(format: "%.2f", value) }
 
     /// What the operator should type. A refusal that does not say the next step is a dead end.
     private func suggestion() -> String {
