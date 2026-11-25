@@ -55,6 +55,7 @@ There is no production server. "Production" is the copy installed on the user's 
 - What TS/JS/Python/Rust development actually needs running → `docs/research/dev-toolchains.md`
 - DSH Fleet + Zcode MCP dependency graph → `docs/research/harness-mcp-deps.md`
 - Containers, VMs and local inference engines (Kiri, OpenBot, embeddinggemma-2, Laya) → `docs/research/containers-and-engines.md`
+- Jev's primitives and patterns, and what each buys Curfew → `docs/research/tooling-jev.md`
 
 **Features**
 - Per-feature behaviour and edge cases → `docs/features/`
