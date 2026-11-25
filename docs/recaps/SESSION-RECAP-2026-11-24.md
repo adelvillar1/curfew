@@ -477,7 +477,14 @@ keeps its protection.
 **Verified:** `sem1_probe` → reachable, **1024 dims, `qwen3-embedding-8b`**; `brain_recall` answers with
 `scanned: 2504, degraded: ""`; ledger, catalog and tests all green.
 
-**Cost:** a recall query now pays a network round-trip (single text ~340 ms through the proxy).
+**The latency claim was wrong, and the owner caught it.** I said a recall now pays a round-trip and
+called it a cost. Measurement said otherwise once the cache was in place: the *fact* vectors accumulate
+to the whole corpus (2504) and the *query* vector is one embed per distinct question. Adding a query
+cache to the proxy made the operating condition 0.003 s instead of 0.43 s — a 160× difference on the
+path that actually runs. The number I had quoted (777 ms) was cold batch throughput, not latency.
+
+The honest residual is **availability, not speed**: with a local model a novel query worked offline;
+now it degrades to keyword-only ranking (which the tool already reports as `degraded`).
 
 ## Criteria status
 
