@@ -141,6 +141,31 @@ CONSUMED BY  WitrClient (C5) · LaunchdInventory (C2) · curfew doctor --disagre
 
 Invariants it owns: the seven kinds from `D8`; fingerprint rate-limiting (one line per 10 minutes, suppressed count flushed on the next write); rotation at 5 MB × 3; and the redaction rule — `argc` and basename only, never argv, never env (D18).
 
+## C15 — `JevClient` — Sources/CurfewKit/JevClient.swift
+
+```text
+OFFERS   ask(questions:state:) throws -> [String: JevAnswer]
+         ConfidencePolicy::classify(answer) -> Confidence (.confident / .marginal / .unknown)
+EXPECTS  a JevTransport (injected; the real one is HTTP) · a key file at ~/.config/curfew/jev.key (0600)
+CONSUMED BY  Propose (C16) · the executor's quiesce gate · `doctor --rank`
+```
+
+Every request sends `User-Agent: curfew` — Cloudflare answers 403/1010 to urllib-shaped clients, measured
+twice on this machine. The transport, clock and cache are injected, so the whole surface is testable
+without a network. `unknown` is a first-class outcome: a transport failure is never read as confidence.
+
+## C16 — `DecisionLog` — Sources/CurfewKit/DecisionLog.swift
+
+```text
+OFFERS   append(row) · replay(stateSha:questionsSha:) -> JevAnswer?      // the cache
+EXPECTS  ~/Library/Application Support/Curfew/decisions.jsonl (external)
+CONSUMED BY  Propose · the quiesce gate · `doctor --rank`
+```
+
+The journal records what Curfew *did*; this records *why a model proposed it*. One row per answer,
+carrying the model, the state and question hashes, the answers and the decision taken. Cached replay is
+keyed by those hashes, so the same triage is free and byte-identical.
+
 ## C14 — `MenuBarModel` — Sources/CurfewKit/MenuBarModel.swift
 
 ```text

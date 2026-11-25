@@ -95,6 +95,18 @@ L3.1 → L3.2 → L3.3 → L3.4 → L3.5      (after L4.1/L4.2)
 L4.1 → L4.2                            (parallel with L1; blocks L3.3)
 ```
 
+## L7 — Model-assisted decisions
+
+Plan `2026-11-25-jev-assisted-decisions.md`. The model proposes; the catalogue and the owner dispose
+(D27). None of these atoms touches the refuse path.
+
+| Atom | Builds | Depends | Choices | Status | Evidence |
+|---|---|---|---|---|---|
+| L7.1 | `JevClient` + `DecisionLog` + `ConfidencePolicy`: injected transport, the UA fix, the audit row, the decision cache | L6.3 | D27 | planned | — |
+| L7.2 | `curfew catalog propose <label>`: structured state from the live record, companion nouls, floor, a draft entry that acts on nothing | L7.1, L3.1 | D27 | planned | — |
+| L7.3 | Quiesce noul-screen in the executor, after every deterministic refusal, narrowing only, off by default | L7.1, L3.3 | D27 | planned | — |
+| L7.4 | `curfew doctor --rank`: score ordering, labels untouched | L7.1, L1.4 | D27 | planned | — |
+
 **Critical path (longest dependency chain):**
 
 `L0.1 → L0.3 → L1.1 → L1.2 → L1.4 → L1.8 → L1.9 → L3.1 → L3.2 → L3.3 → L3.4 → L3.5 → L6.1`

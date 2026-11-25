@@ -38,9 +38,9 @@ There is no production server. "Production" is the copy installed on the user's 
 
 **Ledgers — read before building anything, append before finishing anything**
 - Known issues → `docs/known-issues.md` (`KI-n`; every defect, gap, risk, environmental item, *including* "not my code")
-- Design decisions → `docs/plans/CURFEW-DESIGN-DECISIONS.md` (`D0–D26`; a plan that contradicts a settled `D` is wrong by construction)
-- Contracts → `docs/plans/CURFEW-CONTRACTS.md` (`C0–C14`; offers/expects/consumed-by + the external JSON and exit-code shapes)
-- Decomposition → `docs/plans/CURFEW-DECOMPOSITION.md` (`L0.1–L6.3`, 27 atoms; the build map and critical path)
+- Design decisions → `docs/plans/CURFEW-DESIGN-DECISIONS.md` (`D0–D27`; a plan that contradicts a settled `D` is wrong by construction)
+- Contracts → `docs/plans/CURFEW-CONTRACTS.md` (`C0–C16`; offers/expects/consumed-by + the external JSON and exit-code shapes)
+- Decomposition → `docs/plans/CURFEW-DECOMPOSITION.md` (`L0.1–L7.4`, 31 atoms; the build map and critical path)
 - Police all four with `python3 scripts/ledger_check.py`
 
 **Architecture**
@@ -56,6 +56,7 @@ There is no production server. "Production" is the copy installed on the user's 
 - DSH Fleet + Zcode MCP dependency graph → `docs/research/harness-mcp-deps.md`
 - Containers, VMs and local inference engines (Kiri, OpenBot, embeddinggemma-2, Laya) → `docs/research/containers-and-engines.md`
 - Jev's primitives and patterns, and what each buys Curfew → `docs/research/tooling-jev.md`
+- Building on it (propose, quiesce screen, findings ranking) → `docs/plans/2026-11-25-jev-assisted-decisions.md`
 
 **Features**
 - Per-feature behaviour and edge cases → `docs/features/`

@@ -68,6 +68,17 @@ Rules:
 
 ## What must never be stopped
 
+- **D22 — `sh.brew.postgresql@18` and `com.adelvillar1.sem1-llama` are always-on: Curfew never stops
+  them.**
+  Rationale: owner decision 2026-11-24 — *"postgress@18 needs to stay up, same as sem1-llama"*. Both
+  were previously `draft` stop targets with verified-looking recipes (the pg recipe had been exercised
+  during research); that work is superseded, not deleted, because it records what stopping them
+  actually costs. A quiet mode that breaks the database and the embedding server is not quiet, it is
+  broken — the machine is 16 GB and these two are the reason the rest of the catalog exists.
+  *Constrains:* both are `lever: none` + `stoppable: false` with **no recipe** — an
+  always-on entry needs no stop recipe and no post-condition, and the validator refuses a bundle that
+  acts from containing one (`alwaysOnHasNoRecipe`). `data-services` is now empty as a result.
+
 - **D24 — The Kanzo bridge stays; it is not a stop target.** *(Its laya half is superseded by D25.)*
   Rationale: owner decision 2026-11-25 — *"the kanzo bridge should stay"*. It is the agent path to the
   board (119 requests in its log, 111 of them in one day), so it is `lever: none`, `stoppable: false`,
@@ -82,6 +93,8 @@ Rules:
   provider registration. *Constrains:* `never-cold` no longer lists it, and no catalog entry remains for
   a service that does not exist.
 
+## Front ends
+
 - **D23 — The menu bar shows state and restores; it never applies.**
   Rationale: a status item is one click away at all times, so it is the wrong place for a command that
   changes what is running — the click that quiets the machine should be the deliberate one with
@@ -89,18 +102,20 @@ Rules:
   it, which is the direction a one-click surface should point. *Constrains:* `MenuBarModel` has no
   apply action, `curfew-menubar` only calls `Executor.resume`, and the TUI follows the same split.
 
-## What must never be stopped
+## Model-assisted decisions
 
-- **D22 — `sh.brew.postgresql@18` and `com.adelvillar1.sem1-llama` are always-on: Curfew never stops
-  them.**
-  Rationale: owner decision 2026-11-24 — *"postgress@18 needs to stay up, same as sem1-llama"*. Both
-  were previously `draft` stop targets with verified-looking recipes (the pg recipe had been exercised
-  during research); that work is superseded, not deleted, because it records what stopping them
-  actually costs. A quiet mode that breaks the database and the embedding server is not quiet, it is
-  broken — the machine is 16 GB and these two are the reason the rest of the catalog exists.
-  *Constrains:* both are `lever: none` + `stoppable: false` with **no recipe** — an
-  always-on entry needs no stop recipe and no post-condition, and the validator refuses a bundle that
-  acts from containing one (`alwaysOnHasNoRecipe`). `data-services` is now empty as a result.
+- **D27 — A decision model may propose; it may never gate.** Jev may shape what the catalogue *offers*
+  (a draft entry, a suggested disposition) and may *narrow* an action (the quiesce screen). It is
+  forbidden from the refuse path, the journal write, and recipe verification.
+  Rationale: measured 2026-11-25 — 17/18 agreement with the owner's own verdicts, but **two dangerous
+  errors** on uncatalogued services (`stop` proposed for an MCP server and for a VM daemon) until the
+  listening sockets were fed in, and a companion noul phrased as a meta-question produced no signal at
+  all (0.43 / 0.39 / 0.57 across three different kinds of service) while a concrete one scored 5/6. A
+  model that is right 94% of the time is a good colleague and an unacceptable gate; the safety floor
+  must stay deterministic, offline and auditable or the journal's evidence stops being reviewable.
+  *Constrains:* `JevClient` sits behind an injected transport, every answer lands in `decisions.jsonl`,
+  a proposal is always `draft`, the quiesce gate runs **after** every deterministic refusal and can only
+  narrow, `unknown` is a first-class outcome, and the default floor is 0.60/0.15.
 
 ## Privilege
 
