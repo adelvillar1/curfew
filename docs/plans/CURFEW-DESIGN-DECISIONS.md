@@ -66,6 +66,16 @@ Rules:
 - **D14 — In-process engines are `never-cold`, not suspend candidates.**
   Rationale: Laya has no port and no process to signal; its cost is a **180 s** reload on the next sys1 call. A quiet mode that frees 2 GB and adds three minutes is a net loss the user must be told about before choosing it. *Constrains:* the `never-cold` anti-bundle, the catalog's `in-process` kind, the cold-start field.
 
+## Privilege
+
+- **D20 — The privileged helper is not a command executor; it is a catalog executor.**
+  Rationale: a helper that runs argv from a client is a root shell with extra steps, and every XPC
+  client-identity bug becomes a privilege-escalation bug. The helper therefore accepts only
+  `{entryId, action}`, loads the catalog itself, resolves the recipe, and refuses anything that is not
+  a `verified` entry whose recipe declares `needsRoot: true`. A compromised client can then only ask
+  for operations that were already reviewed and recorded. *Constrains:* the XPC protocol shape, the
+  helper's authorization function, and the fact that non-root recipes never cross the boundary at all.
+
 ## Engineering
 
 - **D15 — Swift 6 + Swift Package Manager; one engine (`CurfewKit`) with thin front ends. No Electron.**

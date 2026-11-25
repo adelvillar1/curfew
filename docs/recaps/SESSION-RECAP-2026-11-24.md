@@ -176,6 +176,37 @@ its job.
 **`apply --bundle vendor-noise` now plans two real steps instead of refusing two drafts**, and
 `catalog plan` prints the exact argv. Nine entries remain `draft`.
 
+## Round 8 — committed, and the privileged boundary designed
+
+**First commit: `a5a5846`**, 86 files, clean tree. After eight rounds of work with no history, that was
+the most expensive debt in the project.
+
+Then L4 began, and the first thing it needed was a decision rather than code:
+
+**D20 — the helper is a catalog executor, not a command executor.** It accepts `{entryId, action,
+intentSeq}` and never argv; it loads the catalog itself and re-decides everything. A helper that runs
+client argv is a root shell with extra steps, and every client-identity bug then becomes a
+privilege-escalation bug. With D20 the worst a compromised client can do is ask for an operation that
+was already reviewed, dated and recorded — and `noArgvOnTheWire` asserts the wire cannot carry argv.
+
+What is proven without a signing identity:
+
+- `HelperPolicy.decide` — 9 tests: unsigned caller, foreign Team ID, draft entry, never-list label,
+  non-root recipe, unknown entry, missing recipe, and the allow case returning **the catalog's argv**.
+- `PrivilegedTransport` — the executor delegates a `needsRoot` entry through one closure, so the
+  delegation is testable without XPC or root: 5 tests covering intent-before-request, a helper refusal
+  closing the journal entry, a helper failure stopping the run, and a dry run never contacting it.
+- The planner gained `helperAvailable`, because "what would happen" depends on whether a helper exists —
+  without one, a root recipe is exactly as unavailable as a draft one.
+
+What is not built, and cannot be from here: the `curfew-helper` daemon target, the `NSXPCListener`, the
+`SecCodeCheckValidity` call, and `SMAppService.daemon` registration. All four need a signed bundle with a
+Team ID.
+
+**5 new tests; 138 total in 20 suites, green.** The ledger checker also caught a broken seam on the way
+in — C12 expected `Catalog::entry`, which C9 never offered — which is the contract discipline doing
+exactly what it is for.
+
 ## Criteria status
 
 All met except two, **deliberately revised** (recorded in the plan, not silently dropped):

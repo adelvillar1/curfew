@@ -58,7 +58,7 @@ Plan 3 (executor + journal) is next; entries are verified *through* it.
 |---|---|---|---|---|---|
 | L3.1 | Catalog schema (`catalog/*.yaml`) + loader + validation (lever, supervision, `evidence:`) | L1.3 | D11, D12 | done | `Catalog.swift`, `MiniYAML.swift`; `CatalogTests` (20); `curfew catalog validate` |
 | L3.4 | Journal: write-ahead append, fail-open restore. **Before anything acts** (rule 2) | L0.1 | D16 | done | `Journal.swift`; `JournalTests` (7); `curfew status` reads it |
-| L3.3 | Executor: freeze, stop, disable, throttle, command — dry-run first, journal before each action, quiesce probes, refusals. Root recipes refused until L4.2 | L3.4, L3.1 | D10, D11, D12 | done | `Executor.swift`; `ExecutorTests` (16); `curfew apply` dry-run refuses every draft |
+| L3.3 | Executor: freeze, stop, disable, throttle, command — dry-run first, journal before each action, quiesce probes, refusals. Root recipes delegate through `PrivilegedTransport`, and are refused when none is registered | L3.4, L3.1, L4.2 | D10, D11, D12, D20 | done | `Executor.swift`; `ExecutorTests` (16); `curfew apply` dry-run refuses every draft |
 | L3.2 | Catalog entries for this machine: vendor-noise, dev-idle, data-services, harness-core, never-cold — each verified and dated | L3.3 | D11, D12, D14 | planned | partial: `us.zoom.updater` and `com.microsoft.OneDriveStandaloneUpdater` verified 2026-11-24 (disable→disabled, bootout→unloaded, enable+bootstrap→loaded); the rest are still `draft` |
 | L3.5 | Crash test: `kill -9` mid-action; assert full restore | L3.3, L3.4 | D16 | done | `scripts/crash-test.sh` (SIGKILL between intent and outcome, resume restores, second resume is a no-op); `CrashRecoveryTests` (4) |
 
@@ -66,8 +66,8 @@ Plan 3 (executor + journal) is next; entries are verified *through* it.
 
 | Atom | Builds | Depends | Choices | Status | Evidence |
 |---|---|---|---|---|---|
-| L4.1 | Helper daemon registered via `SMAppService.daemon`; the approval flow | L0.1 | D16, D17 | planned | — |
-| L4.2 | XPC protocol + `SecCodeCheckValidity` on every call | L4.1 | D17 | planned | — |
+| L4.1 | Helper daemon registered via `SMAppService.daemon`; the approval flow | L0.1 | D16, D17 | planned | partial: the policy and wire types are done and tested (`HelperProtocol.swift`, `HelperPolicyTests` 9); the daemon target and registration need a signing identity |
+| L4.2 | XPC protocol + `SecCodeCheckValidity` on every call | L4.1 | D17 | planned | partial: `HelperPolicy.decide` refuses an invalid signature and a foreign team id; the listener and the `SecCodeCheckValidity` call itself are unbuilt |
 
 ## L5 — Faces (thin, stateless)
 

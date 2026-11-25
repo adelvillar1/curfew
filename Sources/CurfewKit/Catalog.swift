@@ -437,7 +437,14 @@ public enum CatalogPlanner {
     /// Resolve a bundle into an ordered list of steps, refusals and the ports it must not touch.
     ///
     /// Ordering respects `depends`; a cycle is a refusal, not a crash.
-    public static func plan(bundle name: String, in catalog: Catalog) -> (steps: [CatalogStep], refusals: [CatalogRefusal], protectedPorts: [UInt16]) {
+    /// `helperAvailable` decides whether a root recipe is a step or a refusal: the planner reports
+    /// what the machine can actually do, and without a registered helper a `needsRoot` recipe is
+    /// exactly as unavailable as a draft one.
+    public static func plan(
+        bundle name: String,
+        in catalog: Catalog,
+        helperAvailable: Bool = false
+    ) -> (steps: [CatalogStep], refusals: [CatalogRefusal], protectedPorts: [UInt16]) {
         guard let bundle = catalog.bundle(name) else {
             return ([], [CatalogRefusal(id: name, reason: "no such bundle")], [])
         }
@@ -481,7 +488,7 @@ public enum CatalogPlanner {
                 refusals.append(CatalogRefusal(id: entry.id, reason: "no stop recipe"))
                 continue
             }
-            if stop.needsRoot {
+            if stop.needsRoot, !helperAvailable {
                 refusals.append(CatalogRefusal(id: entry.id, reason: "recipe needs the privileged helper (L4)"))
                 continue
             }

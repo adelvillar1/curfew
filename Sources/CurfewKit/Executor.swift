@@ -76,21 +76,28 @@ public struct StepOutcome: Sendable, Equatable {
 ///
 /// The order is the whole design. Every step that could touch the machine is preceded by a durable
 /// intent, and a refusal happens before the first intent is written so it leaves no trace.
+/// The privileged seam: one closure, so delegation is testable without XPC, root or a signature.
+public typealias PrivilegedTransport = @Sendable (HelperRequest) -> HelperResponse
+
 public struct Executor: Sendable {
     public typealias Runner = @Sendable ([String]) -> CommandResult
 
     private let runner: Runner
     private let journal: Journal
     private let probes: Probes
+    /// Nil when no helper is registered — a root recipe is then refused, which is today's behaviour.
+    private let privileged: PrivilegedTransport?
 
     public init(
         runner: @escaping Runner = Executor.systemRunner,
         journal: Journal,
-        probes: Probes = .live
+        probes: Probes = .live,
+        privileged: PrivilegedTransport? = nil
     ) {
         self.runner = runner
         self.journal = journal
         self.probes = probes
+        self.privileged = privileged
     }
 
     public static let systemRunner: Runner = { argv in
@@ -131,7 +138,7 @@ public struct Executor: Sendable {
         context: ExecutionContext,
         execute: Bool
     ) -> [StepOutcome] {
-        let plan = CatalogPlanner.plan(bundle: name, in: catalog)
+        let plan = CatalogPlanner.plan(bundle: name, in: catalog, helperAvailable: privileged != nil)
         var outcomes: [StepOutcome] = []
 
         // A planner refusal is already a decision: report it and touch nothing.
@@ -175,6 +182,18 @@ public struct Executor: Sendable {
 
         guard let recipe = entry.stop else {
             return StepOutcome(entryId: entry.id, action: action, result: .refused("no stop recipe"))
+        }
+
+        // A root recipe never runs here: it goes to the helper, which will re-decide everything
+        // itself (D20). Without a helper it stays refused.
+        if recipe.needsRoot {
+            guard let privileged else {
+                return StepOutcome(
+                    entryId: entry.id, action: action,
+                    result: .refused("recipe needs the privileged helper (L4)")
+                )
+            }
+            return runPrivileged(entry: entry, action: action, recipe: recipe, transport: privileged)
         }
 
         guard let argv = substitute(recipe.run, domain: context.domain, plist: context.record(entry.id)?.plistPath) else {
@@ -225,6 +244,37 @@ public struct Executor: Sendable {
         }
 
         return StepOutcome(entryId: entry.id, action: action, result: .executed(verified: verified ?? true))
+    }
+
+    /// Delegate one root action. The intent is journaled **before** the request, for the same reason
+    /// it is journaled before a local action: the machine can be left holding it either way.
+    private func runPrivileged(
+        entry: CatalogEntry, action: String, recipe: Recipe, transport: PrivilegedTransport
+    ) -> StepOutcome {
+        let seq: Int
+        do {
+            seq = try journal.appendIntent(entryId: entry.id, action: action, argv: recipe.run)
+        } catch {
+            return StepOutcome(entryId: entry.id, action: action, result: .refused("journal unwritable — \(error)"))
+        }
+
+        let helperAction: HelperAction = action == "disable" || action == "stop" || action == "command"
+            ? .stop : .start
+        let response = transport(HelperRequest(entryId: entry.id, action: helperAction, intentSeq: seq))
+
+        if let refusal = response.refusal {
+            try? journal.appendOutcome(intent: seq, result: "refused-by-helper", verified: false, error: refusal)
+            return StepOutcome(entryId: entry.id, action: action, result: .refused("helper: \(refusal)"))
+        }
+        guard response.ok else {
+            try? journal.appendOutcome(intent: seq, result: "failed", verified: false, error: response.standardError)
+            return StepOutcome(
+                entryId: entry.id, action: action,
+                result: .failed("helper exited \(response.status ?? -1): \(response.standardError.prefix(200))")
+            )
+        }
+        try? journal.appendOutcome(intent: seq, result: "ok", verified: response.verified)
+        return StepOutcome(entryId: entry.id, action: action, result: .executed(verified: response.verified ?? true))
     }
 
     // MARK: Resume
@@ -286,9 +336,6 @@ public struct Executor: Sendable {
         }
         if entry.status == .draft {
             return "status is draft — a recipe must be verified before it can be applied"
-        }
-        if let stop = entry.stop, stop.needsRoot {
-            return "recipe needs the privileged helper (L4)"
         }
         if !entry.stoppable, entry.supervised == .none {
             return "no supervisor and stoppable false — a stop would be one-way"

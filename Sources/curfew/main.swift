@@ -635,7 +635,7 @@ func runCatalog() -> Never {
         guard let bundleName = value(for: "--bundle") else {
             fail("catalog plan needs --bundle NAME", .badInput)
         }
-        let plan = CatalogPlanner.plan(bundle: bundleName, in: catalog)
+        let plan = CatalogPlanner.plan(bundle: bundleName, in: catalog, helperAvailable: false)
         if has("--json") {
             emit(CatalogPlanOutput(
                 sources: sources(), bundle: bundleName,

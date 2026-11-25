@@ -141,6 +141,20 @@ CONSUMED BY  WitrClient (C5) · LaunchdInventory (C2) · curfew doctor --disagre
 
 Invariants it owns: the seven kinds from `D8`; fingerprint rate-limiting (one line per 10 minutes, suppressed count flushed on the next write); rotation at 5 MB × 3; and the redaction rule — `argc` and basename only, never argv, never env (D18).
 
+## C12 — `HelperPolicy` — Sources/CurfewKit/HelperProtocol.swift
+
+```text
+OFFERS   HelperPolicy::decide(HelperRequest, caller: HelperCaller, catalog:, expectedTeamIdentifier:) -> HelperDecision
+         HelperRequest / HelperResponse      // wire types: entryId, action, intentSeq — never argv
+EXPECTS  Catalog::entry (C9) · NeverList::isProtected (C1) · caller signature (external, SecCodeCheckValidity)
+CONSUMED BY  curfew-helper (planned) · Executor::runPrivileged (C11)
+```
+
+**The privileged boundary's only rule: the helper is a catalog executor, not a command executor (D20).**
+It accepts an entry id and an action, loads the catalog itself, and refuses anything that is not a
+verified, root-requiring entry from a validly signed caller. A request that could carry argv would be a
+root shell with extra steps; `noArgvOnTheWire` asserts it cannot.
+
 ## C11 — `Executor` — Sources/CurfewKit/Executor.swift
 
 ```text
@@ -149,7 +163,8 @@ OFFERS   apply(bundle:catalog:context:execute:) -> [StepOutcome]
          substitute(_:domain:plist:) -> [[String]]?  // {domain} and {plist}; nothing else
          refusal(for:context:) -> String?
 EXPECTS  Journal::appendIntent (C10) · CatalogPlanner::plan (C9) · NeverList::isProtected (C1) ·
-         Probes (portIsOpen / pidExists / labelIsRunning) · runner argv (external)
+         Probes (portIsOpen / pidExists / labelIsRunning) · runner argv (external) ·
+         PrivilegedTransport (C12, optional — absent means root recipes are refused)
 CONSUMED BY  curfew apply · curfew resume (C7)
 ```
 
@@ -179,7 +194,8 @@ journal unreadable or let a half-written record look like a completed action. If
 ## C9 — `Catalog` — Sources/CurfewKit/{Catalog,MiniYAML}.swift
 
 ```text
-OFFERS   CatalogLoader::load(directory:) throws -> Catalog
+OFFERS   Catalog::entry(_:) -> CatalogEntry? · Catalog::bundle(_:) -> CatalogBundle?
+         CatalogLoader::load(directory:) throws -> Catalog
          CatalogValidator::validate(_:) -> [CatalogViolation]
          CatalogPlanner::plan(bundle:in:) -> (steps: [CatalogStep], refusals: [CatalogRefusal], protectedPorts: [UInt16])
          MiniYAML::parse(String) throws -> YAMLValue
