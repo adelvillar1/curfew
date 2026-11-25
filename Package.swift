@@ -14,6 +14,11 @@ let package = Package(
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
         .executableTarget(
+            name: "curfew-menubar",
+            dependencies: ["CurfewKit"],
+            path: "Sources/curfew-menubar"
+        ),
+        .executableTarget(
             name: "curfew",
             dependencies: ["CurfewKit"],
             swiftSettings: [.swiftLanguageMode(.v6)]

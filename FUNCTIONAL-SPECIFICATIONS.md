@@ -139,9 +139,20 @@ protected job appears in `list` with `tier: protected` and can never enter a bun
 - A failed restore is louder than a successful apply — that rule belongs to the mutating path and is
   written when it ships.
 
+### Menu bar (built)
+
+- One status item: `○` when quiet mode is off, `◐ N` when it is on and holding N unresolved intents.
+- The menu states the mode in words, the running and finding counts, and the restore affordance —
+  **enabled only when there is something to restore**.
+- It offers dashboard, restore and quit. **It cannot apply a bundle** (D23); quieting the machine stays
+  a deliberate CLI act.
+- Verified: the model and its enabled/disabled states (6 tests), the bundle builds and launches, and
+  `--dump-menu` shows both states. The status item's appearance is confirmed by the owner — screen
+  capture is unavailable to an agent session.
+
 ### Not built
 
-Per-action confirmations, notifications, and the menu-bar indicator (L5.2).
+Per-action confirmations and notifications.
 
 ## 7. Edge Cases & Error States
 

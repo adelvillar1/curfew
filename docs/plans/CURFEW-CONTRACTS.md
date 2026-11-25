@@ -141,6 +141,19 @@ CONSUMED BY  WitrClient (C5) · LaunchdInventory (C2) · curfew doctor --disagre
 
 Invariants it owns: the seven kinds from `D8`; fingerprint rate-limiting (one line per 10 minutes, suppressed count flushed on the next write); rotation at 5 MB × 3; and the redaction rule — `argc` and basename only, never argv, never env (D18).
 
+## C14 — `MenuBarModel` — Sources/CurfewKit/MenuBarModel.swift
+
+```text
+OFFERS   MenuBarModel::build(quiet:unresolvedCount:runningCount:findingCount:bundleCount:version:) -> MenuBarModel
+         MenuBarModel::statusTitle(quiet:unresolved:) -> String
+         MenuBarModel::dump() -> String
+EXPECTS  nothing — it is a pure projection of counts the caller already has
+CONSUMED BY  curfew-menubar (AppKit shell) · --dump-menu
+```
+
+The menu bar shows state and offers restore; **it never applies a bundle** (D23). Pure, so the glyph
+and the enabled/disabled states are tests.
+
 ## C13 — `TUI` — Sources/CurfewKit/{TUI.swift}, Sources/curfew/TUILoop.swift
 
 ```text

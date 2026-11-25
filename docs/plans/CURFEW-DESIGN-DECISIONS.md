@@ -66,6 +66,15 @@ Rules:
 - **D14 — In-process engines are `never-cold`, not suspend candidates.**
   Rationale: Laya has no port and no process to signal; its cost is a **180 s** reload on the next sys1 call. A quiet mode that frees 2 GB and adds three minutes is a net loss the user must be told about before choosing it. *Constrains:* the `never-cold` anti-bundle, the catalog's `in-process` kind, the cold-start field.
 
+## Front ends
+
+- **D23 — The menu bar shows state and restores; it never applies.**
+  Rationale: a status item is one click away at all times, so it is the wrong place for a command that
+  changes what is running — the click that quiets the machine should be the deliberate one with
+  `--execute --yes` in it. Restore is offered because restore returns the machine to how the owner left
+  it, which is the direction a one-click surface should point. *Constrains:* `MenuBarModel` has no
+  apply action, `curfew-menubar` only calls `Executor.resume`, and the TUI follows the same split.
+
 ## What must never be stopped
 
 - **D22 — `sh.brew.postgresql@18` and `com.adelvillar1.sem1-llama` are always-on: Curfew never stops

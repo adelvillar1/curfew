@@ -303,6 +303,29 @@ stays and the reasoning lives in the catalog file where the next reader will fin
 
 **159 tests in 23 suites; the gate is green.**
 
+## Round 13 — L5.2, the menu bar
+
+A status item over the same engine: `○` when quiet mode is off, `◐ N` when it is on. Same split as the
+TUI — `MenuBarModel` is pure and tested (6), `curfew-menubar` is the AppKit shell, `make app` bundles it
+as a signed `Curfew.app` with `LSUIElement`.
+
+**D23 — it shows state and restores; it never applies.** A status item is one click away at all times,
+so it is the wrong place for a command that changes what is running. Restore is offered because restore
+returns the machine to how the owner left it.
+
+Two things worth recording:
+
+- **The main-actor warnings were not left as noise.** AppKit is `@MainActor`; marking the delegate and
+  the bootstrap `MainActor.assumeIsolated` cleared them rather than shipping a build that warns.
+- **`make app` initially failed in a way that would bite the owner too**: the release build needs
+  `CLANG_MODULE_CACHE_PATH` (KI-019), and the Makefile only set the flags. Every target now exports it.
+
+**What is not verified, and is not claimed:** the status item's appearance. `screencapture` is refused
+(`could not create image from display`) and System Events needs Accessibility. `lsappinfo` confirms the
+app registers as "Curfew" and the process stays alive. The plan's last criterion stays unticked.
+
+**6 new tests; 165 total in 24 suites.**
+
 ## Criteria status
 
 All met except two, **deliberately revised** (recorded in the plan, not silently dropped):
