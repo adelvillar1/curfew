@@ -68,16 +68,19 @@ Rules:
 
 ## What must never be stopped
 
-- **D24 — The Kanzo bridge and laya stay up; neither is a stop target.**
-  Rationale: owner decision 2026-11-25 — *"the kanzo bridge should stay, and laya should be running at
-  all times so that we incur in the warmup penalty for the system 1 model"*. The bridge is the agent
-  path to the board (119 requests in its log, 111 of them in one day) and laya is an in-process engine
-  whose 180 s cold start is paid on the first sys1 call — keeping it warm is the point. Both are
-  `lever: none`, `stoppable: false`, with no recipe: the decision is not to stop them, so there is
-  nothing to verify. *Constrains:* `harness-core` and `never-cold` are protect bundles; the validator's
-  `alwaysOnHasNoRecipe` test refuses any acting bundle that includes either.
+- **D24 — The Kanzo bridge stays; it is not a stop target.** *(Its laya half is superseded by D25.)*
+  Rationale: owner decision 2026-11-25 — *"the kanzo bridge should stay"*. It is the agent path to the
+  board (119 requests in its log, 111 of them in one day), so it is `lever: none`, `stoppable: false`,
+  with no recipe: the decision is not to stop it, so there is nothing to verify. *Constrains:*
+  `harness-core` is a protect bundle and the validator's `alwaysOnHasNoRecipe` test refuses any acting
+  bundle that includes it.
 
-## Front ends
+- **D25 — laya is removed; the machine uses sys1's paid providers. Supersedes D24's laya half.**
+  Rationale: owner decision 2026-11-25 — laya's engine put real memory pressure on a 16 GB machine,
+  and sys1 already defaults to `glide,drex,jev` (paid, hosted). The local path bought offline inference
+  at a cost the machine could not carry. Removed: the launchd job, 822 MB venv, the model cache, and the
+  provider registration. *Constrains:* `never-cold` no longer lists it, and no catalog entry remains for
+  a service that does not exist.
 
 - **D23 — The menu bar shows state and restores; it never applies.**
   Rationale: a status item is one click away at all times, so it is the wrong place for a command that

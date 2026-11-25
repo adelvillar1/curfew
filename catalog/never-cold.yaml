@@ -3,19 +3,6 @@
 # next sys1 call. `lever: none` is legal only with a coldStartCost.
 
 entries:
-  # Two paths reach laya: sys1 loads the engine in-process, and `laya-serve` publishes the Jev wire
-  # (`POST /v1/systemone`) on 127.0.0.1:8454 for any client written against TypeSafe Jev.
-  - id: laya
-    kind: agent
-    lever: none
-    supervised: launchd
-    status: verified
-    stoppable: false
-    hazards: [always-on, socket]
-    evidence: "owner decision 2026-11-25: kept running so the sys1 warm-up penalty is already paid. Served by launchd job com.adelvillar1.laya-serve (RunAtLoad + KeepAlive, :8454); verified 2026-11-25 — health reports english+multilingual+typed-decisions on mps, POST /v1/systemone answers with choice/probabilities/x_jev_confidence, and a kill -9 is restarted by launchd"
-    coldStartCost: ~15 s to preload three checkpoints at login; up to 180 s on the first in-process sys1 call otherwise
-    depends: []
-
   # Not vendor noise: these are development tooling that a build or an agent run may need. They are
   # catalogued so the classification is explicit and testable, and marked unstoppable so no bundle
   # that acts can ever include them.

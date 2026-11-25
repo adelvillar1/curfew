@@ -44,7 +44,6 @@ All verified on this host, 2026-11-24/25.
 | `sh.brew.postgresql@18` | the dev database (D22) |
 | `com.adelvillar1.sem1-llama` | the embedding server every semantic tool needs (D22) |
 | `dev.dsh.bridge` | the agent's path to the Kanzo board — 119 requests in its log (D24) |
-| `laya` | the decision model; keeping it warm is the point (D24). Served by `com.adelvillar1.laya-serve` on `:8454` and loaded in-process by sys1 |
 | `com.github.facebook.watchman` | file watcher behind HMR and watch mode |
 | `com.ollama.ollama` | local model server on `:11434` |
 
@@ -54,7 +53,7 @@ All verified on this host, 2026-11-24/25.
 |---|---|---|
 | `vendor-noise` | stop | the 13 acting entries |
 | `harness-core` | protect | sem1-llama, the Kanzo bridge; protects ports 8901/4242/7426/57730/57801 |
-| `never-cold` | protect | laya, watchman, ollama |
+| `never-cold` | protect | watchman, ollama |
 | `dev-tools` | protect | watchman, ollama; protects `:11434` |
 | `data-services` | stop | **empty by decision** — the only data service is always-on (D22) |
 

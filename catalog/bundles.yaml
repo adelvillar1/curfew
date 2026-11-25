@@ -15,7 +15,7 @@ bundles:
   - name: never-cold
     kind: protect
     summary: entries whose absence costs minutes rather than bytes
-    members: [laya, com.github.facebook.watchman, com.ollama.ollama]
+    members: [com.github.facebook.watchman, com.ollama.ollama]
 
   - name: vendor-noise
     kind: stop

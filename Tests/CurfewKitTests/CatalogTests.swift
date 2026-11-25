@@ -125,7 +125,11 @@ struct CatalogTests {
         }
         #expect(catalog.entry("sh.brew.postgresql@18")?.lever == Lever.none,
                 "the database is always-on by owner decision, not a stop target")
-        #expect(catalog.entry("laya")?.lever == Lever.none, "Lever.none, not Optional.none — `== .none` on an optional reads as nil")
+        // laya was removed from the machine (D25); an always-on entry that still exists is the
+        // subject now, and the absent one is asserted absent rather than forgotten.
+        #expect(catalog.entry("laya") == nil, "laya was removed 2026-11-25 (D25)")
+        #expect(catalog.entry("sh.brew.postgresql@18")?.lever == Lever.none,
+                "Lever.none, not Optional.none — `== .none` on an optional reads as nil")
         #expect(catalog.bundle("harness-core")?.kind == .protect)
         #expect(catalog.bundle("harness-core")?.protectPorts.contains(8901) == true)
         #expect(CatalogValidator.validate(catalog).isEmpty, "the shipped catalog must be valid")

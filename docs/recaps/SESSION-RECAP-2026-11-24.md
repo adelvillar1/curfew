@@ -413,6 +413,41 @@ decision.
 `~/Library/LaunchAgents`, and the same code path was exercised by bootstrap and by the kill-restart.
 Memory footprint is also unmeasured (`ps`/`footprint` are blocked from the session).
 
+## Round 17 — laya removed; qwen3 embeddings tried, not adopted
+
+**laya is gone (D25).** The owner's call: it put real memory pressure on a 16 GB machine, and sys1's
+default chain was already `glide,drex,jev` (paid, hosted) — laya was never in the routing path. Removed:
+the launchd job (plist kept at `/tmp/laya-serve.plist.removed`), the **822 MB venv**, the model cache,
+the sys1 provider registration, its config block, its gating threshold and its tests.
+
+sys1 now reports 16 providers with no laya, and the paid path was verified live: `glide` + `drex` both
+answered a `change` classification in **1.6 s**. The running MCP server still holds the old registry in
+memory but reports laya `available: false` (venv not installed), so the local path is closed either way.
+
+`never-cold` and the catalog dropped the entry: **18 entries, every one existing**.
+
+**The embeddings trial, not a switch.** `qwen3-embedding-8b` through the OpenCode Go key. Two wrong
+prefixes cost a detour — `zen/v1` answers 402 ("OpenCode Go covers only requests to the OpenCode Go
+provider") and `zen/inference/openai/v1` answers 405; the working base is
+`https://opencode.ai/inference/go/openai/v1`. A default Python user-agent is refused by Cloudflare
+(403, code 1010).
+
+Measured on the same four pairs:
+
+| pair | embeddinggemma-2 (768d) | qwen3-8b |
+|---|---|---|
+| near-duplicate | 0.992 | 0.973 |
+| same topic, other words | 0.827 | 0.812 |
+| unrelated | **0.620** | **0.386** |
+| same topic, opposite | 0.903 | 0.715 |
+
+The local model's floor is the problem: unrelated sentences score 0.62, so the usable margin is narrow.
+qwen3 separates them at 0.386. It also honours `dimensions: 1024`, so the 5.3× storage objection
+dissolves. Against it: 777 ms vs 153 ms, and the recall index is embedder-keyed — a switch starts a cold
+index and re-embeds every fact, and sem1 feeds blend1 and select_skills too.
+
+**No decision was taken** — the owner asked to try it first. Recorded in memory as a reference fact.
+
 ## Criteria status
 
 All met except two, **deliberately revised** (recorded in the plan, not silently dropped):
