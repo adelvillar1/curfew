@@ -28,12 +28,19 @@ public struct JevHTTPTransport: JevTransport {
         // measured twice on this machine. A plain product name is enough.
         request.setValue("curfew", forHTTPHeaderField: "User-Agent")
 
+        // No URL cache: the decision log is the cache that matters, and a sandboxed run cannot write
+        // ~/Library/Caches/curfew anyway — URLSession logged a page of noise about it.
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.urlCache = nil
+        configuration.requestCachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+        let session = URLSession(configuration: configuration)
+
         let semaphore = DispatchSemaphore(value: 0)
         final class Box: @unchecked Sendable {
             var result: Result<(Int, Data), Error>?
         }
         let box = Box()
-        URLSession.shared.dataTask(with: request) { data, response, error in
+        session.dataTask(with: request) { data, response, error in
             defer { semaphore.signal() }
             if let error {
                 box.result = .failure(error)

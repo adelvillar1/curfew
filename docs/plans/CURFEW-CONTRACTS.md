@@ -144,8 +144,10 @@ Invariants it owns: the seven kinds from `D8`; fingerprint rate-limiting (one li
 ## C15 — `JevClient` — Sources/CurfewKit/JevClient.swift
 
 ```text
-OFFERS   ask(questions:state:) throws -> [String: JevAnswer]
+OFFERS   JevClient(transport:model:policy:) · liveClient() throws -> JevClient
+         ask(questions:state:) throws -> [String: JevAnswer]
          ConfidencePolicy::classify(answer) -> Confidence (.confident / .marginal / .unknown)
+         JevTransport (the injected seam) · JevHTTPTransport (the one allowed outbound call, D29)
 EXPECTS  a JevTransport (injected; the real one is HTTP) · a key file at ~/.config/curfew/jev.key (0600)
 CONSUMED BY  Propose (C16) · the executor's quiesce gate · `doctor --rank`
 ```
@@ -154,10 +156,28 @@ Every request sends `User-Agent: curfew` — Cloudflare answers 403/1010 to urll
 twice on this machine. The transport, clock and cache are injected, so the whole surface is testable
 without a network. `unknown` is a first-class outcome: a transport failure is never read as confidence.
 
+## C17 — `Proposer` / `ProposeRunner` — Sources/CurfewKit/Propose.swift
+
+```text
+OFFERS   Proposer::questions() -> [JevQuestion]        // four heads, one request
+         Proposer::decide(_:policy:) -> (ProposeDecision, Confidence, [String])
+         Proposer::state(record:label:listeners:) -> String      // JSON evidence
+         Proposer::yaml(_:record:) -> String                     // always status: draft
+         ProposeRunner::propose(record:label:listeners:) throws -> Proposal
+EXPECTS  JevClient (C15) · DecisionLog (C16) · NeverList::isProtected (C1) · ServiceRecord (C0)
+CONSUMED BY  curfew catalog propose [--all] [--json] [--write FILE]
+```
+
+**The disposition is overridden by the nouls**: `is_infrastructure ≥ 0.50` or `has_state_to_lose ≥ 0.50`
+→ `protect`, whatever the choice said. That is the measured fix — metadata alone sent an MCP server and
+a VM daemon to `stop`. Everything else needs `confident` under the 0.70/0.20 policy, or it becomes
+`review`. A never-list label is answered without asking the model at all.
+
 ## C16 — `DecisionLog` — Sources/CurfewKit/DecisionLog.swift
 
 ```text
-OFFERS   append(row) · replay(stateSha:questionsSha:) -> JevAnswer?      // the cache
+OFFERS   DecisionLog::append(row) · makeRow(…) · cached(model:state:questions:) -> DecisionRow?
+         rows() -> [DecisionRow]        // the cache, keyed by the state and question hashes
 EXPECTS  ~/Library/Application Support/Curfew/decisions.jsonl (external)
 CONSUMED BY  Propose · the quiesce gate · `doctor --rank`
 ```

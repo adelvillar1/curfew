@@ -39,7 +39,7 @@ There is no production server. "Production" is the copy installed on the user's 
 **Ledgers — read before building anything, append before finishing anything**
 - Known issues → `docs/known-issues.md` (`KI-n`; every defect, gap, risk, environmental item, *including* "not my code")
 - Design decisions → `docs/plans/CURFEW-DESIGN-DECISIONS.md` (`D0–D27`; a plan that contradicts a settled `D` is wrong by construction)
-- Contracts → `docs/plans/CURFEW-CONTRACTS.md` (`C0–C16`; offers/expects/consumed-by + the external JSON and exit-code shapes)
+- Contracts → `docs/plans/CURFEW-CONTRACTS.md` (`C0–C17`; offers/expects/consumed-by + the external JSON and exit-code shapes)
 - Decomposition → `docs/plans/CURFEW-DECOMPOSITION.md` (`L0.1–L7.4`, 31 atoms; the build map and critical path)
 - Police all four with `python3 scripts/ledger_check.py`
 
@@ -105,6 +105,7 @@ swift run curfew why <label>     # ancestry, source, sockets, warnings (needs wi
 swift run curfew catalog validate           # schema + policy over catalog/*.yaml (read-only)
 swift run curfew catalog list                # entries, levers, bundles, protected ports
 swift run curfew catalog plan --bundle data-services   # what WOULD run; nothing executes
+swift run curfew catalog propose <label> | --all        # jev proposes a DRAFT; nothing acts on it
 swift run curfew status                     # unresolved journal intents (writes nothing)
 swift run curfew apply --bundle vendor-noise            # dry run: refusals, nothing touched
 swift run curfew apply --bundle vendor-noise --execute  # needs --yes when not a TTY
@@ -121,7 +122,7 @@ make app                                    # build Curfew.app (menu bar); `make
 
 ## Today's state
 
-- **The read-only slice and the catalog layer shipped 2026-11-24.** `curfew 0.1.0`: `list` (472 jobs in 1.19 s), `why`, `doctor` (17 real findings), `catalog validate|list|plan` over `catalog/*.yaml`, `status` over the write-ahead journal. **165 tests in 24 suites, green. 23 of 27 atoms done, 4 dropped by scope. No atom left.**
+- **The read-only slice and the catalog layer shipped 2026-11-24.** `curfew 0.1.0`: `list` (472 jobs in 1.19 s), `why`, `doctor` (17 real findings), `catalog validate|list|plan` over `catalog/*.yaml`, `status` over the write-ahead journal. **189 tests in 27 suites, green.** 23 of 27 original atoms done (4 dropped), plus L7.1–L7.2 of the model-assisted layer.
 - **The mutating half is built but has never run.** `apply` refuses draft entries, root recipes, protected ports and our own pid; `--execute` needs `--yes` off a TTY. The executor's pipeline is refuse → journal intent → act → verify → journal outcome, with the runner injected so the ordering is tested, not asserted. The recovery path is proven two ways: unit tests over a post-crash journal artifact, and `scripts/crash-test.sh`, which SIGKILLs a real apply between intent and outcome and asserts `resume` restores it. Recipes use `{plist}`, resolved from what `launchctl print` reports — a hand-written path in a restore recipe left a live updater unloaded once (KI-030).
 - **The reframe that came out of the research:** the measured waste is not only vendor updaters. Crash loops are invisible to every process tool because they have no PID. Three were found and **all are now resolved (2026-11-24)**: `com.zcode.model-router` (255,645 runs) and `com.agnostic-router.model-router` (255,646) were respawning on a dangling `~/.local/bin/node` symlink and were removed with the dead router PoC; `sh.brew.postgresql@14` (82,103 runs) was retired outright after a stray `postgres@14` was found squatting on `:5434` — the port commissiontracker's own container maps. **No crash loops remain on the machine.** The detector is still the right first product: it found all three, and nothing else would have.
 - **Key safety number:** 733 of 887 system plists register a `MachServices` port, so freezing is dangerous by default; 453 of 887 have `LaunchEvents`, so `bootout` alone is not quiet mode.

@@ -117,14 +117,14 @@ applied, so the worst a bad proposal can do is waste the owner's review time.
 
 **Acceptance criteria**
 
-- [ ] *(L7.1 done; L7.2 pending)* With a fake transport returning the measured answers, `propose` emits `protect` for
+- [x] *(L7.1 done; L7.2 pending)* With a fake transport returning the measured answers, `propose` emits `protect` for
       `blend1-service` and `kiri.daemon` and `stop` for `zoom.updater` — the three cases in the research
       doc, as a regression test.
-- [ ] A disposition at p=0.25 emits `review`, and the output shows the confidence and the floor.
-- [ ] State is JSON, and contains the listener ports — asserted on the captured request body.
+- [x] A disposition at p=0.25 emits `review`, and the output shows the confidence and the floor.
+- [x] State is JSON, and contains the listener ports — asserted on the captured request body.
 - [ ] No file is written without `--write`; a written entry is `status: active` with no recipes.
-- [ ] A 402/500/timeout emits `unknown` → `review`; nothing is proposed as confident.
-- [ ] The decision log gains exactly one row per call, carrying `stateSha` and `questionsSha`.
+- [x] A 402/500/timeout emits `unknown` → `review`; nothing is proposed as confident.
+- [x] The decision log gains exactly one row per call, carrying `stateSha` and `questionsSha`.
 
 ## Feature 2 — quiesce noul-screen in the executor
 

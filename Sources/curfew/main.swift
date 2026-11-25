@@ -68,6 +68,7 @@ usage:
   curfew why    <label> | --pid N | --port N | --name S [--json]
   curfew doctor [--json] [--disagreements]
   curfew catalog validate | list [--bundle NAME] | plan --bundle NAME   [--json] [--dir PATH]
+  curfew catalog propose <label> | --all                 [--json] [--write FILE]
   curfew status                                          [--json]
   curfew tui   [--frame]                                 the dashboard; --frame prints one screen
   curfew apply  --bundle NAME [--execute [--yes]] [--json]      dry run unless --execute
@@ -424,6 +425,123 @@ func runTUI() -> Never {
     TUILoop.run()
 }
 
+
+// MARK: - catalog propose (L7.2): the model proposes, the catalogue and the owner dispose
+
+func runPropose(catalog: Catalog) -> Never {
+    let client: JevClient
+    do {
+        client = try JevClient.liveClient()
+    } catch {
+        // Offline capability is the point (D29): the diagnostic path keeps working, and this one says
+        // plainly why it cannot.
+        print("catalog propose: \(error)")
+        print("  everything else still works — list, why, doctor, catalog validate|list|plan, status")
+        exit(ExitCode.warnings.rawValue)
+    }
+
+    let runner = ProposeRunner(client: client, log: DecisionLog())
+    let inventory = LaunchdInventory()
+    let records = inventory.records(in: Domain.effective(), findings: FindingsEngine()).records
+    let listeners = ListenerScanner().scan()
+
+    func proposeOne(_ label: String) -> (Proposal, String) {
+        let record = records.first { $0.id == label }
+        let mine = listeners.filter { listener in
+            guard let pid = record?.pid else { return false }
+            return listener.pid == pid
+        }
+        let state = Proposer.state(record: record, label: label, listeners: mine)
+        do {
+            let proposal = try runner.propose(record: record, label: label, listeners: mine)
+            return (proposal, state)
+        } catch {
+            print("catalog propose: \(label): \(error)")
+            exit(ExitCode.warnings.rawValue)
+        }
+    }
+
+    if has("--all") {
+        let known = Set(catalog.entries.map(\.id))
+        let candidates = records
+            .filter { $0.tier == .thirdParty && $0.kind != .appChild && !known.contains($0.id) }
+            .map(\.id)
+            .sorted()
+        guard !candidates.isEmpty else {
+            print("catalog propose: nothing uncatalogued to propose")
+            exit(ExitCode.clean.rawValue)
+        }
+        var proposals: [(Proposal, String)] = []
+        for label in candidates { proposals.append(proposeOne(label)) }
+        if has("--json") {
+            print("[")
+            for (index, item) in proposals.enumerated() {
+                let proposal = item.0
+                let payload: [String: Any] = [
+                    "id": proposal.id, "decision": proposal.decision.rawValue,
+                    "confidence": Proposer.confidenceName(proposal.confidence),
+                    "reasons": proposal.reasons,
+                ]
+                if let data = try? JSONSerialization.data(withJSONObject: payload, options: [.sortedKeys]),
+                   let text = String(data: data, encoding: .utf8) {
+                    print("  " + text + (index == proposals.count - 1 ? "" : ","))
+                }
+            }
+            print("]")
+        } else {
+            print("proposals for \(proposals.count) uncatalogued service(s) — all draft, nothing acts on them\n")
+            for (proposal, _) in proposals {
+                print("  \(proposal.id)")
+                print("    → \(proposal.decision.rawValue) (\(Proposer.confidenceName(proposal.confidence)))  \(proposal.reasons.joined(separator: "; "))")
+            }
+            let review = proposals.filter { $0.0.decision == .review }.count
+            print("\n  \(proposals.count - review) decided, \(review) need your call")
+        }
+        exit(ExitCode.clean.rawValue)
+    }
+
+    guard let label = arguments.dropFirst(2).first(where: { !$0.hasPrefix("-") }) else {
+        fail("curfew catalog propose <label> [--all] [--json] [--write FILE]", .badInput)
+    }
+    let (proposal, state) = proposeOne(label)
+
+    if has("--json") {
+        let payload: [String: Any] = [
+            "id": proposal.id,
+            "decision": proposal.decision.rawValue,
+            "confidence": Proposer.confidenceName(proposal.confidence),
+            "model": proposal.model,
+            "reasons": proposal.reasons,
+            "state": state,
+            "yaml": Proposer.yaml(proposal, record: records.first { $0.id == label }),
+        ]
+        if let data = try? JSONSerialization.data(withJSONObject: payload, options: [.sortedKeys, .prettyPrinted]),
+           let text = String(data: data, encoding: .utf8) {
+            print(text)
+        }
+        exit(ExitCode.clean.rawValue)
+    }
+
+    print("proposal for \(proposal.id) — \(proposal.decision.rawValue) (\(Proposer.confidenceName(proposal.confidence)))")
+    for reason in proposal.reasons { print("  · \(reason)") }
+    print("")
+    print(Proposer.yaml(proposal, record: records.first { $0.id == label }))
+
+    if let file = value(for: "--write") {
+        let url = URL(fileURLWithPath: file)
+        let text = Proposer.yaml(proposal, record: records.first { $0.id == label }) + "\n"
+        if let handle = try? FileHandle(forWritingTo: url) {
+            try? handle.seekToEnd()
+            try? handle.write(contentsOf: Data(text.utf8))
+            try? handle.close()
+            print("\nappended to \(file) as a draft — it cannot be applied until a recipe is verified")
+        } else {
+            print("\ncould not open \(file) — the proposal was not written")
+        }
+    }
+    exit(ExitCode.clean.rawValue)
+}
+
 // MARK: - apply / resume (the first commands that can change a machine)
 
 func requireExecuteConsent(_ what: String) {
@@ -657,6 +775,9 @@ func runCatalog() -> Never {
             }
         }
         exit(violations.isEmpty ? ExitCode.clean.rawValue : ExitCode.warnings.rawValue)
+
+    case "propose":
+        runPropose(catalog: catalog)
 
     case "plan":
         guard let bundleName = value(for: "--bundle") else {

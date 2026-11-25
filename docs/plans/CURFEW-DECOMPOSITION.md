@@ -103,7 +103,7 @@ Plan `2026-11-25-jev-assisted-decisions.md`. The model proposes; the catalogue a
 | Atom | Builds | Depends | Choices | Status | Evidence |
 |---|---|---|---|---|---|
 | L7.1 | `JevClient` + `DecisionLog` + `ConfidencePolicy`: injected transport, the UA fix, the audit row, the decision cache | L6.3 | D27, D28 | done | `JevClient.swift`, `JevHTTPTransport.swift`, `DecisionLog.swift`; `JevClientTests` (14); the no-network invariant amended to one named file |
-| L7.2 | `curfew catalog propose <label>`: structured state from the live record, companion nouls, floor, a draft entry that acts on nothing | L7.1, L3.1 | D27 | planned | — |
+| L7.2 | `curfew catalog propose <label>`: structured state from the live record, companion nouls, floor, a draft entry that acts on nothing | L7.1, L3.1 | D27, D29 | done | `Propose.swift`, `curfew catalog propose [--all]`; `ProposeTests` (10). **Live on all 12 uncatalogued services: 8 infrastructure → protect, 2 stop, 2 review, 0 dangerous** (metadata alone had 2 dangerous) |
 | L7.3 | Quiesce noul-screen in the executor, after every deterministic refusal, narrowing only, off by default | L7.1, L3.3 | D27 | planned | — |
 | L7.4 | `curfew doctor --rank`: score ordering, labels untouched | L7.1, L1.4 | D27 | planned | — |
 

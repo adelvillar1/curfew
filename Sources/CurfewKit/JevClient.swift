@@ -220,8 +220,10 @@ public struct JevClient: Sendable {
             }
             switch question.kind {
             case .choice:
-                guard let label = raw["label"] as? String else {
-                    out[question.id] = .malformed("choice answer has no label")
+                // The wire calls it `choice`; `label` is accepted too so a variant spelling does not
+                // silently turn every answer into malformed — which is exactly how this was found.
+                guard let label = (raw["choice"] as? String) ?? (raw["label"] as? String) else {
+                    out[question.id] = .malformed("choice answer carries neither 'choice' nor 'label'")
                     continue
                 }
                 let probabilities = (raw["probabilities"] as? [String: Double]) ?? [:]
