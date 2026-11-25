@@ -486,6 +486,32 @@ path that actually runs. The number I had quoted (777 ms) was cold batch through
 The honest residual is **availability, not speed**: with a local model a novel query worked offline;
 now it degrades to keyword-only ranking (which the tool already reports as `degraded`).
 
+## Round 19 — L7.4, and the model-assisted layer is complete
+
+`curfew doctor --rank`: one `score` per finding, one request, **ordering only** — severity labels are
+mechanical and print unchanged. A model failure returns the input order with a note; an unscored
+finding is shown last, never dropped.
+
+**The measurement is the interesting part.** Live on 17 findings the scores came back 0.6–2.1 of 5 — flat
+and low. Isolated probes showed the rubric is fine and the machine is healthy:
+
+| finding | score |
+|---|---|
+| a crash loop, 255,645 restarts | **3.62** |
+| a dead app binary | **1.69** |
+| 13 ports with no job (documented benign) | **1.0** |
+
+There is nothing severe left to rank *because we fixed the three crash loops*. So I tried to have the tool
+detect "this ranking means nothing" with a threshold — and the same findings scored 1.9, then 2.1, on
+consecutive runs. **A threshold tuned to one sample is a lie**, so the tool now prints the observed range
+and lets the reader judge, which is more honest and more useful than a heuristic pretending to be a
+verdict.
+
+**L7.1–L7.4 are all done.** The model-assisted layer is built: propose, quiesce screen, findings
+ranking, on one client, one confidence policy and one audit log.
+
+**8 new tests; 207 total in 29 suites.**
+
 ## Criteria status
 
 All met except two, **deliberately revised** (recorded in the plan, not silently dropped):

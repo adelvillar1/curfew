@@ -156,6 +156,21 @@ Every request sends `User-Agent: curfew` — Cloudflare answers 403/1010 to urll
 twice on this machine. The transport, clock and cache are injected, so the whole surface is testable
 without a network. `unknown` is a first-class outcome: a transport failure is never read as confidence.
 
+## C19 — `FindingsRanker` / `FindingsRunner` — Sources/CurfewKit/FindingsRanker.swift
+
+```text
+OFFERS   FindingsRanker::state(_:) -> String · questions(range:) -> [JevQuestion] (one score head each)
+         FindingsRanker::order(_:impacts:) -> [RankedFinding]   // impact desc, ties by input order
+         FindingsRunner::rank(_:) -> (ranked, note)             // never throws, never empties
+EXPECTS  JevClient (C15) · DecisionLog (C16) · FindingReport (C7 — the doctor JSON shape)
+CONSUMED BY  curfew doctor --rank
+```
+
+**Ordering only.** Severity labels are mechanical and are printed unchanged. A model failure returns the
+input order with a note; an individual unscored finding is shown last rather than dropped. The note
+carries the observed impact range, because a threshold that decides whether a ranking "means something"
+tuned to one sample is a lie — two runs of the same 17 findings scored the top one 1.9 and then 2.1.
+
 ## C18 — `QuiesceGate` — Sources/CurfewKit/QuiesceGate.swift
 
 ```text
@@ -313,9 +328,10 @@ running job with a second process of the same binary is a second instance, not a
 ## C7 — `curfew` CLI — Sources/curfew/ (the external surface)
 
 ```text
-OFFERS   curfew list   [--domain gui|system|all] [--json]
+OFFERS   FindingReport / DoctorOutput / ListOutput / WhyOutput (the external JSON shapes)
+         curfew list   [--domain gui|system|all] [--json]
          curfew why    <label|--pid N|--port N|--name S> [--json]
-         curfew doctor [--json] [--disagreements]
+         curfew doctor [--json] [--disagreements] [--rank]
          exit codes 0..6 (below)
 EXPECTS  LaunchdInventory::enumerate (C2) · Classification::classify (C3) ·
          Findings::evaluate (C4) · WitrClient::probe (C5) ·

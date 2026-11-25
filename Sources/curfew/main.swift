@@ -66,7 +66,7 @@ curfew \(curfewVersion) — why is this running, and is anything wrong with it?
 usage:
   curfew list   [--domain gui|system|all] [--json]
   curfew why    <label> | --pid N | --port N | --name S [--json]
-  curfew doctor [--json] [--disagreements]
+  curfew doctor [--json] [--disagreements] [--rank]
   curfew catalog validate | list [--bundle NAME] | plan --bundle NAME   [--json] [--dir PATH]
   curfew catalog propose <label> | --all                 [--json] [--write FILE]
   curfew status                                          [--json]
@@ -237,7 +237,22 @@ func runDoctor() -> Never {
         print("curfew \(curfewVersion) · macOS \(macos) · witr \(witrVersion ?? "absent")")
         print("")
         print(reports.isEmpty ? "findings: none" : "findings (\(reports.count))")
-        if !reports.isEmpty { print(Render.findings(reports)) }
+        if !reports.isEmpty {
+            if has("--rank"), let client = try? JevClient.liveClient() {
+                // L7.4: ordering only. The severity labels are mechanical and are printed unchanged.
+                let (ranked, note) = FindingsRunner(client: client).rank(reports)
+                if let note { print("  \(note)") }
+                for item in ranked {
+                    let impact = item.impact.map { String(format: "%.1f", $0) } ?? "  - "
+                    let finding = item.finding
+                    print("  \(impact)  \(finding.severity.padding(toLength: 14, withPad: " ", startingAt: 0))  \(finding.label ?? "?")  \(finding.id)")
+                    print("        \(finding.summary)")
+                }
+            } else {
+                if has("--rank") { print("  ranking unavailable: \(JevError.missingKey(JevClient.keyFile().path))") }
+                print(Render.findings(reports))
+            }
+        }
         print("")
         if has("--disagreements") || !disagreements.isEmpty {
             print("disagreements (\(disagreements.count) fingerprint(s))")

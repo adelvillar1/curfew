@@ -105,7 +105,7 @@ Plan `2026-11-25-jev-assisted-decisions.md`. The model proposes; the catalogue a
 | L7.1 | `JevClient` + `DecisionLog` + `ConfidencePolicy`: injected transport, the UA fix, the audit row, the decision cache | L6.3 | D27, D28 | done | `JevClient.swift`, `JevHTTPTransport.swift`, `DecisionLog.swift`; `JevClientTests` (14); the no-network invariant amended to one named file |
 | L7.2 | `curfew catalog propose <label>`: structured state from the live record, companion nouls, floor, a draft entry that acts on nothing | L7.1, L3.1 | D27, D29 | done | `Propose.swift`, `curfew catalog propose [--all]`; `ProposeTests` (10). **Live on all 12 uncatalogued services: 8 infrastructure → protect, 2 stop, 2 review, 0 dangerous** (metadata alone had 2 dangerous) |
 | L7.3 | Quiesce noul-screen in the executor, after every deterministic refusal, narrowing only, off by default | L7.1, L3.3 | D27, D29 | done | `QuiesceGate.swift`, the executor's gate block; `QuiesceGateTests` (11). Bands 0.65/0.35; `auto` means nobody is asked today (no entry declares a quiesce probe) |
-| L7.4 | `curfew doctor --rank`: score ordering, labels untouched | L7.1, L1.4 | D27 | planned | — |
+| L7.4 | `curfew doctor --rank`: score ordering, labels untouched | L7.1, L1.4 | D27, D29 | done | `FindingsRanker.swift`; `FindingsRankerTests` (8). Live on 17 findings; isolated probe separates a crash loop (3.6) from a benign gap (1.0), but today's machine has nothing severe so the range is 0.6–2.1 and the tool prints that range rather than pretending |
 
 **Critical path (longest dependency chain):**
 

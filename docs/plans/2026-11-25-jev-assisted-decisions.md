@@ -175,9 +175,9 @@ mechanical and stay so; only the order changes. Lowest risk of the three, built 
 
 **Acceptance criteria**
 
-- [ ] Ordering comes from the score; ties keep the mechanical severity order.
-- [ ] `--rank` off leaves the current output unchanged.
-- [ ] A failed call leaves the unranked list, not an empty one.
+- [x] Ordering comes from the score; ties keep the mechanical severity order.
+- [x] `--rank` off leaves the current output unchanged.
+- [x] A failed call leaves the unranked list, not an empty one.
 
 ## Lifecycle — each surface declares how it earns its place
 
