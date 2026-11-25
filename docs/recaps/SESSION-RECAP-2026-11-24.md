@@ -377,6 +377,42 @@ because the emptiness is the decision.
 
 **Nothing is left on the decomposition: 23 done, 4 dropped by scope.**
 
+## Round 16 — laya is now a served, supervised endpoint
+
+The ask: *"make sure laya starts and runs unattended even after rebooting"*, clarified to what it
+actually needs — an inference process publishing a **Jev-compatible response API**, not an in-process
+engine that only exists while sys1 is alive.
+
+**It was never runnable.** `laya-serve` ships in the venv and dies at `import uvicorn`: `fastapi` and
+`uvicorn` were absent, and the venv has no `pip` (it was built with `uv`). Installed with
+`uv pip install --python …` — fastapi 0.165.0, uvicorn 0.54.0, starlette, opentelemetry-api (KI-036).
+
+**What it serves** matches the description exactly: `/health`, `/v1/route`, `/v1/systemone`,
+`/v1/systemone/batch` — the TypeSafe Jev wire, with `x_jev_confidence` alongside Laya's own
+normalized-entropy confidence. Verified with a real question:
+
+```
+choice: server | p: {server: 0.636, client: 0.233, data: 0.131} | x_jev_confidence: 0.4544
+```
+
+**Persistence**, mirroring the sibling embedding server (`KeepAlive`, `RunAtLoad`, `ProcessType:
+Background`): launchd job **`com.adelvillar1.laya-serve`**, `LAYA_HOST=127.0.0.1`,
+`LAYA_PORT=8454`, `LAYA_PRELOAD=1`, logs to `~/.local/share/laya/laya-serve.log`.
+
+- `bootstrap` succeeded and launchd owns it (`state = running`, pid, runs counter).
+- `/health` reports `english`, `multilingual`, `typed-decisions` loaded **on `mps`**, ~15 s to preload.
+- **KeepAlive proven**: `kill -9` → launchd restarted it with a new pid, `runs = 2`, and the Jev call
+  answered again after preload.
+
+**One discrepancy found and recorded (KI-035):** sys1's config points `laya_api_url` at
+`/v1/chat/completions`, but this server publishes `/v1/systemone`. The fallback URL in sys1 could not
+talk to it. Documented rather than silently "fixed", because which side should change is a design
+decision.
+
+**Not verified:** reboot survival itself — the mechanism is `RunAtLoad` plus the plist living in
+`~/Library/LaunchAgents`, and the same code path was exercised by bootstrap and by the kill-restart.
+Memory footprint is also unmeasured (`ps`/`footprint` are blocked from the session).
+
 ## Criteria status
 
 All met except two, **deliberately revised** (recorded in the plan, not silently dropped):

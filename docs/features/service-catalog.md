@@ -44,7 +44,7 @@ All verified on this host, 2026-11-24/25.
 | `sh.brew.postgresql@18` | the dev database (D22) |
 | `com.adelvillar1.sem1-llama` | the embedding server every semantic tool needs (D22) |
 | `dev.dsh.bridge` | the agent's path to the Kanzo board — 119 requests in its log (D24) |
-| `laya` | in-process sys1 engine; keeping it warm is the point (D24) |
+| `laya` | the decision model; keeping it warm is the point (D24). Served by `com.adelvillar1.laya-serve` on `:8454` and loaded in-process by sys1 |
 | `com.github.facebook.watchman` | file watcher behind HMR and watch mode |
 | `com.ollama.ollama` | local model server on `:11434` |
 
