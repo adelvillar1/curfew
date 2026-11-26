@@ -38,7 +38,7 @@ There is no production server. "Production" is the copy installed on the user's 
 
 **Ledgers — read before building anything, append before finishing anything**
 - Known issues → `docs/known-issues.md` (`KI-n`; every defect, gap, risk, environmental item, *including* "not my code")
-- Design decisions → `docs/plans/CURFEW-DESIGN-DECISIONS.md` (`D0–D40`; a plan that contradicts a settled `D` is wrong by construction)
+- Design decisions → `docs/plans/CURFEW-DESIGN-DECISIONS.md` (`D0–D41`; a plan that contradicts a settled `D` is wrong by construction)
 - Contracts → `docs/plans/CURFEW-CONTRACTS.md` (`C0–C27`; offers/expects/consumed-by + the external JSON and exit-code shapes)
 - Decomposition → `docs/plans/CURFEW-DECOMPOSITION.md` (`L0.1–L7.4`, 31 atoms; the build map and critical path)
 - Police all four with `python3 scripts/ledger_check.py`

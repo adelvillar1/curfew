@@ -359,6 +359,16 @@ private struct Sidebar: View {
     }
 }
 
+/// What build is running, read from the bundle the app was installed as.
+enum BuildIdentity {
+    static var text: String {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+            ?? curfewVersion
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unversioned"
+        return "Curfew \(version) · \(build)"
+    }
+}
+
 private struct Detail: View {
     @ObservedObject var model: AppModel
 
@@ -415,6 +425,12 @@ private struct QuietPane: View {
                     .padding(.top, 5)
 
                 // The app's own memory: the last completed session, read from the journal.
+                Text(BuildIdentity.text)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 24)
+                    .padding(.top, 6)
+
                 if !model.snapshot.quiet, let last = model.snapshot.lastSession {
                     Text("Last quiet mode ended \(whenText(last.ended)) — \(last.changes) service\(last.changes == 1 ? "" : "s") restored.")
                         .font(.footnote)

@@ -44,6 +44,9 @@ app:
 	mkdir -p $(APP)/Contents/MacOS $(APP)/Contents/Resources
 	cp .build/release/curfew-menubar $(APP)/Contents/MacOS/Curfew
 	cp scripts/Info.plist $(APP)/Contents/Info.plist
+	@# The build identity, so "is this the new one?" is answerable from inside the app.
+	@plutil -replace CFBundleVersion -string "$$(git rev-parse --short HEAD) built $$(date '+%H:%M')" \
+		$(APP)/Contents/Info.plist
 	# The catalogue ships inside the bundle: a login-launched app gets `/` as its cwd, so a
 	# cwd-relative lookup finds nothing. It must be copied BEFORE signing — adding a sealed resource
 	# afterwards invalidates the signature and macOS then refuses to launch the app, silently.

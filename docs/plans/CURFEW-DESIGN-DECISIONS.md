@@ -284,3 +284,10 @@ Rules:
   `open -a` so the result is visible.
   Constrains: `curfew-menubar`'s main entry · `make install-app`.
 
+- **D41 — The app states its own build identity.**
+  Rationale: a build stamp is the difference between "trust me, it's current" and "look". Twice the owner
+  reported an old version against a current binary, because the changes lived in panes the landing view
+  does not show. `make app` stamps `CFBundleVersion` with the commit and build time, and the landing pane
+  prints it under the state line.
+  Constrains: `make app` · `BuildIdentity` · the About panel.
+

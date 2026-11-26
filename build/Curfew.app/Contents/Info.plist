@@ -13,10 +13,9 @@
 	<key>CFBundleShortVersionString</key>
 	<string>0.1.0</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>b01157a built 10:40</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>14.0</string>
-	<!-- No Dock icon and no main window: this is a status item, not an app you switch to. -->
 	<key>LSUIElement</key>
 	<false/>
 </dict>
