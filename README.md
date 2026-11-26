@@ -27,16 +27,60 @@ one of them back, the way it found it, when you say so.
 
 ## Install
 
-**[Download Curfew 0.2.0](https://github.com/adelvillar1/curfew/releases/latest)** — Apple silicon, macOS 13+.
+### The installer (recommended)
 
-The image is **ad-hoc signed, not notarised** (no Developer ID), so macOS will warn on first open. Either
-right-click → **Open**, or clear the quarantine bit once:
+**[Latest release →](https://github.com/adelvillar1/curfew/releases/latest)** — Apple silicon, macOS 13 or newer.
+
+1. Download and open `Curfew-<version>.dmg`
+2. Drag **Curfew** onto the **Applications** shortcut
+3. First launch: **right-click → Open → Open** — the image is ad-hoc signed, not notarised, so macOS will
+   otherwise refuse it. Or clear the flag once:
+
+   ```bash
+   xattr -dr com.apple.quarantine /Applications/Curfew.app
+   ```
+
+Curfew stays in the menu bar. It opens a window when you first launch it; closing the window leaves it
+running.
+
+### From source
+
+Nothing to install but the tools macOS already ships with — no package manager, no dependencies.
+
+**Requires:** macOS 13+, and Xcode Command Line Tools (`xcode-select --install`) for the Swift 6 toolchain.
+Check with `swift --version`.
 
 ```bash
-xattr -dr com.apple.quarantine /Applications/Curfew.app
+git clone https://github.com/adelvillar1/curfew.git
+cd curfew
+
+swift build            # the CLI and the library
+swift test             # 311 tests, 42 suites
+
+make app               # build/Curfew.app, ad-hoc signed
+make install-app       # ~/Applications + the login opener (survives reboot)
+make dmg               # or make the same installer image yourself
 ```
 
-Or build it yourself — it has no dependencies: `make app && make dmg`.
+The command-line tool is separate and does not need the app:
+
+```bash
+make install           # curfew → ~/.local/bin
+curfew list            # every job, with tier and findings
+curfew doctor          # the aggregated verdict
+```
+
+Started from a **sandboxed agent session** SwiftPM cannot reach its caches; the Makefile already passes the
+flags that fix it, so `make app` is the path that works there (KI-019).
+
+**Removing it:**
+
+```bash
+make uninstall-app     # the app and its login opener
+make uninstall         # the CLI
+```
+
+Neither deletes your journal or quarantine store — those live in `~/Library/Application Support/Curfew`.
 
 ## What it does
 

@@ -44,6 +44,9 @@ app:
 	mkdir -p $(APP)/Contents/MacOS $(APP)/Contents/Resources
 	cp .build/release/curfew-menubar $(APP)/Contents/MacOS/Curfew
 	cp scripts/Info.plist $(APP)/Contents/Info.plist
+	@# The app wears the logo it was given (assets/AppIcon.icns, built from assets/curfew-logo.png).
+	@# Copied before signing, like the catalogue: a resource added after signing breaks the seal.
+	cp assets/AppIcon.icns $(APP)/Contents/Resources/AppIcon.icns
 	@# The build identity, so "is this the new one?" is answerable from inside the app.
 	@plutil -replace CFBundleVersion -string "$$(git rev-parse --short HEAD) built $$(date '+%H:%M')" \
 		$(APP)/Contents/Info.plist
