@@ -1,4 +1,8 @@
 <p align="center">
+  <img src="assets/curfew-logo.png" alt="Curfew" width="120">
+</p>
+
+<p align="center">
   <img src="assets/curfew-hero.png" alt="Curfew — bring the machine under control" width="100%">
 </p>
 
