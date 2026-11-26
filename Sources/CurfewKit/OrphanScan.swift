@@ -98,3 +98,76 @@ public enum OrphanScan {
         }
     }
 }
+
+/// Reaps the orphans the scan named (D46: the window may act, with the same narrow rules and a record).
+///
+/// Killing is irreversible, so the rules are re-checked here rather than trusted from the caller: each
+/// process must still be an orphan of ours with the exact command. A process that no longer matches is
+/// reported, not signalled.
+public struct OrphanReaper: Sendable {
+
+    public struct Result: Sendable {
+        public var reaped: [OrphanProcess]
+        public var refused: [(process: OrphanProcess, reason: String)]
+        public var freedKB: Int
+
+        public init(reaped: [OrphanProcess] = [], refused: [(process: OrphanProcess, reason: String)] = [], freedKB: Int = 0) {
+            self.reaped = reaped; self.refused = refused; self.freedKB = freedKB
+        }
+
+        public var summary: String {
+            let mb = String(format: "%.1f", Double(freedKB) / 1024)
+            guard !reaped.isEmpty else {
+                return refused.isEmpty ? "Nothing to reap." : "Nothing was reaped — \(refused.count) refused."
+            }
+            var text = "Reaped \(reaped.count) process\(reaped.count == 1 ? "" : "es"), \(mb) MB RSS released."
+            if !refused.isEmpty { text += " \(refused.count) refused." }
+            return text
+        }
+    }
+
+    /// `isAlive` and `signal` are injected: tests never signal a real process.
+    public var isAlive: @Sendable (Int) -> Bool
+    public var signal: @Sendable (Int) -> Bool
+
+    public init(
+        isAlive: @escaping @Sendable (Int) -> Bool = OrphanReaper.defaultIsAlive,
+        signal: @escaping @Sendable (Int) -> Bool = OrphanReaper.defaultSignal
+    ) {
+        self.isAlive = isAlive
+        self.signal = signal
+    }
+
+    /// Re-checks each candidate against the rules, then signals the survivors.
+    public func reap(_ orphans: [OrphanProcess], uid: Int = Int(getuid())) -> Result {
+        var reaped: [OrphanProcess] = []
+        var refused: [(process: OrphanProcess, reason: String)] = []
+        for orphan in orphans {
+            guard orphan.parentPID == 1 else {
+                refused.append((orphan, "its parent is alive — not ours to stop")); continue
+            }
+            guard orphan.uid == uid else {
+                refused.append((orphan, "another user's process")); continue
+            }
+            guard OrphanScan.keepAlives.contains(orphan.command) else {
+                refused.append((orphan, "not a known keep-alive")); continue
+            }
+            guard isAlive(orphan.pid) else {
+                refused.append((orphan, "already gone")); continue
+            }
+            if signal(orphan.pid) { reaped.append(orphan) }
+            else { refused.append((orphan, "the signal could not be delivered")) }
+        }
+        return Result(
+            reaped: reaped, refused: refused,
+            freedKB: reaped.reduce(0) { $0 + $1.rssKB })
+    }
+
+    public static let defaultIsAlive: @Sendable (Int) -> Bool = { pid in
+        kill(pid_t(pid), 0) == 0
+    }
+
+    public static let defaultSignal: @Sendable (Int) -> Bool = { pid in
+        kill(pid_t(pid), SIGTERM) == 0
+    }
+}

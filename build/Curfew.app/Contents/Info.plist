@@ -13,7 +13,9 @@
 	<key>CFBundleShortVersionString</key>
 	<string>0.1.0</string>
 	<key>CFBundleVersion</key>
-	<string>b732431 built 11:55</string>
+	<string>3b681cb built 12:10</string>
+	<key>CurfewRepoPath</key>
+	<string>/Users/alejandrodelvillar/Projects/dev-mode</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>14.0</string>
 	<key>LSUIElement</key>

@@ -365,6 +365,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // A way to see a sheet without an input device: the cua driver can read this window but its
         // AX surface refuses every input route, so presentation is proven by asking for it at launch.
         if CommandLine.arguments.contains("--open-help") { model.showingHelp = true }
+        // The confirmation the Reap button opens, reachable without an injectable click (KI-064).
+        if CommandLine.arguments.contains("--ask-reap") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak model] in
+                model?.askToReapOrphans()
+            }
+        }
         // The same assignment ⌘1–⌘5 make, so a pane can be opened without an injectable keystroke.
         // Perform a menu item's action by title. The key binding is proven by --dump-appmenu; this
         // proves the action that binding is attached to, which is the other half of a keyboard criterion

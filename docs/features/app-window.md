@@ -28,7 +28,18 @@ raw label stays on the row's monospace detail line and in `--json` output. Rules
 Names can collide — three Address Book jobs share a display name. The raw label on the line below is the
 disambiguator, which is why it never leaves the row.
 
-## Orphans are named where the findings are (D43)
+## The Hygiene pane (D45, D46)
+
+Two sections, both factual:
+
+1. **Orphaned keep-alives** — every orphan by pid, command and RSS, with a **Reap N…** button that opens the
+   usual confirmation sheet listing the exact processes. `OrphanReaper` re-checks the three rules at signal
+   time; a process whose parent came back or that is already gone is refused by name.
+2. **Build artifacts** — each closed-list directory with its size and the rule that decides it ("keep — the
+   repo is active (last commit 0d < 21d)", "prune — repo 40d old, artifact untouched 30d"), plus one sentence
+   for the whole run. Artifacts are pruned only by `make hygiene-live`; the pane reports them.
+
+## Orphans are also named where the findings are (D43)
 
 A keep-alive whose parent is gone holds memory with nothing waiting on it, and no service tool sees it — it has
 no launchd label. `OrphanScan` finds them by three narrow rules (exact command, `ppid 1`, your uid), `curfew

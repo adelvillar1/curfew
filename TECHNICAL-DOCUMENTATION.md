@@ -256,3 +256,10 @@ itself and the CLI's JSON keeps the truth.
 `scan` injects the `ps` runner so no test reads a real process table. `AppSnapshot.orphans` carries the result
 and `AppSnapshotProvider.load` scans by default.
 
+## HygieneReport and OrphanReaper
+
+`HygieneReport` holds the pass as a value (`judge` applies the two guards, `verdict` is the one sentence a
+surface prints); `HygieneRules` holds the numbers and the closed list; `HygieneScan` reads the machine with
+injected size/age/git closures. `OrphanReaper` signals only what still matches the rules and returns a
+`Result` naming every refusal. Both are covered by `HygieneReportTests` (7) and `OrphanReaperTests` (6).
+

@@ -98,12 +98,15 @@ public struct AppSnapshot: Sendable, Equatable {
     /// Orphans are processes, not launchd services, so they are reported beside the findings rather than
     /// inside them (D43) — the executor is label-addressed and will not act on a pid.
     public var orphans: [OrphanProcess] = []
+    /// What the hygiene pass would do, computed for the window's Hygiene pane (D45).
+    public var hygiene: HygieneReport?
 
     public init(
         quiet: Bool, held: [Held] = [], lastSession: LastSession? = nil,
         heldLabels: Set<String> = [], apps: [AppRecord] = [],
         bundles: [Bundle] = [], services: [Service] = [], findings: [Finding] = [],
-        orphans: [OrphanProcess] = [], problem: String? = nil, capturedAt: Date = Date()
+        orphans: [OrphanProcess] = [], hygiene: HygieneReport? = nil,
+        problem: String? = nil, capturedAt: Date = Date()
     ) {
         self.quiet = quiet
         self.held = held
@@ -114,6 +117,7 @@ public struct AppSnapshot: Sendable, Equatable {
         self.services = services
         self.findings = findings
         self.orphans = orphans
+        self.hygiene = hygiene
         self.problem = problem
         self.capturedAt = capturedAt
     }
@@ -135,6 +139,7 @@ public enum AppSnapshotProvider {
     /// Gather the whole snapshot. `problem` explains an empty window rather than leaving it blank.
     public static func load(
         orphans: [OrphanProcess] = OrphanScan.scan(),
+        hygiene: HygieneReport? = nil,
         domain: Domain = Domain.effective(),
         catalogDirectory: URL,
         journal: Journal = Journal(),
@@ -217,7 +222,7 @@ public enum AppSnapshotProvider {
         return AppSnapshot(
             quiet: !held.isEmpty, held: held, lastSession: lastSession, heldLabels: heldLabels,
             apps: apps, bundles: bundles, services: services, findings: findings,
-            orphans: orphans, capturedAt: now)
+            orphans: orphans, hygiene: hygiene, capturedAt: now)
     }
 }
 

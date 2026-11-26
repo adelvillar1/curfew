@@ -319,3 +319,23 @@ Rules:
   `make wrapup-live` applies only the first and third legs.
   Constrains: `scripts/session-close-hygiene.sh` · the `wrapup` targets.
 
+- **D45 — Hygiene is a surface, not only a command.**
+  Rationale: the passes shipped as `make hygiene` and `make wrapup`, which meant reading a run required a
+  terminal — and the owner asked for the status and the dry run *in the app*. The Hygiene pane now shows the
+  orphan list and the build artifacts with their per-row verdict, and states in one sentence what a live run
+  would do ("A live run would reap 2 orphans — 2.3 MB RSS" / "Nothing to do — the repo is active"). The rules
+  live in `HygieneRules` and `HygieneReport.judge`, so the surface and the scripts cannot drift apart
+  silently; `curfew hygiene [--json]` prints the same model. The repo path is stamped into the bundle by
+  `make app` (`CurfewRepoPath`), so an installed build can read its own build directories.
+  Constrains: `HygieneReport` · `HygieneScan` · `curfew hygiene` · the Hygiene pane.
+
+- **D46 — The window may reap orphans, and that supersedes D43's reporting-only rule for the reaper.**
+  Rationale: the owner asked for the action button, and the argument for withholding it (the executor is
+  label-addressed, so a pid has no journal and no restore) is answered by making the reap a **plan**: the
+  button opens the same confirmation sheet every other mutation uses, listing the exact pids and commands,
+  and only `Apply` signals anything. `OrphanReaper` re-checks the three rules at signal time rather than
+  trusting the list it was handed — a process whose parent came back, whose command changed, or that is
+  already gone is refused by name. The artifact leg stays report-only: pruning a build directory has no
+  confirmation surface worth trusting, so it remains `make hygiene-live`.
+  Constrains: `OrphanReaper` · `PlanAction.reapOrphans` · the Hygiene pane's Reap button.
+

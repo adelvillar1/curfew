@@ -12,6 +12,7 @@ final class AppModel: ObservableObject {
         case findings = "Findings"
         case services = "Services"
         case apps = "Apps"
+        case hygiene = "Hygiene"
         var id: String { rawValue }
 
         /// The sidebar is built from `allCases`, so adding a pane can never leave it unreachable —
@@ -20,7 +21,7 @@ final class AppModel: ObservableObject {
             switch self {
             case .quiet: return "Mode"
             case .bundles: return "Bundles"
-            case .findings, .services, .apps: return "This machine"
+            case .findings, .services, .apps, .hygiene: return "This machine"
             }
         }
 
@@ -33,6 +34,7 @@ final class AppModel: ObservableObject {
             case .findings: return "stethoscope"
             case .services: return "list.bullet.rectangle"
             case .apps: return "square.grid.2x2"
+            case .hygiene: return "trash"
             }
         }
     }
@@ -46,6 +48,8 @@ final class AppModel: ObservableObject {
         case restore(labels: Set<String>?)
         case quarantine(label: String, plist: String)
         case quitApp(bundle: String, pids: [Int32], name: String)
+        /// D46: the window may reap, under the reaper's own rules and with a record.
+        case reapOrphans([OrphanProcess])
     }
 
     /// A plan the window is showing before it applies anything.
@@ -155,10 +159,37 @@ final class AppModel: ObservableObject {
     func refresh() {
         let frontmost = NSWorkspace.shared.frontmostApplication?.bundleURL?.path
         snapshot = AppSnapshotProvider.load(
-            catalogDirectory: catalogDirectory, journal: journal, frontmost: frontmost)
+            hygiene: Self.hygieneReport(), catalogDirectory: catalogDirectory,
+            journal: journal, frontmost: frontmost)
+    }
+
+    /// The Hygiene pane's report, read from the repo `make app` stamped into the bundle. A build with no
+    /// stamp (a debug run) simply has no report, and the pane says so rather than inventing one.
+    static func hygieneReport() -> HygieneReport? {
+        guard let path = Bundle.main.object(forInfoDictionaryKey: "CurfewRepoPath") as? String,
+              !path.isEmpty, FileManager.default.fileExists(atPath: path) else { return nil }
+        return HygieneScan.scan(repo: URL(fileURLWithPath: path))
     }
 
     /// Freeze an app: instant, reversible, and the app never knows. The default verb.
+    /// Reaping is irreversible, so it is confirmed like any other mutation: the sheet lists the exact
+    /// processes, and nothing is signalled until the owner says so.
+    func askToReapOrphans() {
+        let orphans = snapshot.orphans
+        guard !orphans.isEmpty else {
+            note = Note(title: "Nothing to reap", body: "No orphaned keep-alives are running.")
+            return
+        }
+        let rows = orphans.map {
+            "  \($0.pid)  \(String(format: "%.1f", Double($0.rssKB) / 1024)) MB  \($0.command)"
+        }.joined(separator: "\n")
+        plan = Plan(
+            title: "Reap \(orphans.count) orphaned keep-alive\(orphans.count == 1 ? "" : "s")",
+            detail: "These processes have no parent and nothing waiting on them.\n\n\(rows)",
+            steps: orphans.map { "\($0.pid)  \($0.command)" },
+            action: .reapOrphans(orphans))
+    }
+
     func freeze(_ app: AppRecord) {
         do {
             let outcome = try AppControl(journal: journal).freeze(app)
@@ -361,6 +392,14 @@ final class AppModel: ObservableObject {
                 } catch {
                     extra.append("✗  \(label)  \(error.localizedDescription)")
                 }
+            case .reapOrphans(let orphans):
+                let result = OrphanReaper().reap(orphans)
+                if result.reaped.isEmpty {
+                    extra.append("✗  reaper  \(result.refused.first?.reason ?? "nothing matched")")
+                } else {
+                    extra.append("✓  reaped \(result.reaped.count)  \(result.summary)")
+                }
+
             case .quitApp(let bundle, let pids, let name):
                 do {
                     let outcome = try AppControl(journal: journal)
@@ -470,6 +509,7 @@ private struct Detail: View {
                 case .findings: FindingsPane(model: model)
                 case .services: ServicesPane(model: model)
                 case .apps: AppsPane(model: model)
+                case .hygiene: HygienePane(model: model)
                 }
             }
         }
@@ -994,6 +1034,99 @@ private struct ServiceRow: View {
     }
 }
 
+private struct HygienePane: View {
+    @ObservedObject var model: AppModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    // 1. The reaper's section: every orphan, named, with the action that stops them.
+                    HStack(alignment: .firstTextBaseline) {
+                        SectionHeader("Orphaned keep-alives")
+                        Spacer()
+                        if !model.snapshot.orphans.isEmpty {
+                            Button("Reap \(model.snapshot.orphans.count)…") { model.askToReapOrphans() }
+                                .controlSize(.small)
+                                .padding(.trailing, 24)
+                        }
+                    }
+
+                    if model.snapshot.orphans.isEmpty {
+                        Text("None. A keep-alive whose parent is gone is litter — nothing waits on it.")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 8)
+                    } else {
+                        ForEach(model.snapshot.orphans) { orphan in
+                            HStack(spacing: 12) {
+                                Text("\(orphan.pid)")
+                                    .font(.system(.body, design: .monospaced))
+                                    .frame(width: 70, alignment: .leading)
+                                Text(orphan.command)
+                                    .font(.system(.caption, design: .monospaced))
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                                Spacer()
+                                Text(HygieneRules.megabytes(orphan.rssKB * 1024))
+                                    .font(.caption).monospacedDigit()
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.vertical, 5)
+                            .padding(.horizontal, 24)
+                            Divider().padding(.leading, 24)
+                        }
+                    }
+
+                    // 2. The artifact leg: the current state, and what a live run would do.
+                    SectionHeader("Build artifacts").padding(.top, 18)
+                    if let hygiene = model.snapshot.hygiene {
+                        Text(hygiene.verdict)
+                            .font(.callout)
+                            .foregroundStyle(hygiene.pruneable.isEmpty ? .secondary : .primary)
+                            .padding(.horizontal, 24)
+                            .padding(.bottom, 6)
+                            .fixedSize(horizontal: false, vertical: true)
+                        ForEach(hygiene.artifacts) { artifact in
+                            HStack(spacing: 12) {
+                                Text(artifact.name)
+                                    .font(.system(.body, design: .monospaced))
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                Text(HygieneRules.megabytes(artifact.bytes))
+                                    .font(.caption).monospacedDigit()
+                                    .frame(width: 80, alignment: .trailing)
+                                Text(artifact.reason)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .frame(maxWidth: 320, alignment: .leading)
+                            }
+                            .padding(.vertical, 5)
+                            .padding(.horizontal, 24)
+                            Divider().padding(.leading, 24)
+                        }
+                        Text("Closed list: \(hygiene.artifactList.joined(separator: " · ")) — anything else is named, never removed.")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 24)
+                            .padding(.top, 10)
+                        Text("Artifacts are pruned by `make hygiene-live` — the pane reports them; the reaper above acts, after you confirm.")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 24)
+                            .padding(.bottom, 18)
+                    } else {
+                        Text("No report yet — refresh to read the build directories.")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 24)
+                    }
+                }
+            }
+        }
+    }
+}
+
 // MARK: - Help
 
 struct HelpSheet: View {
@@ -1261,6 +1394,7 @@ struct PanePreview: View {
             case .findings: FindingsPane(model: model)
             case .services: ServicesPane(model: model)
             case .apps: AppsPane(model: model)
+            case .hygiene: HygienePane(model: model)
             }
         }
         .frame(width: 860, height: 560)

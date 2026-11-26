@@ -44,6 +44,10 @@ scripts/repo-hygiene.sh --live       # apply, logging each action with its size
 scripts/repo-hygiene.sh --purge build
 ```
 
+The app's **Hygiene** pane and `curfew hygiene [--json]` read the same rules from `HygieneRules`
+(`.build`, `build`, `.swiftpm`; stale 21d, mtime 14d) — the script is the shell-side convenience, and the
+Swift model is canonical (D45).
+
 Log: `~/Library/Logs/curfew-repo-hygiene.log`.
 
 ## `reap-orphans.sh` — stop keep-alives whose parent is gone

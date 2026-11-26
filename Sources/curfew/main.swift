@@ -711,6 +711,62 @@ func runResume() -> Never {
 
 // MARK: - status (reads the journal; writes nothing)
 
+/// The hygiene pass, from the same model the window's Hygiene pane shows (D45). Reports by default;
+/// `--reap` acts on the orphans under the reaper's own rules.
+func runHygiene() -> Never {
+    let repo = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+    let report = HygieneScan.scan(repo: repo)
+
+    if has("--json") {
+        let payload: [String: Any] = [
+            "repo": repo.path,
+            "repoAgeDays": report.repoAgeDays,
+            "verdict": report.verdict,
+            "artifacts": report.artifacts.map {
+                ["name": $0.name, "bytes": $0.bytes, "ageDays": $0.ageDays,
+                 "wouldPrune": $0.wouldPrune, "reason": $0.reason]
+            },
+            "orphans": report.orphans.map {
+                ["pid": $0.pid, "ppid": $0.parentPID, "uid": $0.uid,
+                 "rssKB": $0.rssKB, "command": $0.command]
+            },
+        ]
+        if let data = try? JSONSerialization.data(
+            withJSONObject: payload, options: [.prettyPrinted, .sortedKeys]) {
+            print(String(decoding: data, as: UTF8.self))
+        }
+        exit(0)
+    }
+
+    print("repo: \(repo.lastPathComponent) · last commit \(report.repoAgeDays)d ago")
+    print("")
+    print("orphaned keep-alives (\(report.orphans.count))")
+    if report.orphans.isEmpty {
+        print("  none")
+    } else {
+        for orphan in report.orphans {
+            print("  \(orphan.pid)  \(String(format: "%.1f", Double(orphan.rssKB) / 1024)) MB  \(orphan.command)")
+        }
+    }
+    print("")
+    print("build artifacts")
+    for artifact in report.artifacts {
+        print("  \(artifact.name.padding(toLength: 10, withPad: " ", startingAt: 0))"
+            + " \(HygieneRules.megabytes(artifact.bytes))  \(artifact.reason)")
+    }
+    print("")
+    print(report.verdict)
+
+    if has("--reap") {
+        let result = OrphanReaper().reap(report.orphans)
+        print("")
+        print(result.summary)
+        for refusal in result.refused { print("  refused \(refusal.process.pid): \(refusal.reason)") }
+        exit(result.refused.isEmpty ? 0 : 0)
+    }
+    exit(0)
+}
+
 func runStatus() -> Never {
     let journal = Journal()
     let all = journal.records()
@@ -886,6 +942,7 @@ case "list": runList()
 case "doctor": runDoctor()
 case "why": runWhy()
 case "catalog": runCatalog()
+case "hygiene": runHygiene()
 case "status": runStatus()
 case "tui": runTUI()
 case nil: runTUI()
