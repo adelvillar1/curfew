@@ -199,3 +199,17 @@ stays as a shortcut; closing the window leaves the app running.
 - **Bundles** explains itself while quiet mode is on rather than showing only disabled controls.
 - **Help** in the footer (and ⌘⇧/) explains held, protected, quiesce and the finding kinds.
 
+## 8. Hygiene
+
+`curfew doctor` reports orphaned keep-alives beside its findings: "N orphaned keep-alives holding X MB — nothing
+waits on them". The Findings pane header carries the same line. Nothing in the app acts on them (D43); the named
+fix is the reaper.
+
+Three commands cover the machine's upkeep:
+
+| Command | What it does |
+|---|---|
+| `make hygiene` | report: build artifacts in a stale repo, orphaned keep-alives |
+| `make hygiene-live` | apply both |
+| `make wrapup` / `make wrapup-live` | the session close: spawned processes, orphans, disk, and Curfew's own records (reported, never deleted) |
+

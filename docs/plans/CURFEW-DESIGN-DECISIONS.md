@@ -302,3 +302,20 @@ Rules:
   `tail -f /dev/null` keep-alives once cost this machine 580 MB RSS and 46% of `maxprocperuid`.
   Constrains: `scripts/repo-hygiene.sh` · `scripts/reap-orphans.sh` · the `hygiene` targets.
 
+- **D43 — Orphans are reported in the product and reaped by the script, not acted on from the window.**
+  Rationale: `doctor` and the Findings pane now name orphaned keep-alives (count + MB) because that is the
+  defect class Curfew exists to surface, and it is invisible to every service tool. Acting on them stays out
+  of the window: the executor is **label-addressed** — journal, verified recipe, restore — and a pid has none
+  of that, so a kill from the UI would be the one unjournalled mutation in the product. The fix named in the
+  report is `make hygiene-live`, which carries the narrow rules (exact command, `ppid 1`, your uid).
+  Constrains: `OrphanScan` · `curfew doctor` · the Findings header.
+
+- **D44 — Curfew has a session-close leg, and it never deletes a record.**
+  Rationale: fleet's close (`if you spin it up, you shut it down cleanly`) ports in four parts: what the run
+  spawned (the verification daemon, test instances — never the installed app), the orphans, the disk (build
+  artifacts and this session's `/tmp` captures, which are copies), and what Curfew itself grew (journal,
+  decision log, quarantine store). The last group is **reported, never deleted**: a quarantine entry is a
+  file the owner may want restored, and a decision log is an audit trail. `make wrapup` reports;
+  `make wrapup-live` applies only the first and third legs.
+  Constrains: `scripts/session-close-hygiene.sh` · the `wrapup` targets.
+

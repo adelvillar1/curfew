@@ -28,6 +28,13 @@ raw label stays on the row's monospace detail line and in `--json` output. Rules
 Names can collide — three Address Book jobs share a display name. The raw label on the line below is the
 disambiguator, which is why it never leaves the row.
 
+## Orphans are named where the findings are (D43)
+
+A keep-alive whose parent is gone holds memory with nothing waiting on it, and no service tool sees it — it has
+no launchd label. `OrphanScan` finds them by three narrow rules (exact command, `ppid 1`, your uid), `curfew
+doctor` prints the count and the MB, and the Findings pane's header carries the same line. Acting on a pid stays
+out of the window: the executor is label-addressed, so the fix named in the report is `make hygiene-live`.
+
 ## Filtering and sorting (Services, Apps)
 
 The Services list filters on the display name **or** the raw label, sorts by name, state or findings, and groups

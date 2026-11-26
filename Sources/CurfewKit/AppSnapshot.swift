@@ -95,11 +95,15 @@ public struct AppSnapshot: Sendable, Equatable {
     public var problem: String?
     public var capturedAt: Date
 
+    /// Orphans are processes, not launchd services, so they are reported beside the findings rather than
+    /// inside them (D43) — the executor is label-addressed and will not act on a pid.
+    public var orphans: [OrphanProcess] = []
+
     public init(
         quiet: Bool, held: [Held] = [], lastSession: LastSession? = nil,
         heldLabels: Set<String> = [], apps: [AppRecord] = [],
         bundles: [Bundle] = [], services: [Service] = [], findings: [Finding] = [],
-        problem: String? = nil, capturedAt: Date = Date()
+        orphans: [OrphanProcess] = [], problem: String? = nil, capturedAt: Date = Date()
     ) {
         self.quiet = quiet
         self.held = held
@@ -109,6 +113,7 @@ public struct AppSnapshot: Sendable, Equatable {
         self.bundles = bundles
         self.services = services
         self.findings = findings
+        self.orphans = orphans
         self.problem = problem
         self.capturedAt = capturedAt
     }
@@ -129,6 +134,7 @@ public enum AppSnapshotProvider {
 
     /// Gather the whole snapshot. `problem` explains an empty window rather than leaving it blank.
     public static func load(
+        orphans: [OrphanProcess] = OrphanScan.scan(),
         domain: Domain = Domain.effective(),
         catalogDirectory: URL,
         journal: Journal = Journal(),
@@ -210,7 +216,8 @@ public enum AppSnapshotProvider {
 
         return AppSnapshot(
             quiet: !held.isEmpty, held: held, lastSession: lastSession, heldLabels: heldLabels,
-            apps: apps, bundles: bundles, services: services, findings: findings, capturedAt: now)
+            apps: apps, bundles: bundles, services: services, findings: findings,
+            orphans: orphans, capturedAt: now)
     }
 }
 

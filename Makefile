@@ -7,7 +7,7 @@ PREFIX ?= $(HOME)/.local/bin
 # SwiftPM cannot build from a sandboxed agent session: see KI-019.
 SWIFT := swift build --disable-sandbox --cache-path .build/spm-cache --config-path .build/spm-config
 
-.PHONY: build release test check install uninstall app run-app install-app clean hygiene hygiene-live
+.PHONY: build release test check install uninstall app run-app install-app clean hygiene hygiene-live wrapup wrapup-live
 
 build:
 	$(SWIFT)
@@ -96,6 +96,14 @@ hygiene-live:
 	@scripts/repo-hygiene.sh --live
 	@echo ""
 	@scripts/reap-orphans.sh --live
+
+## The session-close leg (D44): the processes a run spawned, the orphans, the disk, and the records
+## Curfew itself grew. Reports by default; --live applies legs 1 and 3 only. Records are never deleted.
+wrapup:
+	@scripts/session-close-hygiene.sh
+
+wrapup-live:
+	@scripts/session-close-hygiene.sh --live
 
 uninstall-app:
 	-launchctl bootout gui/$(shell id -u)/$(AGENT) 2>/dev/null

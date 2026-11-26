@@ -63,3 +63,20 @@ Log: `~/Library/Logs/curfew-reap-orphans.log`.
 
 `make hygiene` runs both in report mode; `make hygiene-live` applies them.
 
+## `session-close-hygiene.sh` — the close, adapted from fleet
+
+Fleet's session-close leg (`if you spin it up, you shut it down cleanly`), in Curfew's four parts: what the
+run spawned (the cua-driver daemon, test instances — **never the installed app**), the orphans, the disk
+(build artifacts plus this session's `/tmp` captures, which are copies of files in `docs/evidence/`), and what
+Curfew itself grew.
+
+The last group — journal, decision log, quarantine store — is **reported, never deleted**. A quarantine entry
+is a file the owner may want restored; a decision log is an audit trail.
+
+```bash
+scripts/session-close-hygiene.sh          # the report
+scripts/session-close-hygiene.sh --live    # stop the daemon + test instances, clear /tmp captures
+```
+
+`make wrapup` / `make wrapup-live`. Log: `~/Library/Logs/curfew-session-close.log`.
+

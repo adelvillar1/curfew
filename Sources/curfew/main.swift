@@ -250,6 +250,11 @@ func runDoctor() -> Never {
     } else {
         print("curfew \(curfewVersion) · macOS \(macos) · witr \(witrVersion ?? "absent")")
         print("")
+        // D43: orphans are processes, not launchd jobs, so they are reported beside the findings.
+        if let orphans = OrphanScan.summary(OrphanScan.scan()) {
+            print(orphans)
+            print("")
+        }
         print(reports.isEmpty ? "findings: none" : "findings (\(reports.count))")
         if !reports.isEmpty {
             if has("--rank"), let client = try? JevClient.liveClient() {

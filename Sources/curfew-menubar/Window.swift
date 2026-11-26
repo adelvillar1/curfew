@@ -769,7 +769,7 @@ private struct FindingsPane: View {
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
-                        SectionHeader("\(model.snapshot.findings.count) findings, most serious first")
+                        SectionHeader(findingsHeader(model.snapshot))
                         ForEach(model.snapshot.findings) { finding in
                             FindingRow(model: model, finding: finding)
                             Divider().padding(.leading, 24)
@@ -779,6 +779,13 @@ private struct FindingsPane: View {
             }
         }
     }
+}
+
+/// The findings count, plus the orphans that are not launchd jobs at all (D43).
+private func findingsHeader(_ snapshot: AppSnapshot) -> String {
+    let base = "\(snapshot.findings.count) findings, most serious first"
+    guard let orphans = OrphanScan.summary(snapshot.orphans) else { return base }
+    return base + " · " + orphans
 }
 
 private struct FindingRow: View {

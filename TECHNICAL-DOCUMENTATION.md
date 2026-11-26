@@ -249,3 +249,10 @@ itself and the CLI's JSON keeps the truth.
 `CurfewKit/ServiceList.swift` holds the Services list's filtering, sorting and grouping as pure functions
 (`filter`, `sort`, `group`, `present`). The view delegates to it, so list behaviour is tested rather than driven.
 
+## OrphanScan
+
+`CurfewKit/OrphanScan.swift` parses `ps -Axo pid=,ppid=,uid=,rss=,command=` and applies the keep-alive rules
+(exact command match, `ppid == 1`, caller's uid). `parse` is pure and covered by `OrphanScanTests` (7 tests);
+`scan` injects the `ps` runner so no test reads a real process table. `AppSnapshot.orphans` carries the result
+and `AppSnapshotProvider.load` scans by default.
+
