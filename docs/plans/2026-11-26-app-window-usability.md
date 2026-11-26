@@ -184,7 +184,11 @@ the captured critique at `.impeccable/critique/2026-11-26T17-02-28Z__sources-cur
   input route to this window.
 - **C2 and C3** are proven by test rather than by mouse: the filtering and ordering moved out of the view into
   `CurfewKit/ServiceList.swift`, so "typing filters" and "the order is stable" are assertions instead of hopes.
-- **C7 remains blocked**: ⌘F and ⌘1–⌘5 cannot be injected (KI-064).
+- **C7 remains blocked, and its evidence is as far as it can go without an input device**: the menu bindings are
+  printed by `--dump-appmenu` (⌘F Filter, ⌘1–⌘5 panes, ⌘⇧/ help, ⌘⇧Q, ⌘⇧Z, ⌘R), and the pane-switch mechanism
+  those keys call is proven live (`--pane Services`, captured in `docs/evidence/window-services-live.png`). The
+  keystroke itself cannot be injected (KI-064). **Owner decision needed**: press ⌘1 and ⌘F once to close C7 as
+  written, or amend C7 to what is verifiable (bindings bound + pane switching proven).
 
 **Round 1 (2026-11-26)** — C0, C1, C4, C5 met and verified from captures; C0 also has unit tests. C2 and C3 are
 built and visible, with the interaction half unverified because synthetic keystrokes did not reach the app

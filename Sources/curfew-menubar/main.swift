@@ -92,6 +92,30 @@ if CommandLine.arguments.contains("--dump-state") {
     exit(0)
 }
 
+if CommandLine.arguments.contains("--dump-appmenu") {
+    // The keyboard path, as bound: title, key and modifiers. Proves the menu carries what C7 claims,
+    // without needing to inject a keystroke (KI-064 refuses input to this window).
+    _ = NSApplication.shared
+    let delegate = AppDelegate()
+    delegate.buildMainMenu()
+    func render(_ menu: NSMenu, depth: Int) {
+        for item in menu.items where !item.title.isEmpty {
+            let mods = item.keyEquivalentModifierMask
+            var parts: [String] = []
+            if mods.contains(.command) { parts.append("cmd") }
+            if mods.contains(.shift) { parts.append("shift") }
+            if mods.contains(.option) { parts.append("opt") }
+            let key = item.keyEquivalent.isEmpty ? "" : " \(parts.joined(separator: "+"))+\(item.keyEquivalent)"
+            print("\(String(repeating: "  ", count: depth))\(item.title)\(key)")
+        }
+    }
+    for item in NSApp.mainMenu?.items ?? [] {
+        print("[ \(item.submenu?.title ?? item.title) ]")
+        if let sub = item.submenu { render(sub, depth: 1) }
+    }
+    exit(0)
+}
+
 if CommandLine.arguments.contains("--dump-panes") {
     // The sidebar is AppKit and cannot render offscreen, so print what it is built from. It derives
     // from Pane.allCases, which is the point: a pane cannot exist without a row to reach it.
@@ -341,6 +365,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // A way to see a sheet without an input device: the cua driver can read this window but its
         // AX surface refuses every input route, so presentation is proven by asking for it at launch.
         if CommandLine.arguments.contains("--open-help") { model.showingHelp = true }
+        // The same assignment ⌘1–⌘5 make, so a pane can be opened without an injectable keystroke.
+        if let index = CommandLine.arguments.firstIndex(of: "--pane"),
+           CommandLine.arguments.count > index + 1,
+           let pane = AppModel.Pane(rawValue: CommandLine.arguments[index + 1]) {
+            model.pane = pane
+        }
         if !CommandLine.arguments.contains("--background") { showWindow() }
         NSApp.setActivationPolicy(.accessory)
         if let button = statusItem.button {
