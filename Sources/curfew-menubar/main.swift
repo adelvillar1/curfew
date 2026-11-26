@@ -179,6 +179,43 @@ if let index = CommandLine.arguments.firstIndex(of: "--drive-stop"),
     exit(0)
 }
 
+if let index = CommandLine.arguments.firstIndex(of: "--render-app"),
+   CommandLine.arguments.count > index + 1 {
+    // The whole window, sidebar included — the surface a person actually sees.
+    let path = CommandLine.arguments[index + 1]
+    _ = NSApplication.shared
+    NSApp.setActivationPolicy(.regular)
+    let model = AppModel(catalogDirectory: catalogDirectory())
+    if let paneIndex = CommandLine.arguments.firstIndex(of: "--pane"),
+       CommandLine.arguments.count > paneIndex + 1,
+       let pane = AppModel.Pane(rawValue: CommandLine.arguments[paneIndex + 1]) {
+        model.pane = pane
+    }
+    let hosting = NSHostingController(rootView: CurfewWindow(model: model))
+    let window = NSWindow(contentViewController: hosting)
+    window.styleMask = [.titled, .closable, .resizable]
+    window.title = "Curfew"
+    window.setContentSize(NSSize(width: 860, height: 430))
+    NSApp.activate(ignoringOtherApps: true)
+    window.makeKeyAndOrderFront(nil)
+    hosting.view.layoutSubtreeIfNeeded()
+    RunLoop.current.run(until: Date().addingTimeInterval(1.0))
+    hosting.view.layoutSubtreeIfNeeded()
+    hosting.view.displayIfNeeded()
+    // NavigationSplitView does not render into a bitmap, but the window's own view hierarchy can be
+    // written as a PDF — which does capture it. The PNG is produced from that by `sips`.
+    if let view = window.contentView,
+       let pdf = view.dataWithPDF(inside: view.bounds) as Data? {
+        let pdfPath = path.hasSuffix(".png") ? String(path.dropLast(4)) + ".pdf" : path + ".pdf"
+        try? pdf.write(to: URL(fileURLWithPath: pdfPath))
+        print("rendered \(pdfPath)")
+        window.orderOut(nil)
+        exit(0)
+    }
+    FileHandle.standardError.write(Data("no pdf\n".utf8))
+    exit(1)
+}
+
 if let index = CommandLine.arguments.firstIndex(of: "--render-window"),
    CommandLine.arguments.count > index + 1 {
     // Render the real window offscreen to a PNG. No screen-recording permission needed, and it is the
