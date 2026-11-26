@@ -208,7 +208,7 @@ if let index = CommandLine.arguments.firstIndex(of: "--render-app"),
     let window = NSWindow(contentViewController: hosting)
     window.styleMask = [.titled, .closable, .resizable]
     window.title = "Curfew"
-    window.setContentSize(NSSize(width: 860, height: 430))
+    window.setContentSize(NSSize(width: 860, height: model.preferredWindowHeight))
     NSApp.activate(ignoringOtherApps: true)
     window.makeKeyAndOrderFront(nil)
     hosting.view.layoutSubtreeIfNeeded()
@@ -245,7 +245,7 @@ if let index = CommandLine.arguments.firstIndex(of: "--render-window"),
     // real offscreen window, let a display cycle run, then read the window's own backing store.
     let hosting = NSHostingController(rootView: PanePreview(model: model))
     let window = NSWindow(contentViewController: hosting)
-    window.setContentSize(NSSize(width: 860, height: 430))
+    window.setContentSize(NSSize(width: 860, height: model.preferredWindowHeight))
     window.styleMask = [.titled]
     NSApp.activate(ignoringOtherApps: true)
     window.makeKeyAndOrderFront(nil)
@@ -580,6 +580,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         refresh.target = self
         curfew.addItem(refresh)
 
+        let find = NSMenuItem(title: "Filter", action: #selector(menuFilter), keyEquivalent: "f")
+        find.target = self
+        curfew.addItem(find)
+
+        let help = NSMenuItem(title: "What the words mean", action: #selector(menuHelp), keyEquivalent: "/")
+        help.keyEquivalentModifierMask = [.command, .shift]
+        help.target = self
+        curfew.addItem(help)
+
         curfew.addItem(.separator())
         for (index, pane) in AppModel.Pane.allCases.enumerated() {
             let item = NSMenuItem(title: pane.rawValue, action: #selector(menuPane(_:)),
@@ -618,6 +627,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func menuRefresh() { model.refresh() }
 
+    @objc func menuFilter() {
+        showWindow()
+        model.focusSearch += 1
+    }
+
+    @objc func menuHelp() {
+        showWindow()
+        model.showingHelp = true
+    }
+
     /// State-aware menu: Start is meaningless while quiet, and Restore while nothing is held.
     func validateMenuItem(_ item: NSMenuItem) -> Bool {
         switch item.action {
@@ -653,7 +672,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         created.title = BuildIdentity.windowTitle
         created.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
         created.titlebarAppearsTransparent = false
-        created.setContentSize(NSSize(width: 860, height: 430))
+        created.setContentSize(NSSize(width: 860, height: model.preferredWindowHeight))
         created.center()
         created.isReleasedWhenClosed = false
         window = created

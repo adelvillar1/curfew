@@ -1,5 +1,5 @@
 ---
-status: draft
+status: active
 created: 2026-11-26
 updated: 2026-11-26
 slug: app-window-usability
@@ -64,21 +64,22 @@ High-level steps:
 These are the contract. Each one is a verifiable assertion. The work is "done" when every box is checked.
 **Order is identity**: criteria are C0, C1, … in checkbox order.
 
-- [ ] C0: Every Services row shows a display name derived from its label (`com.apple.ActivityMonitor` →
+- [x] C0: Every Services row shows a display name derived from its label (`com.apple.ActivityMonitor` →
       "Activity Monitor"), and the raw label appears on the row's monospace detail line.
-- [ ] C1: Services renders a header row naming its columns (name, state, tier, findings) and groups rows by kind
+- [x] C1: Services renders a header row naming its columns (name, state, tier, findings) and groups rows by kind
       with a count per group.
 - [ ] C2: Services has a search field visible in the pane, and typing filters the rows to those whose display
-      name or raw label contains the text.
+      name or raw label contains the text. — **field built and visible; the typing half is unverified**
+      (synthetic keystrokes did not reach the app: KI-064)
 - [ ] C3: Services can be sorted by name, and Apps by memory and by name; the chosen order survives switching
-      panes within the session.
-- [ ] C4: With quiet mode on, the Bundles pane states once at the top why previews are unavailable and offers
+      panes within the session. — **both pickers built and visible; the persistence half is unverified**
+- [x] C4: With quiet mode on, the Bundles pane states once at the top why previews are unavailable and offers
       Restore, and no control is rendered disabled without that explanation visible on the pane.
-- [ ] C5: With a two-row Held list the landing pane leaves no more than 40 points of empty height above its
+- [x] C5: With a two-row Held list the landing pane leaves no more than 40 points of empty height above its
       footer, measured from a captured window.
-- [ ] C6: A Help control in the window footer opens a one-screen explainer that defines "held", "protected
+- [ ] BLOCKED C6: A Help control in the window footer opens a one-screen explainer that defines "held", "protected
       bundle" and each finding kind, reachable with ⌘?.
-- [ ] C7: ⌘F focuses the active pane's search field, and ⌘1–⌘5 switch panes — both verified by pressing them in a
+- [ ] BLOCKED C7: ⌘F focuses the active pane's search field, and ⌘1–⌘5 switch panes — both verified by pressing them in a
       captured session.
 
 ## Files to be touched
@@ -169,3 +170,11 @@ below, so no edge was overridden.
 
 There are no `docs/ux/` route documents to update: this is a single native window, and its reference states are
 the captured critique at `.impeccable/critique/2026-11-26T17-02-28Z__sources-curfew-menubar-window-swift.md`.
+
+## Round log
+
+**Round 1 (2026-11-26)** — C0, C1, C4, C5 met and verified from captures; C0 also has unit tests. C2 and C3 are
+built and visible, with the interaction half unverified because synthetic keystrokes did not reach the app
+(KI-064). C6 is blocked: the Help sheet never presents (KI-063). C7 is blocked by the same keystroke gap.
+
+Evidence: `docs/evidence/window-services-named.png`, `window-bundles-banner.png`, `window-landing-fitted.png`.

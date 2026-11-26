@@ -105,4 +105,37 @@ struct LastSessionTests {
         let snapshot = AppSnapshotProvider.load(catalogDirectory: catalog, journal: journal)
         #expect(snapshot.lastSession != nil, "the provider must carry it")
     }
+
+    // MARK: Display names (plan C0)
+
+    @Test("a namespaced app label reads as a name")
+    func displayNames() {
+        #expect(Vocabulary.displayName(for: "application.com.apple.ActivityMonitor.1152921500311908412.1152921500311908417")
+                == "Activity Monitor")
+        #expect(Vocabulary.displayName(for: "com.apple.MobileSMS") == "Mobile SMS")
+        #expect(Vocabulary.displayName(for: "application.com.deepseek.harness.411416647.411416652")
+                == "Deepseek Harness")
+        #expect(Vocabulary.displayName(for: "io.tailscale.ipn.macos.410180283.410180294") == "Tailscale IPN")
+    }
+
+    @Test("an already human label is left alone")
+    func humanLabelUntouched() {
+        let blended = Vocabulary.displayName(for: "com.adelvillar1.blend1-service")
+        #expect(blended.lowercased().contains("blend1"), "got \(blended)")
+        #expect(Vocabulary.displayName(for: "Nightshift") == "Nightshift")
+    }
+
+    @Test("a long reverse-DNS name keeps its most specific component")
+    func longNameKeepsThePoint() {
+        let name = Vocabulary.displayName(for: "com.alejandrodelvillar.second-brain-pg")
+        #expect(name.count <= 28, "got \(name)")
+        #expect(name.lowercased().contains("second"))
+    }
+
+    @Test("folders of services are named")
+    func groups() {
+        #expect(Vocabulary.serviceGroup("agent") == "Agents")
+        #expect(Vocabulary.serviceGroup("daemon") == "Daemons")
+        #expect(Vocabulary.serviceGroup("weird") == "Weird")
+    }
 }

@@ -233,3 +233,14 @@ Full catalog: [`docs/scripts/README.md`](docs/scripts/README.md)
 - Log destination and levels; what is deliberately never logged (secrets, env values).
 - The `doctor` command: SIP status, helper health, journal integrity, catalog version, drift from last snapshot.
 </add-when-implemented>
+
+## Vocabulary and display names
+
+`CurfewKit/Vocabulary.swift` is the boundary where launchd and the judgement engine stop and English starts:
+`action`, `jobState`, `findingKind`, `heldPhrase`, `tier`, `serviceGroup`, and `displayName(for:)`. It is pure
+string mapping with no I/O, covered by `VocabularyTests` (13 tests), and the raw identifier is always preserved
+in the JSON and on the row's detail line.
+
+`AppSnapshot.Service` carries both `label` (verbatim) and `displayName` + `group`, so a view never derives a name
+itself and the CLI's JSON keeps the truth.
+

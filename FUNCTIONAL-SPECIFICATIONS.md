@@ -183,3 +183,19 @@ holding a lock, helper revoked, unreadable journal — belongs to L3/L4 and is w
 - Numbers are always measured, dated, and attributed ("2.1 GB reclaimed, measured 2026-11-24") — never estimated silently.
 - Destructive-looking actions (stop a database) require a confirmation that names the service.
 </add-when-implemented>
+
+## 7. The window
+
+`Curfew.app` opens a window with a sidebar: **Quiet mode · Bundles · Findings · Services · Apps**. The status item
+stays as a shortcut; closing the window leaves the app running.
+
+- **Quiet mode** answers "is my machine quiet, and what is it holding?" in one line, with the action that changes
+  it on the same line. It shows the last completed session when idle.
+- **Findings** rows are state-aware: Stop where Curfew can stop a service, Start where it is already holding one,
+  Quarantine… only where the owning app is verifiably gone.
+- **Services** lists the launchd inventory by display name (`Activity Monitor`), grouped by kind with counts,
+  with the raw label on the detail line.
+- **Apps** lists GUI apps by memory with Freeze (reversible) and Quit… (asks first).
+- **Bundles** explains itself while quiet mode is on rather than showing only disabled controls.
+- **Help** in the footer (and ⌘⇧/) explains held, protected, quiesce and the finding kinds.
+

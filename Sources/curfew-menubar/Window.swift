@@ -60,6 +60,16 @@ final class AppModel: ObservableObject {
     /// Rows ticked while a plan runs.
     @Published var progress: [String] = []
 
+    enum ServiceSort: String, CaseIterable, Identifiable {
+        case name = "Name", state = "State", findings = "Findings"
+        var id: String { rawValue }
+    }
+
+    enum AppSort: String, CaseIterable, Identifiable {
+        case memory = "Memory", name = "Name"
+        var id: String { rawValue }
+    }
+
     struct Note: Identifiable {
         let id = UUID()
         var title: String
@@ -68,6 +78,23 @@ final class AppModel: ObservableObject {
 
     @Published private(set) var snapshot = AppSnapshot(quiet: false)
     @Published var pane: Pane = .quiet
+    /// Held in the model, not the view: a sort must survive switching panes.
+    @Published var serviceSort: ServiceSort = .name
+    @Published var appSort: AppSort = .memory
+    /// Bumped by ⌘F; a pane watches it and focuses its search field.
+    @Published var focusSearch = 0
+    @Published var showingHelp = false
+
+    /// C5: with a two-row Held list the window should not leave a void above its footer. Height is
+    /// derived from what the landing pane will actually draw, clamped to sane bounds.
+    var preferredWindowHeight: CGFloat {
+        let rows = snapshot.quiet ? max(snapshot.held.count, 1) : 0
+        let header: CGFloat = 90           // state line, sentence, padding
+        let memory: CGFloat = snapshot.quiet || snapshot.lastSession == nil ? 0 : 22
+        let list: CGFloat = rows == 0 ? 210 : CGFloat(rows) * 30 + 34
+        let footer: CGFloat = 30
+        return min(max(header + memory + list + footer + 8, 260), 640)
+    }
     @Published var plan: Plan?
     @Published var note: Note?
     @Published var busy = false
@@ -325,7 +352,8 @@ struct CurfewWindow: View {
         } detail: {
             Detail(model: model)
         }
-        .frame(minWidth: 720, minHeight: 420)
+        .frame(minWidth: 720, minHeight: 260)
+        .sheet(isPresented: $model.showingHelp) { HelpSheet() }
         .sheet(item: $model.plan) { plan in ConfirmationSheet(model: model, plan: plan) }
         .sheet(item: $model.note) { note in ResultSheet(note: note) }
     }
@@ -382,6 +410,7 @@ private struct Detail: View {
     @ObservedObject var model: AppModel
 
     var body: some View {
+        VStack(spacing: 0) {
         Group {
             if let problem = model.snapshot.problem {
                 EmptyState(title: "Curfew is not ready", message: problem)
@@ -394,6 +423,22 @@ private struct Detail: View {
                 case .apps: AppsPane(model: model)
                 }
             }
+        }
+
+        Divider()
+        HStack(spacing: 8) {
+            Text(BuildIdentity.text)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Button("Help") { model.showingHelp = true }
+                .buttonStyle(.borderless)
+                .font(.caption)
+                .keyboardShortcut("/", modifiers: [.command, .shift])
+                .help("What held, protected, quiesce and the finding kinds mean (⌘?)")
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 6)
         }
     }
 }
@@ -434,12 +479,6 @@ private struct QuietPane: View {
                     .padding(.top, 5)
 
                 // The app's own memory: the last completed session, read from the journal.
-                Text(BuildIdentity.text)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 24)
-                    .padding(.top, 6)
-
                 if !model.snapshot.quiet, let last = model.snapshot.lastSession {
                     Text("Last quiet mode ended \(whenText(last.ended)) — \(last.changes) service\(last.changes == 1 ? "" : "s") restored.")
                         .font(.footnote)
@@ -479,32 +518,41 @@ private struct HeldList: View {
             Text("Held")
                 .font(.headline)
                 .padding(.horizontal, 24)
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(model.snapshot.held) { held in
-                        HStack(spacing: 12) {
-                            Image(systemName: "pause.circle")
-                                .foregroundStyle(.secondary)
-                            Text(held.label)
-                                .font(.system(.body, design: .monospaced))
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                            Spacer()
-                            Text(held.action)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Text(held.when.prefix(16).replacingOccurrences(of: "T", with: " "))
-                                .font(.caption)
-                                .monospacedDigit()
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.vertical, 7)
-                        .padding(.horizontal, 24)
-                        Divider().padding(.leading, 24)
-                    }
-                }
+
+            // A short list sizes to its rows so the window can size to it (C5); a long one scrolls.
+            if model.snapshot.held.count > 6 {
+                ScrollView { rows }
+                    .frame(minHeight: 160)
+            } else {
+                rows
             }
-            .frame(maxHeight: 260)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var rows: some View {
+        LazyVStack(spacing: 0) {
+            ForEach(model.snapshot.held) { held in
+                HStack(spacing: 12) {
+                    Image(systemName: "pause.circle")
+                        .foregroundStyle(.secondary)
+                    Text(held.label)
+                        .font(.system(.body, design: .monospaced))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Spacer()
+                    Text(held.action)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(held.when.prefix(16).replacingOccurrences(of: "T", with: " "))
+                        .font(.caption)
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 7)
+                .padding(.horizontal, 24)
+                Divider().padding(.leading, 24)
+            }
         }
     }
 }
@@ -582,6 +630,25 @@ private struct BundlesPane: View {
     @ObservedObject var model: AppModel
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // C4: a pane of disabled buttons is indistinguishable from a broken one — say why, once,
+            // with the action that changes it.
+            if model.snapshot.quiet {
+                HStack(spacing: 10) {
+                    Image(systemName: "moon.zzz").foregroundStyle(.secondary)
+                    Text("Quiet mode is on — restore first to preview or change a bundle.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Restore all") { model.restoreAll() }
+                        .controlSize(.small)
+                }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 10)
+                .background(.quaternary.opacity(0.3))
+                Divider()
+            }
+
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 SectionHeader("Stop")
@@ -600,6 +667,7 @@ private struct BundlesPane: View {
                 }
             }
             .padding(.top, 8)
+        }
         }
     }
 }
@@ -750,39 +818,182 @@ private struct SeverityDot: View {
 private struct ServicesPane: View {
     @ObservedObject var model: AppModel
     @State private var query = ""
+    @FocusState private var searchFocused: Bool
+
+    /// Grouped, sorted and filtered — one place, so the header's count and the rows agree.
+    private var groups: [(name: String, rows: [AppSnapshot.Service])] {
+        let filtered = query.isEmpty
+            ? model.snapshot.services
+            : model.snapshot.services.filter {
+                $0.displayName.localizedCaseInsensitiveContains(query)
+                    || $0.label.localizedCaseInsensitiveContains(query)
+            }
+        let sorted = filtered.sorted { left, right in
+            switch model.serviceSort {
+            case .name: return left.displayName.localizedCaseInsensitiveCompare(right.displayName) == .orderedAscending
+            case .state: return left.state == right.state
+                ? left.displayName < right.displayName : left.state < right.state
+            case .findings: return left.findingCount == right.findingCount
+                ? left.displayName < right.displayName : left.findingCount > right.findingCount
+            }
+        }
+        let order = ["Apps", "Agents", "Daemons"]
+        return Dictionary(grouping: sorted, by: \.group)
+            .sorted { (order.firstIndex(of: $0.key) ?? 99) < (order.firstIndex(of: $1.key) ?? 99) }
+            .map { (name: $0.key, rows: $0.value) }
+    }
 
     var body: some View {
-        let rows = query.isEmpty
-            ? model.snapshot.services
-            : model.snapshot.services.filter { $0.label.localizedCaseInsensitiveContains(query) }
+        VStack(alignment: .leading, spacing: 0) {
+            // The controls and the column names live in the pane, not behind `.searchable`, which does
+            // not render in this window.
+            HStack(spacing: 10) {
+                HStack(spacing: 6) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(.secondary)
+                    TextField("Filter by name or label", text: $query)
+                        .textFieldStyle(.plain)
+                        .focused($searchFocused)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 6))
+                .frame(maxWidth: 320)
 
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                ForEach(rows) { service in
-                    HStack(spacing: 12) {
-                        Text(service.label)
-                            .font(.system(.body, design: .monospaced))
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                        Spacer()
-                        if service.findingCount > 0 {
-                            Text("\(service.findingCount)")
-                                .font(.caption)
-                                .monospacedDigit()
-                                .foregroundStyle(.secondary)
+                Spacer()
+
+                Picker("Sort", selection: $model.serviceSort) {
+                    ForEach(AppModel.ServiceSort.allCases) { Text($0.rawValue).tag($0) }
+                }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .frame(width: 120)
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+
+            HStack(spacing: 12) {
+                Text("NAME").frame(maxWidth: .infinity, alignment: .leading)
+                Text("STATE").frame(width: 110, alignment: .leading)
+                Text("TIER").frame(width: 80, alignment: .leading)
+                Text("FINDINGS").frame(width: 66, alignment: .trailing)
+            }
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 24)
+            .padding(.bottom, 6)
+
+            Divider()
+
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(groups, id: \.name) { group in
+                        Text("\(group.name) · \(group.rows.count)")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 24)
+                            .padding(.top, 14)
+                            .padding(.bottom, 4)
+                        ForEach(group.rows) { service in
+                            ServiceRow(service: service)
+                            Divider().padding(.leading, 24)
                         }
-                        Text(service.state)
-                            .font(.caption)
-                            .foregroundStyle(service.state == "running" ? .primary : .secondary)
-                            .frame(width: 90, alignment: .trailing)
                     }
-                    .padding(.vertical, 6)
-                    .padding(.horizontal, 24)
-                    Divider().padding(.leading, 24)
+                    if groups.isEmpty {
+                        Text("Nothing matches “\(query)”.")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 24)
+                            .padding(.top, 18)
+                    }
                 }
             }
         }
-        .searchable(text: $query, placement: .toolbar, prompt: "Filter services")
+        .onChange(of: model.focusSearch) { _ in searchFocused = true }
+    }
+}
+
+private struct ServiceRow: View {
+    let service: AppSnapshot.Service
+
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(service.displayName)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                // The identifier stays, demoted: the display name is for recognition, this is for the CLI.
+                Text(service.label)
+                    .font(.system(.caption2, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text(service.state)
+                .font(.caption)
+                .foregroundStyle(service.state == "running" ? .primary : .secondary)
+                .frame(width: 110, alignment: .leading)
+            Text(Vocabulary.tier(service.tier))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(width: 80, alignment: .leading)
+            Text(service.findingCount > 0 ? "\(service.findingCount)" : "—")
+                .font(.caption)
+                .monospacedDigit()
+                .foregroundStyle(service.findingCount > 0 ? .primary : .secondary)
+                .frame(width: 66, alignment: .trailing)
+        }
+        .padding(.vertical, 5)
+        .padding(.horizontal, 24)
+    }
+}
+
+// MARK: - Help
+
+struct HelpSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    private let entries: [(String, String)] = [
+        ("Held", "Something Curfew stopped, disabled or moved, and can still put back. Restore undoes it."),
+        ("Protected bundle", "A set Curfew never actions: the harness, developer tooling, and services whose "
+            + "absence costs minutes rather than bytes. It exists so those can never be stopped by accident."),
+        ("Quiesce", "A check made immediately before a stop: is anything using this service right now? A busy "
+            + "answer refuses the stop."),
+        ("Program missing", "The job points at something that no longer exists on disk — often an app that was "
+            + "removed and left its launcher behind."),
+        ("Could not read its config", "launchd reports the job but some of its fields could not be read, so "
+            + "Curfew cannot fully describe it."),
+        ("Waiting to start", "The job is loaded and idle; launchd will run it on demand or on its schedule."),
+        ("Frozen", "The app's processes are suspended with SIGSTOP. It resumes exactly where it stopped."),
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("What the words mean").font(.title3.weight(.semibold))
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(entries, id: \.0) { term, meaning in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(term).font(.callout.weight(.semibold))
+                            Text(meaning)
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            HStack {
+                Spacer()
+                Button("Done") { dismiss() }.keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(24)
+        .frame(width: 560, height: 460)
     }
 }
 
@@ -793,13 +1004,35 @@ private struct ServicesPane: View {
 private struct AppsPane: View {
     @ObservedObject var model: AppModel
 
+    /// The sort choice lives in the model, so ⌘5 → ⌘1 → ⌘5 comes back in the same order (C3).
+    private var apps: [AppRecord] {
+        let rows = model.snapshot.apps
+        switch model.appSort {
+        case .memory: return rows.sorted { $0.memoryBytes > $1.memoryBytes }
+        case .name: return rows.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        }
+    }
+
     var body: some View {
-        let apps = model.snapshot.apps
+        let apps = apps
         Group {
             if apps.isEmpty {
                 EmptyState(title: "No apps to show",
                            message: "Curfew lists the apps that are running, biggest first. The shell and the harness are never listed.")
             } else {
+                VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    Spacer()
+                    Picker("Sort", selection: $model.appSort) {
+                        ForEach(AppModel.AppSort.allCases) { Text($0.rawValue).tag($0) }
+                    }
+                    .pickerStyle(.menu)
+                    .labelsHidden()
+                    .frame(width: 120)
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 10)
+
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
                         SectionHeader("\(apps.count) apps · \(Int(apps.reduce(0) { $0 + $1.memoryMB })) MB")
@@ -808,6 +1041,7 @@ private struct AppsPane: View {
                             Divider().padding(.leading, 24)
                         }
                     }
+                }
                 }
             }
         }

@@ -18,11 +18,28 @@ public struct AppSnapshot: Sendable, Equatable {
 
     /// One row of the service table.
     public struct Service: Sendable, Equatable, Identifiable {
+        /// The launchd label, verbatim — the detail line and the JSON keep it.
         public var label: String
+        /// What the row reads first: `Activity Monitor`, not `application.com.apple.ActivityMonitor.…`
+        public var displayName: String
+        /// The folder it belongs in: Agents, Daemons, Apps.
+        public var group: String
         public var state: String
         public var tier: String
         public var findingCount: Int
         public var id: String { label }
+
+        public init(
+            label: String, displayName: String, group: String, state: String, tier: String,
+            findingCount: Int
+        ) {
+            self.label = label
+            self.displayName = displayName
+            self.group = group
+            self.state = state
+            self.tier = tier
+            self.findingCount = findingCount
+        }
     }
 
     /// A bundle, and what a preview of it would do.
@@ -151,7 +168,10 @@ public enum AppSnapshotProvider {
 
         let services = records.map { record in
             AppSnapshot.Service(
-                label: record.id, state: Vocabulary.jobState(record.state.rawValue),
+                label: record.id,
+                displayName: Vocabulary.displayName(for: record.id),
+                group: Vocabulary.serviceGroup(record.kind.rawValue),
+                state: Vocabulary.jobState(record.state.rawValue),
                 tier: record.tier.rawValue,
                 findingCount: record.findings.count)
         }.sorted { $0.label < $1.label }

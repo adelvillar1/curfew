@@ -61,4 +61,88 @@ public enum Vocabulary {
         default: return Vocabulary.action(action) + " by Curfew"
         }
     }
+
+    /// A launchd label said as a name a person recognises (plan C0).
+    ///
+    /// GUI apps register as `application.<bundle-id>.<pid>.<pid>`; agents as reverse-DNS. The raw label stays
+    /// on the row's detail line and in JSON — this only decides what the eye reads first.
+    public static func displayName(for label: String) -> String {
+        var text = label
+        if text.hasPrefix("application.") { text.removeFirst("application.".count) }
+
+        // Trailing components that are numbers or UUIDs are identities, not names.
+        var parts = text.split(separator: ".").map(String.init)
+        while let last = parts.last {
+            let isNumber = last.allSatisfy(\.isNumber)
+            let isUUID = last.count >= 16 && last.filter { $0.isHexDigit || $0 == "-" }.count == last.count
+            guard isNumber || isUUID else { break }
+            parts.removeLast()
+        }
+        guard !parts.isEmpty else { return label }
+
+        if let first = parts.first, tlds.contains(first.lowercased()) { parts.removeFirst() }
+        // Apple's own bundle ids read better without the vendor.
+        if let first = parts.first, first.lowercased() == "apple" { parts.removeFirst() }
+        parts.removeAll { platformWords.contains($0.lowercased()) }
+        guard !parts.isEmpty else { return label }
+
+        func spoken(_ component: String) -> String {
+            let spaced = component.replacingOccurrences(of: "-", with: " ")
+                .replacingOccurrences(of: "_", with: " ")
+            // Break camelCase and acronym runs: "ActivityMonitor" → "Activity Monitor", "IPN" stays.
+            var out = ""
+            var previous: Character?
+            for character in spaced {
+                if let previous, character.isUppercase, previous.isLowercase || previous.isNumber {
+                    out.append(" ")
+                }
+                out.append(character)
+                previous = character
+            }
+            return out.split(separator: " ")
+                .map { word in
+                    let w = String(word)
+                    if acronyms.contains(w.lowercased()) { return w.uppercased() }
+                    guard let first = w.first else { return w }
+                    return first.isLowercase ? first.uppercased() + w.dropFirst() : w
+                }
+                .joined(separator: " ")
+        }
+
+        // A capitalised first component is the product name; the parts after it are sub-identifiers
+        // (`com.apple.AddressBook.abd` → "Address Book", not "Address Book Abd").
+        if parts.count > 1, let first = parts.first, first.first?.isUppercase == true {
+            return spoken(first)
+        }
+        let full = parts.map(spoken).joined(separator: " ")
+        // A long reverse-DNS name is more noise than identity: prefer its most specific component.
+        if full.count > 28 { return spoken(parts.last ?? label) }
+        return full.isEmpty ? label : full
+    }
+
+    /// Where a service comes from, said plainly.
+    public static func tier(_ raw: String) -> String {
+        switch raw {
+        case "appleAgent": return "Apple agent"
+        case "appleDaemon": return "Apple daemon"
+        case "thirdParty": return "Third party"
+        case "system": return "System"
+        default: return raw
+        }
+    }
+
+    /// What kind of thing a service is, as a group heading.
+    public static func serviceGroup(_ raw: String) -> String {
+        switch raw {
+        case "agent": return "Agents"
+        case "daemon": return "Daemons"
+        case "app": return "Apps"
+        default: return raw.prefix(1).uppercased() + raw.dropFirst()
+        }
+    }
+
+    static let tlds: Set<String> = ["com", "io", "org", "net", "dev", "co", "app", "me", "ai", "sh", "us", "uk"]
+    static let platformWords: Set<String> = ["macos", "osx", "mac", "desktop", "client", "app"]
+    /// Short words that are acronyms, not words: "Ipn" is not how anyone writes it.
+    static let acronyms: Set<String> = ["ipn", "api", "cli", "ui", "mcp", "pg", "db", "os", "ai", "dsh", "ssh"]
 }
