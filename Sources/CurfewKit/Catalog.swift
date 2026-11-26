@@ -484,6 +484,24 @@ public enum CatalogPlanner {
             return ([], [CatalogRefusal(id: name, reason: "a protect bundle is never actioned")], protectedPorts)
         }
 
+        return planFor(members: bundle.members, in: catalog, protectedPorts: protectedPorts,
+                       privilegedAvailable: privilegedAvailable)
+    }
+
+    /// Plan an ad-hoc set of entries — the window's per-service stop, which has no bundle of its own.
+    public static func plan(
+        entries ids: [String],
+        in catalog: Catalog,
+        privilegedAvailable: Bool = false
+    ) -> (steps: [CatalogStep], refusals: [CatalogRefusal], protectedPorts: [UInt16]) {
+        let protectedPorts = Set(catalog.bundles.filter { $0.kind == .protect }.flatMap(\.protectPorts)).sorted()
+        return planFor(members: ids, in: catalog, protectedPorts: protectedPorts,
+                       privilegedAvailable: privilegedAvailable)
+    }
+
+    private static func planFor(
+        members: [String], in catalog: Catalog, protectedPorts: [UInt16], privilegedAvailable: Bool
+    ) -> (steps: [CatalogStep], refusals: [CatalogRefusal], protectedPorts: [UInt16]) {
         var refusals: [CatalogRefusal] = []
         var ordered: [CatalogEntry] = []
         var visiting: Set<String> = []
@@ -505,7 +523,7 @@ public enum CatalogPlanner {
             done.insert(id)
             ordered.append(entry)
         }
-        for member in bundle.members { visit(member) }
+        for member in members { visit(member) }
 
         var steps: [CatalogStep] = []
         for entry in ordered {

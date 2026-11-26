@@ -599,6 +599,36 @@ too soon returned 5.
 
 **226 tests in 31 suites.**
 
+## Round 23 — Curfew.app gets a window (D31)
+
+The owner pressed Start quiet mode, watched it revert, and had no way back. Three defects came out of
+that press (KI-044 a wrong verify kind aborting the bundle at one entry, KI-045 quiet mode keyed off
+`unresolved()` so a successful apply read as "nothing to restore", KI-046 my own patch script writing one
+file's content into another), and then the ask: "we need a real interface beyond the menu in the Finder".
+
+**Designed with the impeccable skill.** `PRODUCT.md` written from confirmed truth; the concept-seed roll
+was run and **rejected on named grounds** — it dealt three print/type-specimen worlds (a variable-font
+specimen, an acetate manual, a Crouwel poster grid) for what is a native macOS Operate surface with a
+service table. The platform is the world: system appearance, SF Pro, system accent, semantic colour.
+
+**What the render taught me, twice.** The first look showed the three hero numbers I had built — exactly
+the hero-metric template the craft floor refuses — so they went. The second look showed severity encoded
+by colour alone, so the word was added beside the dot. Neither was visible in the code.
+
+The window: a sidebar over Quiet mode / Bundles / Findings / Services. The state line is the largest type
+on the surface and the action that changes it sits on the same line. Bundles preview through
+`apply(execute: false)`; Start and Restore show the plan in a sheet and apply only on confirmation; a
+finding offers **Investigate** always and **Stop** only where a verified, catalogued, non-protected recipe
+exists. Everything goes through the same `Executor` and `Journal` as the CLI — the window does not need
+the command line tool at all.
+
+**Verified by rendering, not by assuming.** `--render-window` hosts a pane in an offscreen key window and
+reads its backing store, because screen recording is not permitted here and `ImageRenderer` cannot lay out
+a `ScrollView`. Off/on/findings are in `docs/evidence/`.
+
+**What is not verified:** the sidebar, the sheets, and a real apply pressed in the window — those need the
+window opened on screen. 243 tests in 32 suites.
+
 ## Criteria status
 
 All met except two, **deliberately revised** (recorded in the plan, not silently dropped):

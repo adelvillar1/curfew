@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 import CurfewKit
 
 /// The menu bar shell. It draws `MenuBarModel` and wires the three things it offers: restore,
@@ -48,6 +49,44 @@ func liveModel() -> MenuBarModel {
             .sorted { $0.name < $1.name },
         protectedBundles: catalog.bundles.filter { $0.kind == .protect }.map(\.name)
     )
+}
+
+if let index = CommandLine.arguments.firstIndex(of: "--render-window"),
+   CommandLine.arguments.count > index + 1 {
+    // Render the real window offscreen to a PNG. No screen-recording permission needed, and it is the
+    // same view the app shows — so the layout can be looked at rather than assumed.
+    let path = CommandLine.arguments[index + 1]
+    _ = NSApplication.shared
+    let model = AppModel(catalogDirectory: catalogDirectory())
+    if let paneIndex = CommandLine.arguments.firstIndex(of: "--pane"),
+       CommandLine.arguments.count > paneIndex + 1,
+       let pane = AppModel.Pane(rawValue: CommandLine.arguments[paneIndex + 1]) {
+        model.pane = pane
+    }
+    // ImageRenderer cannot lay out a ScrollView (it returns an empty plate), so host the view in a
+    // real offscreen window, let a display cycle run, then read the window's own backing store.
+    let hosting = NSHostingController(rootView: PanePreview(model: model))
+    let window = NSWindow(contentViewController: hosting)
+    window.setContentSize(NSSize(width: 860, height: 430))
+    window.styleMask = [.titled]
+    NSApp.activate(ignoringOtherApps: true)
+    window.makeKeyAndOrderFront(nil)
+    hosting.view.layoutSubtreeIfNeeded()
+    RunLoop.current.run(until: Date().addingTimeInterval(0.6))
+    hosting.view.layoutSubtreeIfNeeded()
+    hosting.view.displayIfNeeded()
+
+    guard let rep = hosting.view.bitmapImageRepForCachingDisplay(in: hosting.view.bounds) else {
+        FileHandle.standardError.write(Data("could not make a bitmap\n".utf8)); exit(1)
+    }
+    hosting.view.cacheDisplay(in: hosting.view.bounds, to: rep)
+    guard let png = rep.representation(using: .png, properties: [:]) else {
+        FileHandle.standardError.write(Data("could not encode png\n".utf8)); exit(1)
+    }
+    try? png.write(to: URL(fileURLWithPath: path))
+    window.orderOut(nil)
+    print("rendered \(path)")
+    exit(0)
 }
 
 if CommandLine.arguments.contains("--quiet-command") {
@@ -112,6 +151,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // The login opener starts the app in the background: a status item and a Dock icon, no window
+        // appearing over whatever the owner was doing. A Finder or Dock launch opens the window.
+        if !CommandLine.arguments.contains("--background") { showWindow() }
         NSApp.setActivationPolicy(.accessory)
         if let button = statusItem.button {
             button.title = MenuBarModel.statusTitle(quiet: false, unresolved: 0)
@@ -144,6 +186,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .quit: return #selector(quit)
         case .bundle: return #selector(previewBundle(_:))
         case .startQuiet: return #selector(startQuiet)
+        case .window: return #selector(openWindowAction)
         }
     }
 
@@ -307,6 +350,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         dialog.accessoryView = scroll
         dialog.addButton(withTitle: "Done")
         dialog.runModal()
+    }
+
+    /// The window is the main surface (owner decision, 2026-11-26). The status item stays as a
+    /// shortcut; closing the window leaves the app running so the menu bar item survives.
+    private var window: NSWindow?
+    private lazy var model = AppModel(catalogDirectory: catalogDirectory())
+
+    @objc func openWindowAction() { showWindow() }
+
+    func showWindow() {
+        if let window {
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            model.refresh()
+            return
+        }
+        let hosting = NSHostingController(rootView: CurfewWindow(model: model))
+        let created = NSWindow(contentViewController: hosting)
+        created.title = "Curfew"
+        created.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
+        created.titlebarAppearsTransparent = false
+        created.setContentSize(NSSize(width: 860, height: 430))
+        created.center()
+        created.isReleasedWhenClosed = false
+        window = created
+        created.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    /// Closing the window must not quit: the app is a menu bar utility with a window.
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        if !hasVisibleWindows { showWindow() }
+        return true
     }
 
     @objc func quit() { NSApp.terminate(nil) }

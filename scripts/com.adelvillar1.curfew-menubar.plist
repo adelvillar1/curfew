@@ -19,6 +19,7 @@
 		     which is not guaranteed on a fresh login — measured: `open -a` exited 0 and started nothing
 		     until the app had been exec'd once directly. Running the binary needs no resolution step. -->
 		<string>/Users/alejandrodelvillar/Applications/Curfew.app/Contents/MacOS/Curfew</string>
+		<string>--background</string>
 	</array>
 	<key>RunAtLoad</key>
 	<true/>

@@ -12,6 +12,8 @@ public enum MenuItemKind: Equatable, Sendable {
     case quit
     /// A catalog bundle. Selecting it **previews** the run — it never passes `--execute`.
     case bundle(String)
+    /// Bring up the app's window: the surface that shows state, the held list and the findings.
+    case window
     /// Start quiet mode on the default bundle. The one action that can change a service: it runs the
     /// dry run first, shows the plan, and only applies when the operator confirms in that dialog.
     case startQuiet
@@ -103,7 +105,8 @@ public struct MenuBarModel: Equatable, Sendable {
                 bundles: bundles, quiet: quiet, bundleCount: bundleCount,
                 protectedBundles: protectedBundles)),
             MenuSection(title: nil, items: [
-                MenuItem(title: "Open dashboard…", enabled: true, kind: .dashboard),
+                MenuItem(title: "Open Curfew…", enabled: true, kind: .window),
+                MenuItem(title: "Open dashboard in Terminal…", enabled: true, kind: .dashboard),
             ]),
             MenuSection(title: nil, items: [
                 MenuItem(title: "Curfew \(version)", enabled: false, kind: .info),

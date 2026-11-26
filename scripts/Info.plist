@@ -18,6 +18,6 @@
 	<string>14.0</string>
 	<!-- No Dock icon and no main window: this is a status item, not an app you switch to. -->
 	<key>LSUIElement</key>
-	<true/>
+	<false/>
 </dict>
 </plist>

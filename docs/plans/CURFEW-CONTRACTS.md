@@ -71,7 +71,7 @@ struct Finding {
 ## C1 — `NeverList` — Sources/CurfewKit/NeverList.swift
 
 ```text
-OFFERS   isProtected(label: String) -> Bool
+OFFERS   NeverList · isProtected(label: String) -> Bool
          isProtected(processName: String) -> Bool   // second net, not a substitute
          all() -> [String]                          // 28 labels + process names
 EXPECTS  (nothing — a leaf by design, D9)
@@ -104,7 +104,7 @@ CONSUMED BY  curfew list (C7) · the future catalog loader
 ## C4 — `Findings` — Sources/CurfewKit/Findings.swift
 
 ```text
-OFFERS   evaluate(_ record: ServiceRecord) -> [Finding]        // pure; no I/O, no clock beyond a passed Date
+OFFERS   FindingsEngine · evaluate(_ record: ServiceRecord) -> [Finding]        // pure; no I/O, no clock beyond a passed Date
          crashLoop(_ record: ServiceRecord, loadedFor: Duration) -> Finding?   // D7's three clauses
          danglingProgram(_ record: ServiceRecord, resolve: (String) -> String?) -> Finding?
 EXPECTS  ServiceRecord (C0) · NeverList::isProtected (C1)
@@ -155,6 +155,31 @@ CONSUMED BY  Propose (C16) · the executor's quiesce gate · `doctor --rank`
 Every request sends `User-Agent: curfew` — Cloudflare answers 403/1010 to urllib-shaped clients, measured
 twice on this machine. The transport, clock and cache are injected, so the whole surface is testable
 without a network. `unknown` is a first-class outcome: a transport failure is never read as confidence.
+
+## C24 — `Journal.held` — Sources/CurfewKit/Journal.swift
+
+```text
+OFFERS   held() -> [JournalRecord] · restorePlan() -> [JournalRecord] (held ∪ unresolved, newest first)
+EXPECTS  nothing — it reads the journal file
+CONSUMED BY  curfew status · curfew resume · AppSnapshot (C23) · the menu bar's quiet state
+```
+
+`held()` is what Curfew changed and can undo: intents whose action succeeded and which no `resume` has
+closed. `restorePlan()` is the **union of `held()` and `unresolved()`** — normal quiet mode plus a run that
+died mid-action. Dropping either strands a state.
+
+## C23 — `AppSnapshot` — Sources/CurfewKit/AppSnapshot.swift
+
+```text
+OFFERS   AppSnapshot (quiet · held · bundles · services · findings · problem · stateLine)
+         AppSnapshotProvider::load(domain:catalogDirectory:journal:now:)
+EXPECTS  Journal::held (C24) · Catalog (C9) · LaunchdInventory · FindingsEngine (C4) · NeverList (C1)
+CONSUMED BY  Curfew.app's window — CurfewKit.AppSnapshotTests (6 tests)
+```
+
+One value the window renders, gathered from the same model the CLI prints, so the two cannot disagree.
+`problem` explains an empty window instead of leaving it blank. A finding carries `canStop` **only**
+where a verified, catalogued, non-protected stop recipe exists — the affordance is earned, not assumed.
 
 ## C22 — `MenuBarModel` (menu actions) — Sources/CurfewKit/MenuBarModel.swift
 

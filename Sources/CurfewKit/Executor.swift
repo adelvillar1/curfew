@@ -187,6 +187,18 @@ public struct Executor: Sendable {
 
     // MARK: Apply
 
+    /// Plan and run an ad-hoc set of entries — the window's per-service action (no bundle exists).
+    public func apply(
+        entryIds: [String],
+        catalog: Catalog,
+        context: ExecutionContext,
+        execute: Bool
+    ) -> [StepOutcome] {
+        let plan = CatalogPlanner.plan(entries: entryIds, in: catalog,
+                                       privilegedAvailable: isRoot || privileged != nil)
+        return run(plan: plan, catalog: catalog, context: context, execute: execute)
+    }
+
     public func apply(
         bundle name: String,
         catalog: Catalog,
@@ -194,6 +206,15 @@ public struct Executor: Sendable {
         execute: Bool
     ) -> [StepOutcome] {
         let plan = CatalogPlanner.plan(bundle: name, in: catalog, privilegedAvailable: isRoot || privileged != nil)
+        return run(plan: plan, catalog: catalog, context: context, execute: execute)
+    }
+
+    private func run(
+        plan: (steps: [CatalogStep], refusals: [CatalogRefusal], protectedPorts: [UInt16]),
+        catalog: Catalog,
+        context: ExecutionContext,
+        execute: Bool
+    ) -> [StepOutcome] {
         var outcomes: [StepOutcome] = []
 
         // A planner refusal is already a decision: report it and touch nothing.

@@ -197,3 +197,15 @@ Rules:
   Constrains: `MenuItemKind.startQuiet` · `DashboardLauncher.quietCommand` · the menu bar's only mutating
   action. **The first live apply on this machine is still unperformed — the menu can now do it, and doing
   it is the owner's click.**
+
+- **D31 — Curfew.app becomes a windowed app, and the window is the main surface.**
+  Rationale: a menu item cannot show state, a plan, or what is being held — the owner's own words were
+  "we need a real interface beyond the menu in the Finder". The app now has a Dock presence
+  (`LSUIElement` false), a sidebar over Quiet mode / Bundles / Findings / Services, and the same
+  `Executor`/`Journal` the CLI uses: the window is a surface, never a second implementation. Closing the
+  window leaves the app running so the status item survives; the login opener passes `--background` so a
+  window does not appear over the owner's work at startup. Every action that can change a service keeps
+  the two-step discipline — the plan is shown, then applied on confirmation (D30 extended to the window).
+  Constrains: `AppSnapshot` (C23) · `Window.swift` · `PRODUCT.md` and `DESIGN.md`, which now carry the
+  product truth and the visual system for this surface.
+
