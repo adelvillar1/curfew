@@ -185,3 +185,15 @@ Rules:
 
 - **D19 — The ledgers are the record: a plan that contradicts a settled `D` is wrong by construction, and a ledger change is policed before it is committed.**
   Rationale: `/skill:project-methodology`'s ledger discipline — stable ids, append don't rewrite, close with evidence, one home per fact. *Constrains:* every plan's citation duty, `scripts/ledger_check.py` in the recap loop.
+
+- **D30 — The menu's "Start quiet mode" runs the dry run inside its own confirmation.**
+  Rationale: rule 3 says a dry run comes before the first live change, and a menu item cannot show you a
+  journal afterwards. So the action is two steps inside one click — `apply --bundle vendor-noise` without
+  `--execute` first, its plan shown in the confirmation dialog, and `--execute --yes` only if the operator
+  presses Apply. Cancel and nothing happens. `--yes` is passed explicitly because a menu is not a TTY and
+  the CLI refuses `--execute` without it; that refusal is the safety it was built with, so the menu states
+  the intent rather than the CLI learning to trust a GUI. When quiet is on the same row becomes
+  `Restore everything…`: a greyed-out "Nothing to restore" reads as a broken button (KI-043).
+  Constrains: `MenuItemKind.startQuiet` · `DashboardLauncher.quietCommand` · the menu bar's only mutating
+  action. **The first live apply on this machine is still unperformed — the menu can now do it, and doing
+  it is the owner's click.**

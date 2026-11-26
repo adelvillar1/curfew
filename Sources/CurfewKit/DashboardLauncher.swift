@@ -53,6 +53,19 @@ public enum DashboardLauncher {
         return parts.joined(separator: " ")
     }
 
+    /// The dry run for the default bundle — what the confirmation dialog shows.
+    public static func quietPreviewCommand(cli: String, catalog: String?, bundle: String) -> String {
+        previewCommand(cli: cli, catalog: catalog, bundle: bundle)
+    }
+
+    /// The real thing. `--yes` is required because the menu is not a TTY: off a terminal the CLI
+    /// refuses `--execute` without it, which is the safety it was built with and is kept here.
+    public static func quietCommand(cli: String, catalog: String?, bundle: String) -> String {
+        var parts = [cli, "apply", "--bundle", bundle, "--execute", "--yes"]
+        if let catalog, !catalog.isEmpty { parts += ["--dir", catalog] }
+        return parts.joined(separator: " ")
+    }
+
     public static func missingMessage(
         candidates: [String] = DashboardLauncher.candidates()
     ) -> String {

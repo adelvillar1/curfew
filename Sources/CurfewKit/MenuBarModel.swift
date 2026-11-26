@@ -10,9 +10,11 @@ public enum MenuItemKind: Equatable, Sendable {
     case restore
     case dashboard
     case quit
-    /// A catalog bundle. Selecting it **previews** the run — the menu never changes a service, because
-    /// rule 3 says a live change is made where its output can be read.
+    /// A catalog bundle. Selecting it **previews** the run — it never passes `--execute`.
     case bundle(String)
+    /// Start quiet mode on the default bundle. The one action that can change a service: it runs the
+    /// dry run first, shows the plan, and only applies when the operator confirms in that dialog.
+    case startQuiet
 }
 
 /// What the menu needs to know about a bundle. `acting` is how many of its members would do something;
@@ -60,6 +62,10 @@ public struct MenuBarModel: Equatable, Sendable {
         self.statusTitle = statusTitle
     }
 
+    /// What "quiet mode with default settings" means. `vendor-noise` is the only stop bundle with
+    /// acting members: thirteen verified vendor updaters, none of them needed by a build.
+    public static let defaultQuietBundle = "vendor-noise"
+
     /// What the status item itself shows. Short: the menu bar is not a dashboard.
     public static func statusTitle(quiet: Bool, unresolved: Int) -> String {
         quiet ? "◐ \(unresolved)" : "○"
@@ -73,7 +79,8 @@ public struct MenuBarModel: Equatable, Sendable {
         bundleCount: Int,
         version: String,
         bundles: [MenuBundle] = [],
-        protectedBundles: [String] = []
+        protectedBundles: [String] = [],
+        quietBundleAvailable: Bool = true
     ) -> MenuBarModel {
         let state = quiet
             ? "Quiet mode is ON — \(unresolvedCount) unresolved"
@@ -86,11 +93,11 @@ public struct MenuBarModel: Equatable, Sendable {
                          enabled: false, kind: .info),
             ]),
             MenuSection(title: nil, items: [
-                MenuItem(
-                    title: quiet ? "Restore everything…" : "Nothing to restore",
-                    enabled: quiet,
-                    kind: .restore
-                ),
+                // The one action that changes the machine's mode. When off it starts quiet mode (two
+                // steps: dry run shown, then applied on confirmation); when on it restores.
+                quiet
+                    ? MenuItem(title: "Restore everything…", enabled: true, kind: .restore)
+                    : MenuItem(title: "Start quiet mode…", enabled: quietBundleAvailable, kind: .startQuiet),
             ]),
             MenuSection(title: "Preview a stop", items: stopItems(
                 bundles: bundles, quiet: quiet, bundleCount: bundleCount,
@@ -103,11 +110,6 @@ public struct MenuBarModel: Equatable, Sendable {
                 MenuItem(title: "Quit", enabled: true, kind: .quit),
             ]),
         ]
-
-        // A menu that offers an action it cannot perform is worse than one that says why.
-        if quiet {
-            sections[1].items[0].title = "Restore everything…"
-        }
 
         return MenuBarModel(
             sections: sections,

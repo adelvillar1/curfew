@@ -49,6 +49,19 @@ func liveModel() -> MenuBarModel {
     )
 }
 
+if CommandLine.arguments.contains("--quiet-command") {
+    // Print the two commands the menu item runs, so the split is inspectable without pressing it.
+    guard let cli = DashboardLauncher.resolve() else {
+        FileHandle.standardError.write(Data((DashboardLauncher.missingMessage() + "\n").utf8))
+        exit(1)
+    }
+    let catalog = DashboardRunner.bundledCatalog
+    let bundle = MenuBarModel.defaultQuietBundle
+    print("dry run : " + DashboardLauncher.quietPreviewCommand(cli: cli, catalog: catalog, bundle: bundle))
+    print("apply   : " + DashboardLauncher.quietCommand(cli: cli, catalog: catalog, bundle: bundle))
+    exit(0)
+}
+
 if let index = CommandLine.arguments.firstIndex(of: "--preview-bundle"),
    CommandLine.arguments.count > index + 1 {
     // The same command and capture the menu item runs, printed instead of shown in a modal.
@@ -129,6 +142,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .dashboard: return #selector(openDashboard)
         case .quit: return #selector(quit)
         case .bundle: return #selector(previewBundle(_:))
+        case .startQuiet: return #selector(startQuiet)
         }
     }
 
@@ -155,6 +169,77 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             alert.addButton(withTitle: "OK")
             alert.runModal()
         }
+    }
+
+    /// The one action that can change a service. It is deliberately two steps inside one click: the
+    /// dry run is shown first, and nothing is applied unless the operator reads it and presses the
+    /// apply button. Rule 3 holds — there is no path here that applies an unread plan.
+    @objc func startQuiet() {
+        let bundle = MenuBarModel.defaultQuietBundle
+        guard let cli = DashboardLauncher.resolve() else {
+            alert(title: "Cannot start quiet mode", body: DashboardLauncher.missingMessage())
+            return
+        }
+        let catalog = DashboardRunner.bundledCatalog
+
+        let preview = run(shell: DashboardLauncher.quietPreviewCommand(
+            cli: cli, catalog: catalog, bundle: bundle))
+        guard preview.status == 0 else {
+            alert(title: "Quiet mode cancelled", body: preview.output.isEmpty
+                ? "The dry run failed (exit \(preview.status))." : preview.output)
+            return
+        }
+        guard let changes = quietChangeCount(preview.output), changes > 0 else {
+            alert(title: "Nothing to do", body: "The dry run planned no changes:\n\n\(preview.output)")
+            return
+        }
+
+        let dialog = NSAlert()
+        dialog.messageText = "Start quiet mode?"
+        dialog.informativeText = "\(changes) service(s) will be changed on this Mac. "
+            + "This is the dry run's plan; review it before applying."
+        dialog.alertStyle = .warning
+        let scroll = NSScrollView(frame: NSRect(x: 0, y: 0, width: 520, height: 240))
+        let text = NSTextView(frame: scroll.bounds)
+        text.isEditable = false
+        text.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
+        text.string = preview.output
+        scroll.documentView = text
+        scroll.hasVerticalScroller = true
+        dialog.accessoryView = scroll
+        dialog.addButton(withTitle: "Start quiet mode")
+        dialog.addButton(withTitle: "Cancel")
+
+        guard dialog.runModal() == .alertFirstButtonReturn else { return }
+
+        let result = run(shell: DashboardLauncher.quietCommand(cli: cli, catalog: catalog, bundle: bundle))
+        rebuild()
+        alert(
+            title: result.status == 0 ? "Quiet mode is on" : "Quiet mode did not finish",
+            body: result.output.isEmpty ? "(no output, exit \(result.status))" : result.output,
+            monospaced: true)
+    }
+
+    /// "13 planned" from the dry run's own words, so the count in the dialog is the tool's, not a guess.
+    func quietChangeCount(_ output: String) -> Int? {
+        let lines = output.split(separator: "\n").filter { $0.contains("planned") }
+        return lines.isEmpty ? nil : lines.count
+    }
+
+    func run(shell line: String) -> (status: Int32, output: String) {
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/bin/sh")
+        task.arguments = ["-c", line]
+        let out = Pipe(), err = Pipe()
+        task.standardOutput = out
+        task.standardError = err
+        do { try task.run() } catch {
+            return (-1, "Could not run: \(error.localizedDescription)")
+        }
+        let data = out.fileHandleForReading.readDataToEndOfFile()
+        let errData = err.fileHandleForReading.readDataToEndOfFile()
+        task.waitUntilExit()
+        return (task.terminationStatus, String(decoding: data + errData, as: UTF8.self))
     }
 
     /// Preview one bundle: a dry run, shown as text. It deliberately cannot mutate — `apply` without

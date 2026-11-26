@@ -162,13 +162,18 @@ without a network. `unknown` is a first-class outcome: a transport failure is ne
 OFFERS   MenuBundle(name:members:acting:) · MenuItemKind.bundle(String)
          build(... bundles:protectedBundles:) -> MenuBarModel
          DashboardLauncher::previewCommand(cli:catalog:bundle:) -> String
-EXPECTS  Catalog (C9) · CatalogBundle (C9) · DashboardLauncher (C21)
+EXPECTS  Catalog (C9) · CatalogBundle (C9) · DashboardLauncher (C21) · MenuBarModel::defaultQuietBundle
 CONSUMED BY  Curfew.app's menu — CurfewKit.MenuBarModelTests (5 tests)
 ```
 
 A `bundle` item **previews**: `curfew apply --bundle X` with no `--execute`, so selecting it can never
 change a service. Disabled when quiet is on or when none of its members act. `protect` bundles are never
 offered, but they are named in a row so the catalogue's size stays honest.
+
+`MenuItemKind.startQuiet` is the menu's **only** mutating action (D30): the dry run is shown in its
+confirmation dialog and `--execute --yes` runs only after Apply. It becomes `.restore` when quiet is on.
+`DashboardLauncher.quietCommand(cli:catalog:bundle:)` builds the apply line;
+`quietPreviewCommand` builds the read-only one.
 
 ## C21 — `DashboardLauncher` — Sources/CurfewKit/DashboardLauncher.swift
 

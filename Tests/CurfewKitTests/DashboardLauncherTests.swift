@@ -53,4 +53,27 @@ struct DashboardLauncherTests {
         #expect(DashboardLauncher.command(cli: "/usr/bin/curfew", catalog: nil) == "/usr/bin/curfew tui")
         #expect(DashboardLauncher.command(cli: "/usr/bin/curfew", catalog: "") == "/usr/bin/curfew tui")
     }
+
+    // MARK: Quiet mode — the one action that can change a service
+
+    @Test("the preview never carries --execute")
+    func quietPreviewIsReadOnly() {
+        let line = DashboardLauncher.quietPreviewCommand(cli: "/usr/bin/curfew", catalog: "/c", bundle: "vendor-noise")
+        #expect(line == "/usr/bin/curfew apply --bundle vendor-noise --dir /c")
+        #expect(!line.contains("--execute"))
+    }
+
+    @Test("the apply carries --execute and --yes, because a menu is not a TTY")
+    func quietApplyIsExplicit() {
+        let line = DashboardLauncher.quietCommand(cli: "/usr/bin/curfew", catalog: "/c", bundle: "vendor-noise")
+        #expect(line.contains("--execute"))
+        #expect(line.contains("--yes"), "off a terminal the CLI refuses --execute without it")
+        #expect(line.contains("--bundle vendor-noise"))
+        #expect(line.hasSuffix("--dir /c"))
+    }
+
+    @Test("the default quiet bundle is the one with acting members")
+    func defaultBundle() {
+        #expect(MenuBarModel.defaultQuietBundle == "vendor-noise")
+    }
 }

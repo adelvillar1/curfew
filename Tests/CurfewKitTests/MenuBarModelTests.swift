@@ -27,15 +27,19 @@ struct MenuBarModelTests {
         #expect(on(2).statusTitle == "◐ 2")
     }
 
-    @Test("restore is offered only when there is something to restore")
-    func restoreOnlyWhenNeeded() throws {
-        let quietOff = try #require(item(off(), kind: .restore))
-        #expect(quietOff.enabled == false)
-        #expect(quietOff.title == "Nothing to restore")
+    @Test("the mode row is Start when off and Restore when on — never a dead row")
+    func modeRow() throws {
+        // When there is nothing to restore we offer the action that *creates* something to restore,
+        // rather than a greyed-out "Nothing to restore" that reads as a broken button.
+        #expect(item(off(), kind: .restore) == nil)
+        let start = try #require(item(off(), kind: .startQuiet))
+        #expect(start.enabled == true)
+        #expect(start.title == "Start quiet mode…")
 
         let quietOn = try #require(item(on(), kind: .restore))
         #expect(quietOn.enabled == true)
         #expect(quietOn.title.contains("Restore"))
+        #expect(item(on(), kind: .startQuiet) == nil, "nothing to start when already quiet")
     }
 
     @Test("the state line is always present and never claims a mode it is not in")
@@ -129,5 +133,29 @@ struct MenuBarModelTests {
             quiet: false, unresolvedCount: 0, runningCount: 1, findingCount: 0,
             bundleCount: 5, version: "0.1.0")
         #expect(model.sections.flatMap(\.items).contains { $0.title == "5 bundles in the catalog" })
+    }
+
+    @Test("quiet mode is the first item, and only enabled when things are not already quiet")
+    func startQuietPlacement() {
+        let off = MenuBarModel.build(quiet: false, unresolvedCount: 0, runningCount: 1,
+                                     findingCount: 0, bundleCount: 5, version: "0.1.0")
+        let item = off.sections[1].items.first
+        #expect(item?.kind == .startQuiet)
+        #expect(item?.title == "Start quiet mode…")
+        #expect(item?.enabled == true)
+
+        let on = MenuBarModel.build(quiet: true, unresolvedCount: 3, runningCount: 1,
+                                    findingCount: 0, bundleCount: 5, version: "0.1.0")
+        let quietItem = on.sections[1].items.first
+        #expect(quietItem?.kind == .restore, "already quiet: the same row becomes Restore")
+        #expect(quietItem?.enabled == true)
+    }
+
+    @Test("with no quiet bundle available the action is not offered")
+    func startQuietUnavailable() {
+        let model = MenuBarModel.build(quiet: false, unresolvedCount: 0, runningCount: 1,
+                                       findingCount: 0, bundleCount: 0, version: "0.1.0",
+                                       quietBundleAvailable: false)
+        #expect(model.sections[1].items.first?.enabled == false)
     }
 }
