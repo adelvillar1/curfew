@@ -705,6 +705,20 @@ enum DashboardRunner {
     }
 }
 
+// One instance only. The login opener execs this binary directly, so LaunchServices does not
+// deduplicate it against a later `open -a` — two instances meant two status items and two windows.
+// A lock file makes that deterministic; the early-exit flag paths above never reach here, so they are
+// unaffected.
+let lockPath = FileManager.default.homeDirectoryForCurrentUser
+    .appendingPathComponent("Library/Application Support/Curfew/curfew-app.lock").path
+try? FileManager.default.createDirectory(
+    atPath: (lockPath as NSString).deletingLastPathComponent, withIntermediateDirectories: true)
+let lockFD = open(lockPath, O_CREAT | O_RDWR, 0o644)
+if lockFD >= 0, flock(lockFD, LOCK_EX | LOCK_NB) != 0 {
+    FileHandle.standardError.write(Data("Curfew is already running.\n".utf8))
+    exit(0)
+}
+
 MainActor.assumeIsolated {
     let app = NSApplication.shared
     let delegate = AppDelegate()

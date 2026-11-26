@@ -275,3 +275,12 @@ Rules:
   looks hung.
   Constrains: `AppModel.PlanAction` · `Executor.apply(…, onStep:)` and `Executor.resume(…, onStep:)` (C2).
 
+- **D40 — One instance, and an install shows a window.**
+  Rationale: the login opener `exec`s the binary directly, so LaunchServices never deduplicated it against
+  a later `open -a` (KI-061) — two status items, two windows. An exclusive `flock` before the GUI runs
+  makes single-instance deterministic, and it sits **after** the early-exit flag paths so the driveable
+  entry points still work while the app is live. And because the opener passes `--background`, an install
+  left no window on screen at all and looked like a no-op (KI-060); `make install-app` now finishes with
+  `open -a` so the result is visible.
+  Constrains: `curfew-menubar`'s main entry · `make install-app`.
+
