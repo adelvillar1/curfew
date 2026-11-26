@@ -1,6 +1,6 @@
 # Curfew.app gets a real window
 
-**Status:** active (built; live verification pending) · 2026-11-26 · owner decision: a SwiftUI window in `Curfew.app`, with findings you can act on
+**Status:** complete (built, rendered and driven; on-screen click-through still unverified) · 2026-11-26 · owner decision: a SwiftUI window in `Curfew.app`, with findings you can act on
 
 ## Context
 
