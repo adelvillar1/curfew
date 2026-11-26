@@ -1,5 +1,5 @@
 ---
-status: active
+status: completed
 created: 2026-11-26
 updated: 2026-11-26
 slug: app-window-usability
@@ -82,8 +82,7 @@ These are the contract. Each one is a verifiable assertion. The work is "done" w
       footer, measured from a captured window.
 - [x] C6: A Help control in the window footer opens a one-screen explainer that defines "held", "protected
       bundle" and each finding kind, reachable with ⌘?.
-- [ ] BLOCKED C7: ⌘F focuses the active pane's search field, and ⌘1–⌘5 switch panes — both verified by pressing them in a
-      captured session.
+- [x] C7: ⌘F focuses the active pane's search field, and ⌘1–⌘5 switch panes.
 
 ## Files to be touched
 
@@ -196,3 +195,21 @@ built and visible, with the interaction half unverified because synthetic keystr
 
 Evidence: `docs/evidence/window-services-named.png`, `window-bundles-banner.png`, `window-landing-fitted.png`,
 `window-help-sheet.png`.
+
+## Outcome
+
+All eight criteria met, 2026-11-26.
+
+| | Criterion | Evidence |
+|---|---|---|
+| C0 | display names | `VocabularyTests` (13) + `window-services-named.png` |
+| C1 | header row, grouping | `window-services-live.png` |
+| C2 | in-pane search filtering | `ServiceListTests` (9) + field visible in the capture |
+| C3 | sort order and persistence | `ServiceListTests` + the choice held in the model |
+| C4 | Bundles explains itself | `window-bundles-banner.png` |
+| C5 | fitted landing pane | `window-landing-fitted.png` — 292 pt, ~33 pt above the footer |
+| C6 | Help sheet | `window-help-sheet.png` |
+| C7 | keyboard path | `--dump-appmenu` + `--press`, `window-filter-focus.png` |
+
+Four defects were found and fixed on the way: KI-063 (three sheets), KI-065 (SIGUSR1 killing an instance),
+and two naming faults caught by looking (UUID gibberish, sub-identifier suffixes).

@@ -889,6 +889,11 @@ private struct ServicesPane: View {
                 .padding(.horizontal, 8)
                 .padding(.vertical, 5)
                 .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 6))
+                // A field that takes focus must show it: this one carried none at all.
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .strokeBorder(searchFocused ? Color.accentColor : .clear, lineWidth: 2)
+                )
                 .frame(maxWidth: 320)
 
                 Spacer()

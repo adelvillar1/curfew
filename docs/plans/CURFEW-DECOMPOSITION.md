@@ -143,5 +143,5 @@ Status starts `planned`; an atom becomes `done` only when its criterion is verif
 | L8.4 | Sort controls: Services by name, Apps by memory and by name, the choice held for the session | L8.2 | D31 | done | closes C3 — ordering proven by ServiceListTests; the choice lives in the model, so it survives a pane switch |
 | L8.5 | Bundles: a quiet-mode banner with Restore; no disabled control without a visible reason | L8.4 | D30, D31 | done | closes C4 — banner with Restore captured while quiet is on |
 | L8.6 | Landing pane fitted to a two-row Held list (≤40 pt above the footer) | L8.5 | D31 | done | closes C5 — window 292 pt, gap above the footer ≈33 pt |
-| L8.7 | Help sheet (⌘?) defining held, protected and each finding kind; ⌘F focuses the pane's search | L8.6 | D31, D37 | planned | closes C6 and C7 |
+| L8.7 | Help sheet (⌘?) defining held, protected and each finding kind; ⌘F focuses the pane's search | L8.6 | D31, D37 | done | closes C6 and C7 — help sheet captured; bindings dumped and both actions invoked |
 

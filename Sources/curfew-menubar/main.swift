@@ -366,6 +366,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // AX surface refuses every input route, so presentation is proven by asking for it at launch.
         if CommandLine.arguments.contains("--open-help") { model.showingHelp = true }
         // The same assignment ⌘1–⌘5 make, so a pane can be opened without an injectable keystroke.
+        // Perform a menu item's action by title. The key binding is proven by --dump-appmenu; this
+        // proves the action that binding is attached to, which is the other half of a keyboard criterion
+        // when no keystroke can be injected (KI-064).
+        if let index = CommandLine.arguments.firstIndex(of: "--press"),
+           CommandLine.arguments.count > index + 1 {
+            let title = CommandLine.arguments[index + 1]
+            let delay = Double(CommandLine.arguments.first(where: { $0.hasPrefix("--press-delay=") })?
+                .replacingOccurrences(of: "--press-delay=", with: "") ?? "2.5") ?? 2.5
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                guard let self, let item = Self.menuItem(titled: title, in: NSApp.mainMenu) else {
+                    FileHandle.standardError.write(Data("no menu item titled \(title)\n".utf8))
+                    return
+                }
+                if let action = item.action {
+                    NSApp.sendAction(action, to: item.target, from: item)
+                }
+            }
+        }
+
         if let index = CommandLine.arguments.firstIndex(of: "--pane"),
            CommandLine.arguments.count > index + 1,
            let pane = AppModel.Pane(rawValue: CommandLine.arguments[index + 1]) {
@@ -581,6 +600,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         source.setEventHandler { [weak self] in self?.showWindow() }
         source.resume()
         signalSource = source
+    }
+
+    static func menuItem(titled title: String, in menu: NSMenu?) -> NSMenuItem? {
+        guard let menu else { return nil }
+        for item in menu.items {
+            if item.title == title { return item }
+            if let found = menuItem(titled: title, in: item.submenu) { return found }
+        }
+        return nil
     }
 
     /// A regular app needs a menu, and the menu is where a keyboard path belongs. Before this the app

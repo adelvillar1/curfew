@@ -43,8 +43,13 @@ only in a tooltip) and error states. A window with no catalogue says so rather t
 ## Seeing a sheet without an input device
 
 The cua driver can read this window's accessibility tree and pixels but refuses every input route to it
-(`ax_unresolved`). Sheets are therefore provable by asking for them at launch: `--open-help` sets the same flag
-the footer button sets, and the capture shows the sheet presented.
+(`ax_unresolved`). Three seams make the surface provable without an input device:
+
+- `--open-help` sets the same flag the footer button sets, so the sheet can be captured presented;
+- `--pane <name>` makes the assignment ⌘1–⌘5 make, so a pane can be opened;
+- `--press <menu item>` performs that item's action, and `--dump-appmenu` prints every binding.
+
+A focused search field shows an accent ring: the field carried no focus indication at all until C7 was verified.
 
 ## The window's own identity
 
