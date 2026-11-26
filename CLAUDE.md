@@ -28,7 +28,7 @@ These are the rules that keep the tool from corrupting a database or stranding a
 
 | Branch | Environment | Auto-deploy | Notes |
 |--------|-------------|-------------|-------|
-| `main` | local machine / release | no | Single-branch. **Gitea is the master; `github.com/adelvillar1/curfew` is a one-way mirror** (D48, D49) — `make mirror` pushes both and proves they match, and `.githooks/pre-push` refuses a GitHub push Gitea has not seen. No release pipeline, no notarisation, no distribution. |
+| `main` | local machine / release | no | Single-branch. **Gitea is the master; `github.com/adelvillar1/curfew` is a one-way mirror** (D48, D49) — `make mirror` pushes both and proves they match, and `.githooks/pre-push` refuses a GitHub push Gitea has not seen. **Releases are cut by hand** (`make dmg` + a GitHub release) and are ad-hoc signed, never notarised (D50). |
 
 There is no production server. "Production" is the copy installed on the user's Mac and the machines of anyone who trusts it with their databases. Treat release quality accordingly.
 
@@ -38,7 +38,7 @@ There is no production server. "Production" is the copy installed on the user's 
 
 **Ledgers — read before building anything, append before finishing anything**
 - Known issues → `docs/known-issues.md` (`KI-n`; every defect, gap, risk, environmental item, *including* "not my code")
-- Design decisions → `docs/plans/CURFEW-DESIGN-DECISIONS.md` (`D0–D49`; a plan that contradicts a settled `D` is wrong by construction)
+- Design decisions → `docs/plans/CURFEW-DESIGN-DECISIONS.md` (`D0–D50`; a plan that contradicts a settled `D` is wrong by construction)
 - Contracts → `docs/plans/CURFEW-CONTRACTS.md` (`C0–C27`; offers/expects/consumed-by + the external JSON and exit-code shapes)
 - Decomposition → `docs/plans/CURFEW-DECOMPOSITION.md` (`L0.1–L7.4`, 31 atoms; the build map and critical path)
 - Police all four with `python3 scripts/ledger_check.py`
@@ -117,6 +117,7 @@ make hygiene                                # artifact prune + orphan reaper, re
 make hygiene-live                           # the same, applying
 make wrapup                                 # session close: spawned processes, orphans, disk, records (D44)
 make wrapup-live                            # the same, stopping the verification daemon and clearing /tmp captures
+make dmg                                    # the installer: build/Curfew-<version>.dmg (D50)
 make mirror                                 # push Gitea, then the GitHub mirror, and prove both ends match (D49)
 make hooks                                  # point git at .githooks (the mirror guard)
 make install                                # put curfew on PATH (~/.local/bin)

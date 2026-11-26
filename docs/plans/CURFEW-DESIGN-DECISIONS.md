@@ -368,3 +368,13 @@ Rules:
   deliberate act rather than an accident.
   Constrains: `.githooks/pre-push` · `make mirror` · `make hooks` · the topology table.
 
+- **D50 — Curfew ships an installer; it still does not ship trust.**
+  Rationale: D21 and D48 said "no distribution", and the owner has now asked for a release and a DMG. That
+  part is repealed, and only that part: **source and a downloadable installer are public; there is no
+  notarisation, no Developer ID, and no auto-update.** `make dmg` produces a compressed image holding
+  `Curfew.app` and an `/Applications` shortcut, verified by mounting it rather than by reading the command
+  that made it. Because there is no Developer ID on the machine, the image is **ad-hoc signed**, and the
+  release notes open with that fact and the two standard ways through Gatekeeper — right-click Open, or
+  `xattr -dr com.apple.quarantine`. A release is not the place to discover a broken signature.
+  Constrains: `make dmg` · `docs/releases/` · the release notes · the README's install section.
+
