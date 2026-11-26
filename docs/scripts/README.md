@@ -84,3 +84,15 @@ scripts/session-close-hygiene.sh --live    # stop the daemon + test instances, c
 
 `make wrapup` / `make wrapup-live`. Log: `~/Library/Logs/curfew-session-close.log`.
 
+## The git topology: Gitea master, GitHub mirror (D49)
+
+`origin` is Gitea and is the upstream, so a bare `git push` goes there. GitHub is a one-way mirror.
+
+```bash
+make mirror   # push Gitea, then GitHub, then verify both ls-remote SHAs match
+make hooks    # set core.hooksPath=.githooks in this clone
+```
+
+`.githooks/pre-push` refuses a push to GitHub unless Gitea already holds that exact commit, and says which
+command to run instead. `--no-verify` is the only bypass, deliberately.
+

@@ -357,3 +357,14 @@ Rules:
   archived outside the tree because they contain other windows — only window-scoped captures ship.
   Constrains: the `github` remote · `README.md` · `assets/` · `docs/diagrams/` · the evidence policy.
 
+- **D49 — Gitea is the master and GitHub is a one-way mirror, enforced rather than remembered.**
+  Rationale: D48 added the public repo and said "pushed by hand", which is a habit, not a property. The
+  owner's ruling is that Gitea stays authoritative. Three things make that structural: `origin` is the
+  upstream so a bare `git push` goes to Gitea; **`.githooks/pre-push` refuses any push to GitHub whose commit
+  Gitea does not already have**, naming both SHAs and pointing at the right command; and `make mirror`
+  pushes Gitea, then GitHub, then fails loudly if `git ls-remote` shows the two ends differ. `make hooks`
+  sets `core.hooksPath`, because a guard that has to be re-installed per clone is a guard that will be
+  missing. `--no-verify` is the only way around it, which is the point: bypassing the rule becomes a
+  deliberate act rather than an accident.
+  Constrains: `.githooks/pre-push` · `make mirror` · `make hooks` · the topology table.
+

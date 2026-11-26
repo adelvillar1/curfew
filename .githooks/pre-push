@@ -1,0 +1,31 @@
+#!/bin/sh
+# pre-push — Gitea is the master, GitHub is a one-way mirror (D49).
+#
+# A push to GitHub is refused unless Gitea already has the exact commit being pushed. That makes the
+# mirror property structural instead of a habit: you cannot advance GitHub past Gitea by accident, and
+# a GitHub-only change is caught here rather than discovered later as a divergence.
+#
+# Git passes the remote name and URL as $1 and $2; the refs being pushed arrive on stdin as
+# "<local ref> <local sha> <remote ref> <remote sha>" lines.
+
+remote_url="${2:-}"
+case "$remote_url" in
+  *github.com*) ;;
+  *) exit 0 ;;   # origin and anything else: not a mirror, nothing to prove
+esac
+
+status=0
+while read -r local_ref local_sha remote_ref remote_sha; do
+  case "$local_ref" in
+    refs/heads/*) ;;
+    *) continue ;;   # tags and deletions are not the mirror contract
+  esac
+  master_sha=$(git ls-remote origin "$local_ref" 2>/dev/null | awk '{print $1}')
+  if [ "$master_sha" != "$local_sha" ]; then
+    echo "pre-push: refused — Gitea is the master and does not have $local_sha on $local_ref." >&2
+    echo "          gitea is at: ${master_sha:-<nothing>}" >&2
+    echo "          Push to origin first, then mirror:  make mirror" >&2
+    status=1
+  fi
+done
+exit $status

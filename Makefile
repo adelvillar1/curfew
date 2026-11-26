@@ -7,7 +7,7 @@ PREFIX ?= $(HOME)/.local/bin
 # SwiftPM cannot build from a sandboxed agent session: see KI-019.
 SWIFT := swift build --disable-sandbox --cache-path .build/spm-cache --config-path .build/spm-config
 
-.PHONY: build release test check install uninstall app run-app install-app clean hygiene hygiene-live wrapup wrapup-live
+.PHONY: build release test check install uninstall app run-app install-app clean hygiene hygiene-live wrapup wrapup-live mirror hooks
 
 build:
 	$(SWIFT)
@@ -86,6 +86,24 @@ install-app: app
 	@# install otherwise leaves nothing on screen and looks like it did nothing. Ask the instance that
 	@# holds the lock to show itself; `open -a` only starts a second process, which the guard exits.
 	@open -a $(APP_INSTALL) || true
+
+## Gitea is the master; GitHub is a mirror (D49). This pushes Gitea first, then mirrors, then proves both
+## ends hold the same commit. The pre-push hook refuses the reverse order, so the only way GitHub gets ahead
+## is if this target is bypassed with --no-verify.
+mirror:
+	@git push origin main
+	@git push github main
+	@a=$$(git ls-remote origin refs/heads/main | cut -f1); \
+	 b=$$(git ls-remote github refs/heads/main | cut -f1); \
+	 if [ "$$a" = "$$b" ] && [ -n "$$a" ]; then \
+	   echo "mirrored: gitea $$a = github $$b"; \
+	 else \
+	   echo "MISMATCH: gitea $${a:-none} · github $${b:-none}" >&2; exit 1; \
+	 fi
+
+## The pre-push guard lives in the repo; this makes git use it.
+hooks:
+	@git config core.hooksPath .githooks && echo "core.hooksPath = .githooks"
 
 ## The hygiene pass, ported from fleet: prune regenerable artifacts from a stale repo, and stop
 ## keep-alive processes whose parent is gone. Both are reports unless you ask for --live.
