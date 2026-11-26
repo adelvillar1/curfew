@@ -1,5 +1,10 @@
 import AppKit
 import SwiftUI
+
+// A second launch hands off by signalling the lock holder. That signal can arrive in the window between
+// `exec` and the handler being installed, where its default action is to terminate the process — which
+// killed an instance mid-launch. Ignore it from the first instruction; the handler replaces this later.
+signal(SIGUSR1, SIG_IGN)
 import CurfewKit
 
 /// The menu bar shell. It draws `MenuBarModel` and wires the three things it offers: restore,
@@ -333,6 +338,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // appearing over whatever the owner was doing. A Finder or Dock launch opens the window.
         listenForShowRequests()
         buildMainMenu()
+        // A way to see a sheet without an input device: the cua driver can read this window but its
+        // AX surface refuses every input route, so presentation is proven by asking for it at launch.
+        if CommandLine.arguments.contains("--open-help") { model.showingHelp = true }
         if !CommandLine.arguments.contains("--background") { showWindow() }
         NSApp.setActivationPolicy(.accessory)
         if let button = statusItem.button {

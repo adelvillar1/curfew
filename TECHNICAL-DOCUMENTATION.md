@@ -244,3 +244,8 @@ in the JSON and on the row's detail line.
 `AppSnapshot.Service` carries both `label` (verbatim) and `displayName` + `group`, so a view never derives a name
 itself and the CLI's JSON keeps the truth.
 
+## ServiceList
+
+`CurfewKit/ServiceList.swift` holds the Services list's filtering, sorting and grouping as pure functions
+(`filter`, `sort`, `group`, `present`). The view delegates to it, so list behaviour is tested rather than driven.
+

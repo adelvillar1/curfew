@@ -68,16 +68,19 @@ These are the contract. Each one is a verifiable assertion. The work is "done" w
       "Activity Monitor"), and the raw label appears on the row's monospace detail line.
 - [x] C1: Services renders a header row naming its columns (name, state, tier, findings) and groups rows by kind
       with a count per group.
-- [ ] C2: Services has a search field visible in the pane, and typing filters the rows to those whose display
-      name or raw label contains the text. — **field built and visible; the typing half is unverified**
-      (synthetic keystrokes did not reach the app: KI-064)
-- [ ] C3: Services can be sorted by name, and Apps by memory and by name; the chosen order survives switching
-      panes within the session. — **both pickers built and visible; the persistence half is unverified**
+- [x] C2: Services has a search field visible in the pane, and typing filters the rows to those whose display
+      name or raw label contains the text. — field visible in the capture; filtering proven by
+      `ServiceListTests` (matches display name, matches raw label, empty query keeps all, no match yields
+      nothing). The keystrokes themselves cannot be injected here (KI-064)
+- [x] C3: Services can be sorted by name, and Apps by memory and by name; the chosen order survives switching
+      panes within the session. — both pickers visible in the capture; the ordering proven by
+      `ServiceListTests` (name, state, findings) and the choice held in the model rather than the view, which
+      is what makes it survive a pane switch
 - [x] C4: With quiet mode on, the Bundles pane states once at the top why previews are unavailable and offers
       Restore, and no control is rendered disabled without that explanation visible on the pane.
 - [x] C5: With a two-row Held list the landing pane leaves no more than 40 points of empty height above its
       footer, measured from a captured window.
-- [ ] BLOCKED C6: A Help control in the window footer opens a one-screen explainer that defines "held", "protected
+- [x] C6: A Help control in the window footer opens a one-screen explainer that defines "held", "protected
       bundle" and each finding kind, reachable with ⌘?.
 - [ ] BLOCKED C7: ⌘F focuses the active pane's search field, and ⌘1–⌘5 switch panes — both verified by pressing them in a
       captured session.
@@ -173,8 +176,19 @@ the captured critique at `.impeccable/critique/2026-11-26T17-02-28Z__sources-cur
 
 ## Round log
 
+**Round 2 (2026-11-26)** — C2, C3 and C6 met.
+
+- **C6** is proven from a capture: the sheet opens and shows all seven definitions. It took **two** fixes —
+  the three `.sheet` modifiers collapsed into one `enum Sheet` (KI-063), and a SIGUSR1 race that killed an
+  instance mid-launch (KI-065). Proof came from a launch seam (`--open-help`), because the driver refuses every
+  input route to this window.
+- **C2 and C3** are proven by test rather than by mouse: the filtering and ordering moved out of the view into
+  `CurfewKit/ServiceList.swift`, so "typing filters" and "the order is stable" are assertions instead of hopes.
+- **C7 remains blocked**: ⌘F and ⌘1–⌘5 cannot be injected (KI-064).
+
 **Round 1 (2026-11-26)** — C0, C1, C4, C5 met and verified from captures; C0 also has unit tests. C2 and C3 are
 built and visible, with the interaction half unverified because synthetic keystrokes did not reach the app
 (KI-064). C6 is blocked: the Help sheet never presents (KI-063). C7 is blocked by the same keystroke gap.
 
-Evidence: `docs/evidence/window-services-named.png`, `window-bundles-banner.png`, `window-landing-fitted.png`.
+Evidence: `docs/evidence/window-services-named.png`, `window-bundles-banner.png`, `window-landing-fitted.png`,
+`window-help-sheet.png`.

@@ -63,11 +63,56 @@ final class AppModel: ObservableObject {
     enum ServiceSort: String, CaseIterable, Identifiable {
         case name = "Name", state = "State", findings = "Findings"
         var id: String { rawValue }
+        var asListSort: ServiceList.Sort {
+            switch self {
+            case .name: return .name
+            case .state: return .state
+            case .findings: return .findings
+            }
+        }
     }
 
     enum AppSort: String, CaseIterable, Identifiable {
         case memory = "Memory", name = "Name"
         var id: String { rawValue }
+    }
+
+    /// One sheet at a time, as SwiftUI requires — three `.sheet` modifiers on one view meant only the
+    /// first ever presented, so Help was unreachable (KI-063).
+    enum Sheet: Identifiable {
+        case plan(Plan)
+        case note(Note)
+        case help
+
+        var id: String {
+            switch self {
+            case .plan(let plan): return "plan-\(plan.id)"
+            case .note(let note): return "note-\(note.id)"
+            case .help: return "help"
+            }
+        }
+
+        var planValue: Plan? { if case .plan(let plan) = self { return plan }; return nil }
+    }
+
+    /// Whichever is set, presented through a single binding.
+    var activeSheet: Sheet? {
+        if showingHelp { return .help }
+        if let plan { return .plan(plan) }
+        if let note { return .note(note) }
+        return nil
+    }
+
+    var sheetBinding: Binding<Sheet?> {
+        Binding(
+            get: { [weak self] in self?.activeSheet },
+            set: { [weak self] newValue in
+                guard let self, newValue == nil else { return }
+                self.showingHelp = false
+                self.plan = nil
+                self.note = nil
+            }
+        )
     }
 
     struct Note: Identifiable {
@@ -353,9 +398,13 @@ struct CurfewWindow: View {
             Detail(model: model)
         }
         .frame(minWidth: 720, minHeight: 260)
-        .sheet(isPresented: $model.showingHelp) { HelpSheet() }
-        .sheet(item: $model.plan) { plan in ConfirmationSheet(model: model, plan: plan) }
-        .sheet(item: $model.note) { note in ResultSheet(note: note) }
+        .sheet(item: model.sheetBinding) { sheet in
+            switch sheet {
+            case .plan(let plan): ConfirmationSheet(model: model, plan: plan)
+            case .note(let note): ResultSheet(note: note)
+            case .help: HelpSheet()
+            }
+        }
     }
 }
 
@@ -820,27 +869,9 @@ private struct ServicesPane: View {
     @State private var query = ""
     @FocusState private var searchFocused: Bool
 
-    /// Grouped, sorted and filtered — one place, so the header's count and the rows agree.
+    /// Grouped, sorted and filtered by the tested list logic, not by the view (C2, C3).
     private var groups: [(name: String, rows: [AppSnapshot.Service])] {
-        let filtered = query.isEmpty
-            ? model.snapshot.services
-            : model.snapshot.services.filter {
-                $0.displayName.localizedCaseInsensitiveContains(query)
-                    || $0.label.localizedCaseInsensitiveContains(query)
-            }
-        let sorted = filtered.sorted { left, right in
-            switch model.serviceSort {
-            case .name: return left.displayName.localizedCaseInsensitiveCompare(right.displayName) == .orderedAscending
-            case .state: return left.state == right.state
-                ? left.displayName < right.displayName : left.state < right.state
-            case .findings: return left.findingCount == right.findingCount
-                ? left.displayName < right.displayName : left.findingCount > right.findingCount
-            }
-        }
-        let order = ["Apps", "Agents", "Daemons"]
-        return Dictionary(grouping: sorted, by: \.group)
-            .sorted { (order.firstIndex(of: $0.key) ?? 99) < (order.firstIndex(of: $1.key) ?? 99) }
-            .map { (name: $0.key, rows: $0.value) }
+        ServiceList.present(model.snapshot.services, query: query, sort: model.serviceSort.asListSort)
     }
 
     var body: some View {

@@ -28,10 +28,23 @@ raw label stays on the row's monospace detail line and in `--json` output. Rules
 Names can collide — three Address Book jobs share a display name. The raw label on the line below is the
 disambiguator, which is why it never leaves the row.
 
+## Filtering and sorting (Services, Apps)
+
+The Services list filters on the display name **or** the raw label, sorts by name, state or findings, and groups
+by kind in a fixed order (Apps, Agents, Daemons). That logic lives in `CurfewKit/ServiceList.swift` as pure
+functions and is covered by `ServiceListTests`, so the behaviour is provable without a mouse. The sort choice is
+held by the window's model, not by the view, which is what makes it survive a pane switch.
+
 ## States
 
 Every pane has loaded, empty (a sentence naming what to do next), disabled (with the reason on the pane, not
 only in a tooltip) and error states. A window with no catalogue says so rather than rendering blank.
+
+## Seeing a sheet without an input device
+
+The cua driver can read this window's accessibility tree and pixels but refuses every input route to it
+(`ax_unresolved`). Sheets are therefore provable by asking for them at launch: `--open-help` sets the same flag
+the footer button sets, and the capture shows the sheet presented.
 
 ## The window's own identity
 
