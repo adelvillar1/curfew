@@ -18,6 +18,18 @@ public struct AppRecord: Sendable, Equatable, Identifiable {
 
     public var id: String { bundlePath }
     public var memoryMB: Double { Double(memoryBytes) / (1024 * 1024) }
+
+    public init(
+        name: String, bundlePath: String, pids: [Int32], memoryBytes: UInt64,
+        isFrozen: Bool, isFrontmost: Bool
+    ) {
+        self.name = name
+        self.bundlePath = bundlePath
+        self.pids = pids
+        self.memoryBytes = memoryBytes
+        self.isFrozen = isFrozen
+        self.isFrontmost = isFrontmost
+    }
 }
 
 public enum AppsScanner {

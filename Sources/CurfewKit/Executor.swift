@@ -192,28 +192,31 @@ public struct Executor: Sendable {
         entryIds: [String],
         catalog: Catalog,
         context: ExecutionContext,
-        execute: Bool
+        execute: Bool,
+        onStep: (@Sendable (StepOutcome) -> Void)? = nil
     ) -> [StepOutcome] {
         let plan = CatalogPlanner.plan(entries: entryIds, in: catalog,
                                        privilegedAvailable: isRoot || privileged != nil)
-        return run(plan: plan, catalog: catalog, context: context, execute: execute)
+        return run(plan: plan, catalog: catalog, context: context, execute: execute, onStep: onStep)
     }
 
     public func apply(
         bundle name: String,
         catalog: Catalog,
         context: ExecutionContext,
-        execute: Bool
+        execute: Bool,
+        onStep: (@Sendable (StepOutcome) -> Void)? = nil
     ) -> [StepOutcome] {
         let plan = CatalogPlanner.plan(bundle: name, in: catalog, privilegedAvailable: isRoot || privileged != nil)
-        return run(plan: plan, catalog: catalog, context: context, execute: execute)
+        return run(plan: plan, catalog: catalog, context: context, execute: execute, onStep: onStep)
     }
 
     private func run(
         plan: (steps: [CatalogStep], refusals: [CatalogRefusal], protectedPorts: [UInt16]),
         catalog: Catalog,
         context: ExecutionContext,
-        execute: Bool
+        execute: Bool,
+        onStep: (@Sendable (StepOutcome) -> Void)? = nil
     ) -> [StepOutcome] {
         var outcomes: [StepOutcome] = []
 
@@ -233,7 +236,9 @@ public struct Executor: Sendable {
                 outcomes.append(StepOutcome(entryId: step.id, action: step.action, result: .refused("no catalog entry")))
                 continue
             }
-            outcomes.append(run(entry: entry, context: context))
+            let outcome = run(entry: entry, context: context)
+            outcomes.append(outcome)
+            onStep?(outcome)
             // Only a **failed action** stops the run. An unverified stop is reported and the run
             // continues: a bundle of independent vendor updaters must not be blocked because one of
             // them reports a verification the recipe got wrong (KI-044 aborted thirteen services at
@@ -413,7 +418,8 @@ public struct Executor: Sendable {
     /// Restore what Curfew holds. `labels` narrows it to those services — the window's per-finding
     /// Start, which must undo exactly the one the operator asked about and nothing else.
     public func resume(
-        context: ExecutionContext, catalog: Catalog, labels: Set<String>? = nil
+        context: ExecutionContext, catalog: Catalog, labels: Set<String>? = nil,
+        onStep: (@Sendable (StepOutcome) -> Void)? = nil
     ) -> [StepOutcome] {
         var outcomes: [StepOutcome] = []
         for intent in journal.restorePlan() {
@@ -482,10 +488,12 @@ public struct Executor: Sendable {
                 try? journal.appendOutcome(intent: intent.seq, result: "resumed", verified: true)
             }
 
-            outcomes.append(StepOutcome(
+            let restored = StepOutcome(
                 entryId: entryId, action: "resume",
                 result: failed.map { .failed($0) } ?? .executed(verified: true)
-            ))
+            )
+            outcomes.append(restored)
+            onStep?(restored)
         }
         return outcomes
     }

@@ -457,4 +457,22 @@ struct ExecutorTests {
             Issue.record("expected preExisting, got \(String(describing: outcomes.first?.result))")
         }
     }
+
+    @Test("each step is reported as it lands, so a sheet can tick rows")
+    func stepsAreReported() {
+        let url = tempJournal()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let recorder = Recorder()
+        final class Seen: @unchecked Sendable {
+            private let lock = NSLock(); private(set) var labels: [String] = []
+            func add(_ s: String) { lock.lock(); labels.append(s); lock.unlock() }
+        }
+        let seen = Seen()
+        _ = Executor(runner: recorder.run, journal: Journal(url: url), probes: probes())
+            .apply(bundle: "b",
+                   catalog: catalog([entry("com.example.a"), entry("com.example.b")]),
+                   context: context(), execute: true) { outcome in seen.add(outcome.entryId) }
+
+        #expect(seen.labels == ["com.example.a", "com.example.b"])
+    }
 }

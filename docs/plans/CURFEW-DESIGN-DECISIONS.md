@@ -261,3 +261,17 @@ Rules:
   a pane impossible to add without a row, and `--dump-panes` prints what the sidebar is built from.
   Constrains: `AppModel.Pane` · `Sidebar` · the `--dump-panes` entry point.
 
+- **D38 — The app speaks English at the row boundary; identifiers stay in the detail.**
+  Rationale: the row is the recognition surface. `disable`, `spawnScheduled`, `danglingProgram` are the
+  tool's vocabulary, not the person's, and five of them at one weight per row forced parsing. `Vocabulary`
+  translates (`disabled`, `waiting to start`, `program missing`); the raw identifier moves into the
+  Investigate sheet, where detail belongs. An unknown value passes through rather than being swallowed.
+  Constrains: `Vocabulary` (C27) · every row in the window.
+
+- **D39 — A plan carries an action, not a closure, so it can run off the main actor.**
+  Rationale: a closure plans and applies in one step, which is why applying blocked the window. A
+  `PlanAction` (bundle / entries / restore / quarantine / quit) can be executed detached while the
+  executor reports each step through `onStep`, so the sheet ticks rows as they land and the window never
+  looks hung.
+  Constrains: `AppModel.PlanAction` · `Executor.apply(…, onStep:)` and `Executor.resume(…, onStep:)` (C2).
+

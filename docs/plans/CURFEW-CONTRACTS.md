@@ -171,6 +171,17 @@ Start, which must undo exactly one service and leave the rest held (C23's `isHel
 closed. `restorePlan()` is the **union of `held()` and `unresolved()`** — normal quiet mode plus a run that
 died mid-action. Dropping either strands a state.
 
+## C27 — `Vocabulary` — Sources/CurfewKit/Vocabulary.swift
+
+```text
+OFFERS   Vocabulary::action(_:) · jobState(_:) · findingKind(_:) · heldPhrase(_:)
+EXPECTS  nothing — pure string mapping
+CONSUMED BY  AppSnapshot (rows and held list) · VocabularyTests (5 tests)
+```
+
+The boundary where launchd and the judgement engine stop and English starts. An unknown value passes
+through unchanged, so a new rule shows its own name rather than an empty cell (D38).
+
 ## C26 — `AppsScanner` / `AppControl` — Sources/CurfewKit/Apps.swift
 
 ```text

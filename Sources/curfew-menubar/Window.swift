@@ -37,14 +37,28 @@ final class AppModel: ObservableObject {
         }
     }
 
+    /// What a confirmed plan will do. Carried as data rather than a closure so the work can run off the
+    /// main actor and report each step as it lands (the critique's P2: a synchronous apply froze the
+    /// window with no progress).
+    enum PlanAction: Sendable {
+        case bundle(String)
+        case entries([String])
+        case restore(labels: Set<String>?)
+        case quarantine(label: String, plist: String)
+        case quitApp(bundle: String, pids: [Int32], name: String)
+    }
+
     /// A plan the window is showing before it applies anything.
     struct Plan: Identifiable {
         let id = UUID()
         var title: String
         var detail: String
         var steps: [String]
-        var apply: () -> [String]
+        var action: PlanAction
     }
+
+    /// Rows ticked while a plan runs.
+    @Published var progress: [String] = []
 
     struct Note: Identifiable {
         let id = UUID()
@@ -107,16 +121,7 @@ final class AppModel: ObservableObject {
             title: "Quit \(app.name)?",
             detail: "This asks the app to quit and it may prompt to save. Freezing is reversible; quitting is not.",
             steps: ["\(app.bundlePath)", "  \(app.pids.count) process\(app.pids.count == 1 ? "" : "s") · \(Int(app.memoryMB)) MB"],
-            apply: { [weak self] in
-                guard let self else { return [] }
-                do {
-                    let outcome = try AppControl(journal: self.journal).quit(app)
-                    self.refresh()
-                    return ["\(Self.mark(outcome.result))  \(app.name)  \(Self.describe(outcome.result))"]
-                } catch {
-                    return ["✗  \(app.name)  \(error.localizedDescription)"]
-                }
-            })
+            action: .quitApp(bundle: app.bundlePath, pids: app.pids, name: app.name))
     }
 
     private func seen(_ outcome: StepOutcome) -> String {
@@ -155,13 +160,7 @@ final class AppModel: ObservableObject {
             title: "Preview — \(name)",
             detail: "Nothing has been touched. Applying runs these changes and records them.",
             steps: lines,
-            apply: { [weak self] in
-                guard let self else { return [] }
-                let outcomes = Executor(journal: self.journal).apply(
-                    bundle: name, catalog: self.catalog, context: self.context, execute: true)
-                self.refresh()
-                return outcomes.map { "\(Self.mark($0.result))  \($0.entryId)  \(Self.describe($0.result))" }
-            })
+            action: .bundle(name))
     }
 
     /// A result as one short line — the same vocabulary the CLI prints, so the two never disagree.
@@ -200,14 +199,8 @@ final class AppModel: ObservableObject {
         plan = Plan(
             title: "Restore \(pending.count) change\(pending.count == 1 ? "" : "s")?",
             detail: "These go back the way they were. Nothing else is touched.",
-            steps: pending.map { "\($0.entryId ?? "?")  \($0.action ?? "?")" },
-            apply: { [weak self] in
-                guard let self else { return [] }
-                let outcomes = Executor(journal: self.journal)
-                    .resume(context: self.context, catalog: self.catalog)
-                self.refresh()
-                return outcomes.map { "\(Self.mark($0.result))  \($0.entryId)  \(Self.describe($0.result))" }
-            })
+            steps: pending.map { "\($0.entryId ?? "?")  \(Vocabulary.action($0.action ?? "?"))" },
+            action: .restore(labels: nil))
     }
 
     // MARK: One service
@@ -225,13 +218,7 @@ final class AppModel: ObservableObject {
             title: "Stop \(label)?",
             detail: "Nothing has been touched yet.",
             steps: lines,
-            apply: { [weak self] in
-                guard let self else { return [] }
-                let outcomes = Executor(journal: self.journal).apply(
-                    entryIds: [label], catalog: self.catalog, context: self.context, execute: true)
-                self.refresh()
-                return outcomes.map { "\(Self.mark($0.result))  \($0.entryId)  \(Self.describe($0.result))" }
-            })
+            action: .entries([label]))
     }
 
     /// Put back one service — the per-finding Start. Undoes exactly this label and nothing else.
@@ -244,14 +231,8 @@ final class AppModel: ObservableObject {
         plan = Plan(
             title: "Start \(label)?",
             detail: "This undoes Curfew's stop. Nothing else is touched.",
-            steps: pending.map { "\($0.entryId ?? "?")  \($0.action ?? "?")" },
-            apply: { [weak self] in
-                guard let self else { return [] }
-                let outcomes = Executor(journal: self.journal)
-                    .resume(context: self.context, catalog: self.catalog, labels: [label])
-                self.refresh()
-                return outcomes.map { "\(Self.mark($0.result))  \($0.entryId)  \(Self.describe($0.result))" }
-            })
+            steps: pending.map { "\($0.entryId ?? "?")  \(Vocabulary.action($0.action ?? "?"))" },
+            action: .restore(labels: [label]))
     }
 
     /// Move a stale plist to quarantine — offered only where the owning app is verifiably gone.
@@ -270,29 +251,65 @@ final class AppModel: ObservableObject {
                 title: "Quarantine \(label)?",
                 detail: "\(owner) is gone. The stale plist moves to Curfew's quarantine — it is not deleted, and Restore puts it back.",
                 steps: ["\(plist)", "  → Application Support/Curfew/quarantine/…"],
-                apply: { [weak self] in
-                    guard let self else { return [] }
-                    do {
-                        let outcome = try QuarantineStore()
-                            .quarantine(plistPath: plist, label: label, journal: self.journal)
-                        self.refresh()
-                        return ["\(Self.mark(outcome.result))  \(outcome.entryId)  \(Self.describe(outcome.result))"]
-                    } catch {
-                        return ["✗  \(label)  \(error.localizedDescription)"]
-                    }
-                })
+                action: .quarantine(label: label, plist: plist))
         }
     }
 
+    /// Run a confirmed plan off the main actor, ticking rows as each step lands.
     func applyPlan() {
         guard let plan else { return }
         busy = true
-        let results = plan.apply()
-        busy = false
-        self.plan = nil
-        refresh()
-        note = Note(title: results.isEmpty ? "Nothing changed" : "Done",
-                    body: results.isEmpty ? "No change was needed." : results.joined(separator: "\n"))
+        progress = []
+        let action = plan.action
+        let journal = self.journal
+        let catalog = self.catalog
+        let context = self.context
+
+        Task.detached(priority: .userInitiated) { [weak self] in
+            let report: @Sendable (StepOutcome) -> Void = { outcome in
+                let line = "\(Self.mark(outcome.result))  \(outcome.entryId)  \(Self.describe(outcome.result))"
+                Task { @MainActor in self?.progress.append(line) }
+            }
+            let executor = Executor(journal: journal)
+            var extra: [String] = []
+            switch action {
+            case .bundle(let name):
+                _ = executor.apply(bundle: name, catalog: catalog, context: context,
+                                   execute: true, onStep: report)
+            case .entries(let ids):
+                _ = executor.apply(entryIds: ids, catalog: catalog, context: context,
+                                   execute: true, onStep: report)
+            case .restore(let labels):
+                _ = executor.resume(context: context, catalog: catalog, labels: labels, onStep: report)
+            case .quarantine(let label, let plist):
+                do {
+                    let outcome = try QuarantineStore().quarantine(
+                        plistPath: plist, label: label, journal: journal)
+                    report(outcome)
+                } catch {
+                    extra.append("✗  \(label)  \(error.localizedDescription)")
+                }
+            case .quitApp(let bundle, let pids, let name):
+                do {
+                    let outcome = try AppControl(journal: journal)
+                        .quit(AppRecord(name: name, bundlePath: bundle, pids: pids,
+                                        memoryBytes: 0, isFrozen: false, isFrontmost: false))
+                    report(outcome)
+                } catch {
+                    extra.append("✗  \(name)  \(error.localizedDescription)")
+                }
+            }
+            let lines = await MainActor.run { self?.progress ?? [] }
+            await MainActor.run {
+                guard let self else { return }
+                self.busy = false
+                self.plan = nil
+                self.refresh()
+                let body = (lines + extra)
+                self.note = Note(title: body.allSatisfy { $0.hasPrefix("✓") } ? "Done" : "Finished",
+                                 body: body.isEmpty ? "No change was needed." : body.joined(separator: "\n"))
+            }
+        }
     }
 }
 
@@ -397,6 +414,16 @@ private struct QuietPane: View {
                     .padding(.horizontal, 24)
                     .padding(.top, 5)
 
+                // The app's own memory: the last completed session, read from the journal.
+                if !model.snapshot.quiet, let last = model.snapshot.lastSession {
+                    Text("Last quiet mode ended \(whenText(last.ended)) — \(last.changes) service\(last.changes == 1 ? "" : "s") restored.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                        .padding(.horizontal, 24)
+                        .padding(.top, 8)
+                }
+
                 Divider().padding(.top, 18)
 
                 if model.snapshot.quiet {
@@ -407,6 +434,16 @@ private struct QuietPane: View {
             }
         }
     }
+}
+
+/// "today at 6:16 AM", "yesterday at 11:10 PM", or a dated fallback — a person's phrasing, not a
+/// locale dump.
+func whenText(_ date: Date) -> String {
+    let calendar = Calendar.current
+    let time = date.formatted(date: .omitted, time: .shortened)
+    if calendar.isDateInToday(date) { return "today at \(time)" }
+    if calendar.isDateInYesterday(date) { return "yesterday at \(time)" }
+    return "\(date.formatted(date: .abbreviated, time: .omitted)) at \(time)"
 }
 
 private struct HeldList: View {
@@ -649,7 +686,10 @@ private struct FindingRow: View {
                     .help("Stop \(finding.label) and record it, so it can be put back.")
             }
             if finding.canQuarantine {
+                // Destructive: it asks in a sheet, and a link is the weight such a verb earns.
                 Button("Quarantine…") { model.quarantine(label: finding.label) }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
                     .help(finding.quarantineNote)
             }
         }
@@ -840,11 +880,22 @@ private struct ConfirmationSheet: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 4) {
-                    ForEach(plan.steps, id: \.self) { step in
-                        Text(step)
-                            .font(.system(.callout, design: .monospaced))
-                            .textSelection(.enabled)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                    if model.progress.isEmpty {
+                        ForEach(plan.steps, id: \.self) { step in
+                            Text(step)
+                                .font(.system(.callout, design: .monospaced))
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    } else {
+                        // Rows tick as each step lands, so the window never looks hung.
+                        ForEach(model.progress, id: \.self) { line in
+                            Text(line)
+                                .font(.system(.callout, design: .monospaced))
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        ProgressView().controlSize(.small).padding(.top, 6)
                     }
                 }
                 .padding(10)

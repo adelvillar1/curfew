@@ -74,6 +74,19 @@ if let index = CommandLine.arguments.firstIndex(of: "--drive-freeze"),
     exit(0)
 }
 
+if CommandLine.arguments.contains("--dump-state") {
+    // What the window would render, as facts.
+    let model = AppModel(catalogDirectory: catalogDirectory())
+    let snapshot = model.snapshot
+    print("quiet: \(snapshot.quiet) · held: \(snapshot.held.count) · apps: \(snapshot.apps.count)")
+    if let last = snapshot.lastSession {
+        print("last session: \(last.ended) · \(last.changes) restored")
+    } else {
+        print("last session: none")
+    }
+    exit(0)
+}
+
 if CommandLine.arguments.contains("--dump-panes") {
     // The sidebar is AppKit and cannot render offscreen, so print what it is built from. It derives
     // from Pane.allCases, which is the point: a pane cannot exist without a row to reach it.
@@ -318,6 +331,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // The login opener starts the app in the background: a status item and a Dock icon, no window
         // appearing over whatever the owner was doing. A Finder or Dock launch opens the window.
+        buildMainMenu()
         if !CommandLine.arguments.contains("--background") { showWindow() }
         NSApp.setActivationPolicy(.accessory)
         if let button = statusItem.button {
@@ -515,6 +529,95 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         dialog.accessoryView = scroll
         dialog.addButton(withTitle: "Done")
         dialog.runModal()
+    }
+
+    /// A regular app needs a menu, and the menu is where a keyboard path belongs. Before this the app
+    /// had no shortcut at all — not refresh, not start, not a pane switch.
+    func buildMainMenu() {
+        let main = NSMenu()
+
+        let appItem = NSMenuItem()
+        let appMenu = NSMenu()
+        appMenu.addItem(withTitle: "About Curfew",
+                        action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        appMenu.addItem(.separator())
+        appMenu.addItem(withTitle: "Quit Curfew", action: #selector(NSApplication.terminate(_:)),
+                        keyEquivalent: "q")
+        appItem.submenu = appMenu
+        main.addItem(appItem)
+
+        let curfewItem = NSMenuItem()
+        let curfew = NSMenu(title: "Curfew")
+
+        let start = NSMenuItem(title: "Start Quiet Mode", action: #selector(menuStartQuiet), keyEquivalent: "Q")
+        start.keyEquivalentModifierMask = [.command, .shift]
+        start.target = self
+        start.tag = 1
+        curfew.addItem(start)
+
+        let restore = NSMenuItem(title: "Restore Everything", action: #selector(menuRestore), keyEquivalent: "Z")
+        restore.keyEquivalentModifierMask = [.command, .shift]
+        restore.target = self
+        curfew.addItem(restore)
+
+        curfew.addItem(.separator())
+
+        let refresh = NSMenuItem(title: "Refresh", action: #selector(menuRefresh), keyEquivalent: "r")
+        refresh.target = self
+        curfew.addItem(refresh)
+
+        curfew.addItem(.separator())
+        for (index, pane) in AppModel.Pane.allCases.enumerated() {
+            let item = NSMenuItem(title: pane.rawValue, action: #selector(menuPane(_:)),
+                                  keyEquivalent: "\(index + 1)")
+            item.tag = index
+            item.target = self
+            curfew.addItem(item)
+        }
+
+        curfewItem.submenu = curfew
+        main.addItem(curfewItem)
+
+        let windowItem = NSMenuItem()
+        let windowMenu = NSMenu(title: "Window")
+        windowMenu.addItem(withTitle: "Curfew", action: #selector(openWindowAction), keyEquivalent: "0")
+        windowMenu.items.last?.target = self
+        windowMenu.addItem(withTitle: "Minimize", action: #selector(NSWindow.performMiniaturize(_:)),
+                           keyEquivalent: "m")
+        windowItem.submenu = windowMenu
+        main.addItem(windowItem)
+
+        NSApp.mainMenu = main
+    }
+
+    @objc func menuStartQuiet() {
+        showWindow()
+        model.pane = .quiet
+        model.startDefault()
+    }
+
+    @objc func menuRestore() {
+        showWindow()
+        model.pane = .quiet
+        model.restoreAll()
+    }
+
+    @objc func menuRefresh() { model.refresh() }
+
+    /// State-aware menu: Start is meaningless while quiet, and Restore while nothing is held.
+    func validateMenuItem(_ item: NSMenuItem) -> Bool {
+        switch item.action {
+        case #selector(menuStartQuiet): return !model.snapshot.quiet
+        case #selector(menuRestore): return model.snapshot.quiet
+        default: return true
+        }
+    }
+
+    @objc func menuPane(_ sender: NSMenuItem) {
+        showWindow()
+        let panes = AppModel.Pane.allCases
+        guard sender.tag >= 0, sender.tag < panes.count else { return }
+        model.pane = panes[sender.tag]
     }
 
     /// The window is the main surface (owner decision, 2026-11-26). The status item stays as a

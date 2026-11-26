@@ -57,8 +57,16 @@ public struct AppSnapshot: Sendable, Equatable {
         public var id: String { "\(label)/\(kind)" }
     }
 
+    /// The last quiet-mode session that ended, so the app has a memory of its own work.
+    public struct LastSession: Sendable, Equatable {
+        public var ended: Date
+        public var changes: Int
+    }
+
     public var quiet: Bool
     public var held: [Held]
+    /// Present once a session has been restored: when it ended, and how many services it put back.
+    public var lastSession: LastSession?
     /// GUI apps and what they hold — the biggest reclaim on the machine, and never pre-selected.
     public var apps: [AppRecord]
     /// Every label Curfew is holding — the set the rows read to decide Stop or Start.
@@ -71,12 +79,14 @@ public struct AppSnapshot: Sendable, Equatable {
     public var capturedAt: Date
 
     public init(
-        quiet: Bool, held: [Held] = [], heldLabels: Set<String> = [], apps: [AppRecord] = [],
+        quiet: Bool, held: [Held] = [], lastSession: LastSession? = nil,
+        heldLabels: Set<String> = [], apps: [AppRecord] = [],
         bundles: [Bundle] = [], services: [Service] = [], findings: [Finding] = [],
         problem: String? = nil, capturedAt: Date = Date()
     ) {
         self.quiet = quiet
         self.held = held
+        self.lastSession = lastSession
         self.apps = apps
         self.heldLabels = heldLabels
         self.bundles = bundles
@@ -113,15 +123,17 @@ public enum AppSnapshotProvider {
             AppSnapshot.Held(
                 seq: record.seq,
                 label: record.entryId ?? "?",
-                action: record.action ?? "?",
+                action: Vocabulary.action(record.action ?? "?"),
                 when: record.ts)
         }
 
         let heldLabels = Set(held.map(\.label))
+        let lastSession = LastSessionReader.read(from: journal.records())
 
         guard let catalog = try? CatalogLoader.load(directory: catalogDirectory) else {
             return AppSnapshot(
-                quiet: !held.isEmpty, held: held, heldLabels: heldLabels, apps: apps,
+                quiet: !held.isEmpty, held: held, lastSession: lastSession,
+                heldLabels: heldLabels, apps: apps,
                 problem: "No catalogue at \(catalogDirectory.path) — install with `make install-app`.",
                 capturedAt: now)
         }
@@ -139,7 +151,8 @@ public enum AppSnapshotProvider {
 
         let services = records.map { record in
             AppSnapshot.Service(
-                label: record.id, state: record.state.rawValue, tier: record.tier.rawValue,
+                label: record.id, state: Vocabulary.jobState(record.state.rawValue),
+                tier: record.tier.rawValue,
                 findingCount: record.findings.count)
         }.sorted { $0.label < $1.label }
 
@@ -163,9 +176,9 @@ public enum AppSnapshotProvider {
                 let canStop = entry.map { $0.status == .verified && $0.stop != nil } ?? false
                     && !NeverList.isProtected(label: record.id)
                 return AppSnapshot.Finding(
-                    label: record.id, kind: finding.id.rawValue,
+                    label: record.id, kind: Vocabulary.findingKind(finding.id.rawValue),
                     severity: finding.severity.rawValue, summary: finding.summary,
-                    evidence: finding.evidence, canStop: canStop,
+                    evidence: "\(finding.id.rawValue) — \(finding.evidence)", canStop: canStop,
                     isHeld: heldLabels.contains(record.id),
                     serviceState: record.state.rawValue,
                     canQuarantine: canQuarantine, quarantineNote: quarantineNote)
@@ -176,7 +189,28 @@ public enum AppSnapshotProvider {
         }
 
         return AppSnapshot(
-            quiet: !held.isEmpty, held: held, heldLabels: heldLabels, apps: apps, bundles: bundles,
-            services: services, findings: findings, capturedAt: now)
+            quiet: !held.isEmpty, held: held, lastSession: lastSession, heldLabels: heldLabels,
+            apps: apps, bundles: bundles, services: services, findings: findings, capturedAt: now)
+    }
+}
+
+
+/// Reads the last completed quiet-mode session out of the journal.
+///
+/// A restore writes an outcome with `result: "resumed"` against the intent it undid, so the newest such
+/// outcome is the moment quiet mode ended, and the outcomes clustered just before it are the session's
+/// size. Nothing is inferred that the journal does not already say.
+public enum LastSessionReader {
+    public static func read(
+        from records: [JournalRecord], clusterWindow: TimeInterval = 600
+    ) -> AppSnapshot.LastSession? {
+        let restores = records.compactMap { record -> (Date, Int)? in
+            guard record.kind == .outcome, record.result == "resumed",
+                  let date = parseJournalTimestamp(record.ts) else { return nil }
+            return (date, record.intent ?? -1)
+        }
+        guard let newest = restores.map(\.0).max() else { return nil }
+        let inRun = restores.filter { newest.timeIntervalSince($0.0) <= clusterWindow }
+        return AppSnapshot.LastSession(ended: newest, changes: inRun.count)
     }
 }
