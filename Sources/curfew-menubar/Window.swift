@@ -14,6 +14,18 @@ final class AppModel: ObservableObject {
         case apps = "Apps"
         var id: String { rawValue }
 
+        /// The sidebar is built from `allCases`, so adding a pane can never leave it unreachable —
+        /// which is exactly how the Apps pane shipped without a row to select it (KI-052).
+        var section: String {
+            switch self {
+            case .quiet: return "Mode"
+            case .bundles: return "Bundles"
+            case .findings, .services, .apps: return "This machine"
+            }
+        }
+
+        static let sections = ["Mode", "Bundles", "This machine"]
+
         var symbol: String {
             switch self {
             case .quiet: return "moon.zzz"
@@ -289,27 +301,26 @@ private struct Sidebar: View {
 
     var body: some View {
         List(selection: $model.pane) {
-            Section {
-                Label(AppModel.Pane.quiet.rawValue, systemImage: AppModel.Pane.quiet.symbol)
-                    .tag(AppModel.Pane.quiet)
-            } header: {
-                Text("Mode")
-            }
-            Section {
-                Label(AppModel.Pane.bundles.rawValue, systemImage: AppModel.Pane.bundles.symbol)
-                    .tag(AppModel.Pane.bundles)
-            }
-            Section {
-                Label(AppModel.Pane.findings.rawValue, systemImage: AppModel.Pane.findings.symbol)
-                    .badge(model.snapshot.findings.count)
-                    .tag(AppModel.Pane.findings)
-                Label(AppModel.Pane.services.rawValue, systemImage: AppModel.Pane.services.symbol)
-                    .tag(AppModel.Pane.services)
-            } header: {
-                Text("This machine")
+            ForEach(AppModel.Pane.sections, id: \.self) { section in
+                Section(section) {
+                    ForEach(AppModel.Pane.allCases.filter { $0.section == section }) { pane in
+                        Label(pane.rawValue, systemImage: pane.symbol)
+                            .badge(badge(for: pane))
+                            .tag(pane)
+                    }
+                }
             }
         }
         .listStyle(.sidebar)
+    }
+
+    /// Only a count that means something carries a badge; the rest stay quiet.
+    private func badge(for pane: AppModel.Pane) -> Int {
+        switch pane {
+        case .findings: return model.snapshot.findings.count
+        case .apps: return model.snapshot.apps.count
+        default: return 0
+        }
     }
 }
 

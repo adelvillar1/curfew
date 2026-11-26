@@ -254,3 +254,10 @@ Rules:
   is the remote-access path (rule 7): freezing Tailscale would cut the only way into the machine.
   Constrains: `AppsScanner::neverTouch` · `AppControl` (C26) · the window's Apps pane.
 
+- **D37 — The sidebar derives from the pane enum.**
+  Rationale: the Apps pane was built complete — case, view, switch, tests — and shipped unreachable
+  because the sidebar was a hand-written list I forgot to extend (KI-052). A surface whose navigation is
+  maintained by hand drifts from the set of surfaces that exist. `Pane.allCases` grouped by `section` makes
+  a pane impossible to add without a row, and `--dump-panes` prints what the sidebar is built from.
+  Constrains: `AppModel.Pane` · `Sidebar` · the `--dump-panes` entry point.
+

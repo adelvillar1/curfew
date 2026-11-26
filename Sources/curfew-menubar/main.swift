@@ -75,6 +75,18 @@ if let index = CommandLine.arguments.firstIndex(of: "--drive-freeze"),
     exit(0)
 }
 
+if CommandLine.arguments.contains("--dump-panes") {
+    // The sidebar is AppKit and cannot render offscreen, so print what it is built from. It derives
+    // from Pane.allCases, which is the point: a pane cannot exist without a row to reach it.
+    for section in AppModel.Pane.sections {
+        print(section)
+        for pane in AppModel.Pane.allCases where pane.section == section {
+            print("  · \(pane.rawValue)")
+        }
+    }
+    exit(0)
+}
+
 if CommandLine.arguments.contains("--dump-apps") {
     // What the Apps pane would list, printed — the same scan the window runs.
     let apps = AppsScanner.scan()
