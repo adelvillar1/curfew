@@ -348,3 +348,12 @@ Rules:
   pane). The CLI is dry unless `--yes`, and that ordering is now the tested part (KI-066).
   Constrains: `ArtifactReclaimer` · `PlanAction.reclaim` · the Hygiene pane's reclaim button · `curfew hygiene --reclaim`.
 
+- **D48 — Curfew has a public source mirror on GitHub; it is still one person's tool.**
+  Rationale: the owner asked for a public repo at `github.com/adelvillar1/curfew` with a README, a logo, a
+  hero and Archify diagrams. This narrows D21 without repealing it: **source is public; there is still no
+  release pipeline, no notarisation, no Homebrew cask, and no distribution.** `origin` remains the Gitea
+  master; `github` is a second remote pushed by hand. Publishing forced a scrub that is now part of the
+  contract: the Tailscale address was in five tracked files and is redacted, and full-desktop captures are
+  archived outside the tree because they contain other windows — only window-scoped captures ship.
+  Constrains: the `github` remote · `README.md` · `assets/` · `docs/diagrams/` · the evidence policy.
+
