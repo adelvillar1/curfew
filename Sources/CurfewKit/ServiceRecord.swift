@@ -127,6 +127,8 @@ public enum Severity: String, Codable, Sendable, CaseIterable {
 /// The seven crash-loop-era rules the first slice ships (plan step 3).
 public enum FindingKind: String, Codable, Sendable, CaseIterable {
     case crashLoop
+    /// Restarts climbing between scans, which the crash-loop rule cannot see while a job runs (KI-040).
+    case respawnRate
     case execFailure
     case danglingProgram
     case orphanPort

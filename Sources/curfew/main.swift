@@ -177,7 +177,21 @@ func runList() -> Never {
 }
 
 func runDoctor() -> Never {
-    let (records, skipped, _) = collect([Domain.effective(), .system])
+    let (collected, skipped, _) = collect([Domain.effective(), .system])
+    // KI-040: a job that loops fast is usually observed running, where the crash-loop rule must stand
+    // down. Compare `runs` with the previous scan instead — and persist the new samples either way, or
+    // the baseline never advances.
+    let tracker = RespawnTracker()
+    let (respawnDeltas, samples) = tracker.scan(collected)
+    try? tracker.save(samples)
+    var records = collected
+    if !respawnDeltas.isEmpty {
+        for index in records.indices {
+            if let delta = respawnDeltas.first(where: { $0.label == records[index].id }) {
+                records[index].findings.append(RespawnTracker.finding(for: delta))
+            }
+        }
+    }
     var scan = ScanState()
     if skipped > 0 { scan.markIncomplete("unparsedRows") }
 

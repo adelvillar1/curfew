@@ -548,6 +548,35 @@ fixture — KI-006's missing half.
 
 **208 tests in 29 suites.**
 
+## Round 21 — the respawn-rate tracker (KI-040), and the false positive it taught
+
+The crash-loop rule can only see a job that is **not** running at scan time — right for a healthy job,
+blind to a fast loop that is almost always observed briefly running. The fix is a delta: sample `runs`
+per label beside the journal and compare scans.
+
+**The first version was wrong, and running it is what said so.** A bare rate over whatever interval the
+two scans happened to be apart flagged **eight Apple XPC daemons at 100,000–300,000 restarts/hour** —
+because for an on-demand service `runs` counts *activations*, which is exactly the trap KI-007 already
+documents (logged as **KI-041**).
+
+The separator turned out to be the job's own supervision, visible in data already on the record:
+
+| | runs | exit | keepAlive |
+|---|---|---|---|
+| the four false positives | 720–975 | **none** | **never** |
+| the true crash loop | 27,010 | **1** | **always** |
+
+So the rule is four conditions, each measured rather than invented: the job must be **supervised**
+(`keepAlive != never`), carry a **non-zero exit code**, the samples must be **≥5 min apart**, and the
+rate must fall in **[10, 600]/h** — 600 being launchd's own throttle ceiling, above which no real loop
+can run.
+
+**Verified live in both directions:** a planted 110 restarts in 30 min (219/h) fired with the right
+message; a clean baseline produced **0** findings across 897 sampled jobs. `doctor` saves the samples
+even when nothing fires, or the baseline would never advance.
+
+**12 new tests; 220 in 30 suites. The known-issues ledger is at ZERO open.**
+
 ## Criteria status
 
 All met except two, **deliberately revised** (recorded in the plan, not silently dropped):

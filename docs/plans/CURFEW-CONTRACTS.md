@@ -156,6 +156,20 @@ Every request sends `User-Agent: curfew` — Cloudflare answers 403/1010 to urll
 twice on this machine. The transport, clock and cache are injected, so the whole surface is testable
 without a network. `unknown` is a first-class outcome: a transport failure is never read as confidence.
 
+## C20 — `RespawnTracker` — Sources/CurfewKit/RespawnTracker.swift
+
+```text
+OFFERS   scan(_ records:) -> (deltas: [RespawnDelta], samples: [String: RespawnSample])
+         load() / save(_:) · finding(for: RespawnDelta) -> Finding
+EXPECTS  ~/Library/Application Support/Curfew/runs.json (external; CURFEW_RUNS_STATE overrides)
+CONSUMED BY  curfew doctor — which must save the samples even when nothing fires
+```
+
+Restarts **per hour** between scans, for the loop the crash-loop rule must stand down on (a job observed
+running). Four conditions, each measured against this machine's data: supervised (`keepAlive != never` —
+an unsupervised job's `runs` counts activations), a non-zero exit code, samples ≥5 min apart, and a rate
+in `[10, 600]/h` — 600 is launchd's throttle ceiling, so above it the number is churn, not looping.
+
 ## C19 — `FindingsRanker` / `FindingsRunner` — Sources/CurfewKit/FindingsRanker.swift
 
 ```text
