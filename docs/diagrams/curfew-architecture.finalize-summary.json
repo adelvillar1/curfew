@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "fail",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/alejandrodelvillar/Projects/dev-mode/.archify/architecture-curfew-structure/candidate.json",
+    "sha256": "b61fd57ef9c82ed2da584dc00bc93682dd43a2c7daa4ce3c44c3022b66f58a5c",
+    "bytes": 3791
+  },
+  "artifact": {
+    "path": "/Users/alejandrodelvillar/Projects/dev-mode/docs/diagrams/curfew-architecture.html",
+    "sha256": "d8ea71cae7f4fa26ba146310eb3b895fe41512df297900fce88a517286fcdc7a",
+    "bytes": 826341
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "fail"
+  },
+  "failedStage": "browser-check",
+  "diagnostics": [
+    {
+      "code": "viewer/evidence-path-conflict",
+      "severity": "error",
+      "message": "browser-check will not replace the existing unowned evidence path \"/Users/alejandrodelvillar/Projects/dev-mode/docs/diagrams/curfew-architecture.browser-check.json\".",
+      "subject": {
+        "artifact": "/Users/alejandrodelvillar/Projects/dev-mode/docs/diagrams/curfew-architecture.html",
+        "evidencePath": "/Users/alejandrodelvillar/Projects/dev-mode/docs/diagrams/curfew-architecture.browser-check.json"
+      },
+      "evidence": {
+        "reason": {
+          "code": "ownership-artifact-mismatch"
+        }
+      },
+      "supportedFixes": [
+        "move the conflicting file aside, or choose a separate --out-dir, then rerun browser-check"
+      ]
+    }
+  ],
+  "diagnosticSummary": {
+    "total": 1,
+    "shown": 1,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/alejandrodelvillar/Projects/dev-mode/docs/diagrams/curfew-architecture.finalize.json",
+    "summaryReceipt": "/Users/alejandrodelvillar/Projects/dev-mode/docs/diagrams/curfew-architecture.finalize-summary.json",
+    "browserCheckReceipt": "/Users/alejandrodelvillar/Projects/dev-mode/docs/diagrams/curfew-architecture.browser-check.json"
+  },
+  "update": {
+    "status": "update_available",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.3.2",
+    "releaseNotes": "https://github.com/tt-a1i/archify/releases/tag/v3.3.2",
+    "severity": "normal",
+    "summary": "Includes archify-pr in default installs, adds offline in-page update notices with Agent prompts, speeds slow update checks, and polishes PR diagrams.",
+    "checkedAt": "2026-11-26T18:33:20.288Z",
+    "source": "cache",
+    "noticeRequired": true,
+    "noticeText": "Archify update: 3.2.0 → 3.3.2. A previous check at 2026-11-26T18:33:20.288Z found a newer release. Release notes: https://github.com/tt-a1i/archify/releases/tag/v3.3.2. Would you like me to update Archify?",
+    "eventKey": "archify@sha256:932d915f83fdbf44796cc6b20b085455a763491306e1b8dee92047e11dddc0ea"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 506,
+  "browserCheck": {
+    "requested": true,
+    "ran": false
+  }
+}

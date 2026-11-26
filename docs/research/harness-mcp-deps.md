@@ -151,16 +151,16 @@ Two Tailscale-served HTTPS authorities terminate in the **IPNExtension** process
 into **loopback** — the listen sockets and the accepted/dialled pairs are the proof:
 
 ```
-IPNExtension 97831  27u  TCP 100.115.120.43:8443 (LISTEN)     29u  TCP 100.115.120.43:8444 (LISTEN)
+IPNExtension 97831  27u  TCP 100.x.y.z:8443 (LISTEN)     29u  TCP 100.x.y.z:8444 (LISTEN)
 IPNExtension 97831  28u  TCP [fd7a:115c:a1e0::d92a:782c]:8443 (LISTEN)
 IPNExtension 97831  30u  TCP [fd7a:115c:a1e0::d92a:782c]:8444 (LISTEN)
 ```
 
 **8444 → the DSH *web* server (57801).** Live socket pair:
-`IPNExtens 97831 100.115.120.43:8444->100.115.120.43:54400 (ESTABLISHED)` and
+`IPNExtens 97831 100.x.y.z:8444->100.x.y.z:54400 (ESTABLISHED)` and
 `IPNExtens 97831 127.0.0.1:54401->127.0.0.1:57801 (ESTABLISHED)` together with
 `DSH Fl 42328 127.0.0.1:57801->127.0.0.1:54401 (ESTABLISHED)`. The desktop window's own network helper also
-uses this authority: `DSH Fl 80524 100.115.120.43:51650->100.115.120.43:8444` / `IPNExtens 8444->51650`.
+uses this authority: `DSH Fl 80524 100.x.y.z:51650->100.x.y.z:8444` / `IPNExtens 8444->51650`.
 
 **8443 → the bridge (7426).** No client was connected at sample time, so the mapping is proven from the
 bridge's own log instead of a pair: `~/.dsh/bridge-access.log` contains only `peer":"127.0.0.1"` rows whose

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "f8a5a77c-789e-4878-8b65-b15209811ece",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/alejandrodelvillar/Projects/dev-mode/.archify/architecture-curfew-structure/candidate.json",
+  "output": "/Users/alejandrodelvillar/Projects/dev-mode/docs/diagrams/curfew-architecture.html",
+  "specification": {
+    "sha256": "b61fd57ef9c82ed2da584dc00bc93682dd43a2c7daa4ce3c44c3022b66f58a5c",
+    "bytes": 3791
+  },
+  "artifact": {
+    "sha256": "d8ea71cae7f4fa26ba146310eb3b895fe41512df297900fce88a517286fcdc7a",
+    "bytes": 826341
+  }
+}

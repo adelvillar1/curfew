@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/alejandrodelvillar/Projects/dev-mode/.archify/workflow-curfew-apply/candidate.json",
+    "sha256": "294e338953515c9ba683db72bc397673b54466756e5db7f1a6fdbc66f2c0486c",
+    "bytes": 3904
+  },
+  "artifact": {
+    "path": "/Users/alejandrodelvillar/Projects/dev-mode/docs/diagrams/curfew-apply.html",
+    "sha256": "6e594ca931ae4557a68e6e88794b1256559bd163ef0f25009f3207a9e1811b18",
+    "bytes": 823923
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/alejandrodelvillar/Projects/dev-mode/docs/diagrams/curfew-apply.finalize.json",
+    "summaryReceipt": "/Users/alejandrodelvillar/Projects/dev-mode/docs/diagrams/curfew-apply.finalize-summary.json",
+    "browserCheckReceipt": "/Users/alejandrodelvillar/Projects/dev-mode/docs/diagrams/curfew-apply.browser-check.json"
+  },
+  "update": {
+    "status": "update_available",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.3.2",
+    "releaseNotes": "https://github.com/tt-a1i/archify/releases/tag/v3.3.2",
+    "severity": "normal",
+    "summary": "Includes archify-pr in default installs, adds offline in-page update notices with Agent prompts, speeds slow update checks, and polishes PR diagrams.",
+    "checkedAt": "2026-11-26T18:33:20.288Z",
+    "source": "cache",
+    "noticeRequired": true,
+    "noticeText": "Archify update: 3.2.0 → 3.3.2. A previous check at 2026-11-26T18:33:20.288Z found a newer release. Release notes: https://github.com/tt-a1i/archify/releases/tag/v3.3.2. Would you like me to update Archify?",
+    "eventKey": "archify@sha256:932d915f83fdbf44796cc6b20b085455a763491306e1b8dee92047e11dddc0ea"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 1880,
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  }
+}

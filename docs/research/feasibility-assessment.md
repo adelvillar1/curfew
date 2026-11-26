@@ -121,7 +121,7 @@ The bundle model is right, and discovery should be mechanical: enumerate launchd
 - **`vendor-noise`** (safe, default-on in quiet mode): Keystone ×2, GoogleUpdater ×2, MS AutoUpdate, OneDrive ×5, Office licensing ×2, Zoom ×3, Steam clean, Docker helper, ShipIt ×4, Perplexity, OpenAI, Teams agent.
 - **`dev-idle`** (stopped during quiet mode, restored after): gitea runners ×3, model routers ×3, `sem1-llama`, `blend1-service`, `second-brain-tower`, `kanzo`, `ux-drift`.
 - **`data-services`** (clean stop only, never freeze): `postgresql@18`, `postgresql@14`, `second-brain-pg` (:5439).
-- **`never — remote path`**: **Tailscale.** If you reach this Mac over Tailscale (you do: `100.115.120.43:8443` is listening), suspending it during "unattended mode" severs the exact remote access that makes unattended mode useful. This one hazard alone justifies an explicit never-list rather than "everything not OS."
+- **`never — remote path`**: **Tailscale.** If you reach this Mac over Tailscale (you do: `100.x.y.z:8443` is listening), suspending it during "unattended mode" severs the exact remote access that makes unattended mode useful. This one hazard alone justifies an explicit never-list rather than "everything not OS."
 - **`never — self`**: the DSH process tree, your terminal, `sshd`, `ssh-agent`, `WindowServer`, `loginwindow`. Whitelist by **ancestry** (walk the parent chain), not by name — otherwise the app suspends whatever terminal it was launched from.
 - **`never — mid-write`**: Time Machine, backup agents, FileVault/keychain, iCloud sync, and anything whose `ExitTimeOut` suggests it does real work on exit.
 

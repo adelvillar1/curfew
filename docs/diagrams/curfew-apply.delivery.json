@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "86850c43-593c-483c-86fe-ac21b792911f",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/alejandrodelvillar/Projects/dev-mode/.archify/workflow-curfew-apply/candidate.json",
+  "output": "/Users/alejandrodelvillar/Projects/dev-mode/docs/diagrams/curfew-apply.html",
+  "specification": {
+    "sha256": "294e338953515c9ba683db72bc397673b54466756e5db7f1a6fdbc66f2c0486c",
+    "bytes": 3904
+  },
+  "artifact": {
+    "sha256": "6e594ca931ae4557a68e6e88794b1256559bd163ef0f25009f3207a9e1811b18",
+    "bytes": 823923
+  }
+}

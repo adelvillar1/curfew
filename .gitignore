@@ -41,3 +41,6 @@ target/
 *.log
 *.trace
 *.profraw
+
+# Archify authoring scratch (the delivered diagrams live in docs/diagrams/)
+.archify/

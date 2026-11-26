@@ -44,7 +44,7 @@ The dev set that quiet mode must protect instead:
 
 | Endpoint | Owner |
 |---|---|
-| `100.115.120.43:8443`, `:8444` (Tailscale) | `IPNExtension` pid 97831 |
+| `100.x.y.z:8443`, `:8444` (Tailscale) | `IPNExtension` pid 97831 |
 | `127.0.0.1:57730`, `:57801` | DSH Fleet |
 | `127.0.0.1:54766` | Tailscale local API |
 
