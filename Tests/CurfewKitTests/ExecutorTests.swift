@@ -60,11 +60,22 @@ struct ExecutorTests {
         )
     }
 
-    func probes(portOpen: Bool = false, running: Bool = false, pidExists: Bool = false) -> Probes {
+    func probes(
+        portOpen: Bool = false, running: Bool = false, pidExists: Bool = false,
+        disabled: Bool = false
+    ) -> Probes {
         Probes(
             portIsOpen: { _ in portOpen },
             pidExists: { _ in pidExists },
-            labelIsRunning: { _ in running }
+            labelIsRunning: { _ in running },
+            labelIsDisabled: { _ in disabled }
+        )
+    }
+
+    func idleRecord(_ id: String = "com.example.job", state: JobState = .spawnScheduled) -> ServiceRecord {
+        ServiceRecord(
+            id: id, domain: "gui/501", plistPath: "/tmp/\(id).plist", state: state, pid: nil,
+            program: "/bin/true", tier: .thirdParty, kind: .agent, supervised: .launchd
         )
     }
 
@@ -216,9 +227,11 @@ struct ExecutorTests {
         let url = tempJournal()
         defer { try? FileManager.default.removeItem(at: url) }
         let recorder = Recorder()
+        // A `stop` is what this rule is about: stopping something already stopped changes nothing.
+        // A `disable` is different — see disableActsOnIdleJob (KI-048).
         let outcomes = Executor(runner: recorder.run, journal: Journal(url: url), probes: probes())
             .apply(
-                bundle: "b", catalog: catalog([entry()]),
+                bundle: "b", catalog: catalog([entry("com.example.job", lever: .stop)]),
                 context: context(records: [stopped("com.example.job")]), execute: true
             )
 
@@ -390,5 +403,58 @@ struct ExecutorTests {
         #expect(recorder.calls == [["/bin/a-start"]], "only the requested service is started")
         #expect(outcomes.count == 1)
         #expect(journal.held().map(\.entryId) == ["com.example.b"], "the other stays held")
+    }
+
+    // MARK: The pre-existing guard asks what the lever changes (KI-048)
+
+    @Test("a disable on an idle job acts — idle is exactly what disable is for")
+    func disableActsOnIdleJob() throws {
+        let url = tempJournal()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let recorder = Recorder()
+        let journal = Journal(url: url)
+        let outcomes = Executor(runner: recorder.run, journal: journal,
+                                probes: probes(running: false, disabled: false))
+            .apply(bundle: "b", catalog: catalog([entry("com.example.job", lever: .disable)]),
+                   context: context(records: [idleRecord()]), execute: true)
+
+        #expect(outcomes.first?.result == .executed(verified: true), "not preExisting")
+        #expect(recorder.calls.count == 1)
+        #expect(journal.held().count == 1, "so it can be started again")
+    }
+
+    @Test("a disable on a job that is already disabled is left alone")
+    func disableSkipsAlreadyDisabled() throws {
+        let url = tempJournal()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let recorder = Recorder()
+        let outcomes = Executor(runner: recorder.run, journal: Journal(url: url),
+                                probes: probes(running: false, disabled: true))
+            .apply(bundle: "b", catalog: catalog([entry("com.example.job", lever: .disable)]),
+                   context: context(records: [idleRecord()]), execute: true)
+
+        if case .preExisting(let note) = outcomes.first?.result {
+            #expect(note.contains("disabled"))
+        } else {
+            Issue.record("expected preExisting, got \(String(describing: outcomes.first?.result))")
+        }
+        #expect(recorder.calls.isEmpty)
+    }
+
+    @Test("a stop on an already-stopped job is still left alone")
+    func stopStillRespectsPreExisting() throws {
+        let url = tempJournal()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let recorder = Recorder()
+        let outcomes = Executor(runner: recorder.run, journal: Journal(url: url),
+                                probes: probes(running: false, disabled: false))
+            .apply(bundle: "b", catalog: catalog([entry("com.example.job", lever: .stop)]),
+                   context: context(records: [idleRecord(state: .notLoaded)]), execute: true)
+
+        if case .preExisting = outcomes.first?.result {
+            #expect(recorder.calls.isEmpty, "rule 6 still holds for a real stop")
+        } else {
+            Issue.record("expected preExisting, got \(String(describing: outcomes.first?.result))")
+        }
     }
 }

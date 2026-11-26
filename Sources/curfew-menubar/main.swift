@@ -51,6 +51,53 @@ func liveModel() -> MenuBarModel {
     )
 }
 
+if let index = CommandLine.arguments.firstIndex(of: "--drive-start"),
+   CommandLine.arguments.count > index + 1 {
+    let label = CommandLine.arguments[index + 1]
+    let model = AppModel(catalogDirectory: catalogDirectory())
+    print("before : held=\(model.snapshot.heldLabels.sorted())")
+    model.start(label: label)
+    guard let plan = model.plan else {
+        print("no plan: \(model.note?.title ?? "-")"); exit(1)
+    }
+    print("plan   : \(plan.title)")
+    model.applyPlan()
+    print("result : \(model.note?.body.replacingOccurrences(of: "\n", with: " | ") ?? "-")")
+    model.note = nil
+    print("after  : held=\(model.snapshot.heldLabels.sorted()) quiet=\(model.snapshot.quiet)")
+    if let row = model.snapshot.findings.first(where: { $0.label == label }) {
+        print("row    : isHeld=\(row.isHeld)")
+    }
+    exit(0)
+}
+
+if let index = CommandLine.arguments.firstIndex(of: "--drive-stop"),
+   CommandLine.arguments.count > index + 1 {
+    // Drive the window's own stop/start path without a click: the point is to see what the model
+    // actually records, not to trust that it does.
+    let label = CommandLine.arguments[index + 1]
+    let model = AppModel(catalogDirectory: catalogDirectory())
+    print("before : held=\(model.snapshot.heldLabels.sorted()) quiet=\(model.snapshot.quiet)")
+    model.stop(label: label)
+    guard let plan = model.plan else {
+        print("no plan was produced:")
+        if let note = model.note { print("  \(note.title): \(note.body)") }
+        exit(1)
+    }
+    print("plan   : \(plan.title)")
+    for step in plan.steps { print("         \(step)") }
+    model.applyPlan()
+    print("result : \(model.note?.body.replacingOccurrences(of: "\n", with: " | ") ?? "-")")
+    model.note = nil
+    print("after  : held=\(model.snapshot.heldLabels.sorted()) quiet=\(model.snapshot.quiet)")
+    if let row = model.snapshot.findings.first(where: { $0.label == label }) {
+        print("row    : isHeld=\(row.isHeld) state=\(row.serviceState) canStop=\(row.canStop)")
+    } else {
+        print("row    : no finding for \(label)")
+    }
+    exit(0)
+}
+
 if let index = CommandLine.arguments.firstIndex(of: "--render-window"),
    CommandLine.arguments.count > index + 1 {
     // Render the real window offscreen to a PNG. No screen-recording permission needed, and it is the

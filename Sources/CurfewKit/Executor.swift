@@ -252,11 +252,25 @@ public struct Executor: Sendable {
         }
 
         // Already in the state we would create: record it, do not act, so `resume` leaves it alone.
-        if let record = context.record(entry.id), record.state != .running {
-            return StepOutcome(
-                entryId: entry.id, action: action,
-                result: .preExisting("already \(record.state.rawValue) before Curfew ran")
-            )
+        // Rule 6: never resurrect what we did not stop. What counts as "already in that state" depends
+        // on the lever: a `disable` changes whether a job may be *loaded*, not whether it is running
+        // right now, so an idle `spawnScheduled` job is exactly the case disable exists for. Keying the
+        // guard on `state != .running` made every disable a no-op on an idle service, which left
+        // nothing journaled and no way to start it again (KI-048).
+        if let record = context.record(entry.id) {
+            let alreadyDone: String? = switch entry.lever {
+            case .disable:
+                probes.labelIsDisabled(entry.id)
+                    ? "already disabled before Curfew ran"
+                    : nil
+            default:
+                record.state != .running
+                    ? "already \(record.state.rawValue) before Curfew ran"
+                    : nil
+            }
+            if let alreadyDone {
+                return StepOutcome(entryId: entry.id, action: action, result: .preExisting(alreadyDone))
+            }
         }
 
         guard let recipe = entry.stop else {

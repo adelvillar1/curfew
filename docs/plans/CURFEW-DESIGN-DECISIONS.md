@@ -209,3 +209,18 @@ Rules:
   Constrains: `AppSnapshot` (C23) · `Window.swift` · `PRODUCT.md` and `DESIGN.md`, which now carry the
   product truth and the visual system for this surface.
 
+- **D32 — "Already in that state" is judged per lever.**
+  Rationale: rule 6 ("never resurrect what we did not stop") asks whether Curfew created the state it is
+  about to change. For a `stop`/`bootout` that state is "not running". For a **`disable`** it is
+  "disabled" — and an idle, enabled job is precisely what a disable is for. Keying the guard on the
+  running state alone made disable a silent no-op on every on-demand agent (KI-048), which surfaced as a
+  Stop button that appeared to do nothing.
+  Constrains: `Executor::run`'s pre-existing guard · what a recipe's `verify:` checks (C20's
+  `labelDisabled` is the matching verification).
+
+- **D33 — The app's own code path is driveable from the command line.**
+  Rationale: KI-042, KI-047 and KI-048 were each found by *pressing* something and none by reading the
+  code; a path that cannot be driven without a mouse cannot be checked at all. `--render-window` looks at
+  a pane; `--drive-stop` / `--drive-start` run the window's exact model path and print what it recorded.
+  Constrains: `curfew-menubar`'s debug entry points.
+
