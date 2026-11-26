@@ -678,7 +678,7 @@ func runResume() -> Never {
         if has("--json") {
             emit(ResumeOutput(sources: sources(), executed: has("--execute"), outcomes: []))
         } else {
-            print("nothing to restore — the journal has no unresolved intents")
+            print("nothing to restore — the journal is not holding any change")
         }
         exit(ExitCode.clean.rawValue)
     }
@@ -692,7 +692,7 @@ func runResume() -> Never {
         outcomes = journal.restorePlan().map { intent in
             StepOutcomeReport(
                 entryId: intent.entryId ?? "?", action: "resume", result: "planned",
-                detail: intent.argv?.first?.joined(separator: " ")
+                detail: intent.argv?.first.map { "undoes " + $0.joined(separator: " ") }
             )
         }
     }
@@ -731,8 +731,19 @@ func runStatus() -> Never {
     } else {
         print("journal: \(journal.url.path)")
         print("records: \(all.count)")
+        // Two different questions, and conflating them hid a live change (KI-045):
+        // `held` is what Curfew changed and can still undo; `unresolved` is a run that died mid-action.
+        let held = journal.held()
+        if held.isEmpty {
+            print("holding: nothing — quiet mode is off")
+        } else {
+            print("holding: \(held.count) — quiet mode is ON, \(held.count) change(s) can be undone")
+            for record in held.reversed() {
+                print("  #\(record.seq)  \(record.entryId ?? "?")  \(record.action ?? "?")")
+            }
+        }
         if intents.isEmpty {
-            print("unresolved: none — nothing is suspended by Curfew")
+            print("unresolved: none")
         } else {
             print("unresolved: \(intents.count) — these were started and never confirmed finished")
             for intent in intents {

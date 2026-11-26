@@ -42,7 +42,7 @@ struct JournalTests {
         #expect(journal.records().count == 2)
     }
 
-    @Test("the restore plan is the unresolved intents, in reverse order")
+    @Test("the restore plan is everything that may have changed, newest first")
     func restoreIsReversed() throws {
         let url = tempURL()
         defer { try? FileManager.default.removeItem(at: url) }
@@ -52,8 +52,30 @@ struct JournalTests {
         _ = try journal.appendIntent(entryId: "last", action: "stop", argv: [["/bin/c"]])
         try journal.appendOutcome(intent: middle, result: "ok", verified: true)
 
+        // `middle` acted successfully (held); `first` and `last` never got an outcome, so the run may
+        // have died around them. Both populations are undoable — dropping the unresolved ones would
+        // strand a half-applied run (KI-045 and the crash test).
         let plan = journal.restorePlan()
-        #expect(plan.map(\.entryId) == ["last", "first"], "the last thing started is the first thing undone")
+        #expect(plan.map(\.entryId) == ["last", "middle", "first"],
+                "the last thing started is the first thing undone")
+        #expect(journal.held().map(\.entryId) == ["middle"], "held is only what demonstrably acted")
+        #expect(journal.unresolved().map(\.entryId) == ["first", "last"])
+    }
+
+    @Test("a resumed change leaves held(), so quiet mode can read as off again")
+    func resumedLeavesHeld() throws {
+        let url = tempURL()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let journal = Journal(url: url)
+        let stop = try journal.appendIntent(entryId: "a", action: "disable", argv: [["/bin/x"]])
+        try journal.appendOutcome(intent: stop, result: "ok", verified: true)
+        #expect(journal.held().count == 1)
+
+        // the resume writes its own intent; that must never count as something Curfew holds
+        let undo = try journal.appendIntent(entryId: "a", action: "resume", argv: [["/bin/y"]])
+        try journal.appendOutcome(intent: undo, result: "ok", verified: true)
+        try journal.appendOutcome(intent: stop, result: "resumed", verified: true)
+        #expect(journal.held().isEmpty)
     }
 
     @Test("a truncated final line is ignored, not fatal")

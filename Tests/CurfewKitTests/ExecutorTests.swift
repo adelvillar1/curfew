@@ -232,8 +232,8 @@ struct ExecutorTests {
 
     // MARK: Verification and hold
 
-    @Test("a failed post-condition stops the run and marks the outcome unverified")
-    func verifyFailsStopsRun() {
+    @Test("a failed post-condition marks the entry unverified and lets the run continue")
+    func verifyFailsContinues() {
         let url = tempJournal()
         defer { try? FileManager.default.removeItem(at: url) }
         let recorder = Recorder()
@@ -242,9 +242,12 @@ struct ExecutorTests {
         let outcomes = Executor(runner: recorder.run, journal: Journal(url: url), probes: probes(portOpen: true))
             .apply(bundle: "b", catalog: catalog([first, second]), context: context(), execute: true)
 
-        #expect(outcomes.count == 1, "the second entry must not be touched after a failed check")
+        // A bundle of independent entries must not be abandoned because one recipe verifies the wrong
+        // thing — that is how thirteen vendor updaters became one (KI-044).
+        #expect(outcomes.count == 2, "the run continues past a failed check")
         #expect(outcomes.first?.result == .executed(verified: false))
-        #expect(recorder.calls.count == 1)
+        #expect(recorder.calls.count == 2)
+        #expect(outcomes.last?.entryId == "com.example.second")
     }
 
     @Test("a passing post-condition verifies")

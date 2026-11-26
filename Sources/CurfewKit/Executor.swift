@@ -31,15 +31,19 @@ public struct Probes: Sendable {
     public var portIsOpen: @Sendable (UInt16) -> Bool
     public var pidExists: @Sendable (Int32) -> Bool
     public var labelIsRunning: @Sendable (String) -> Bool
+    /// Whether `launchctl print-disabled` lists the label as disabled.
+    public var labelIsDisabled: @Sendable (String) -> Bool
 
     public init(
         portIsOpen: @escaping @Sendable (UInt16) -> Bool,
         pidExists: @escaping @Sendable (Int32) -> Bool,
-        labelIsRunning: @escaping @Sendable (String) -> Bool
+        labelIsRunning: @escaping @Sendable (String) -> Bool,
+        labelIsDisabled: @escaping @Sendable (String) -> Bool = { _ in false }
     ) {
         self.portIsOpen = portIsOpen
         self.pidExists = pidExists
         self.labelIsRunning = labelIsRunning
+        self.labelIsDisabled = labelIsDisabled
     }
 
     public static let live = Probes(
@@ -53,6 +57,22 @@ public struct Probes: Sendable {
         labelIsRunning: { label in
             guard let detail = LaunchdInventory().detail(label: label, domain: .currentUser) else { return false }
             return detail.state == .running
+        },
+        labelIsDisabled: { label in
+            // `launchctl print-disabled` prints a plist-like map; the label appears with `=> disabled`.
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/bin/launchctl")
+            process.arguments = ["print-disabled", "gui/\(getuid())"]
+            let pipe = Pipe()
+            process.standardOutput = pipe
+            process.standardError = FileHandle.nullDevice
+            guard (try? process.run()) != nil else { return false }
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            process.waitUntilExit()
+            let text = String(decoding: data, as: UTF8.self)
+            guard let line = text.split(separator: "\n").first(where: { $0.contains("\"\(label)\"") })
+            else { return false }
+            return line.contains("disabled")
         }
     )
 }
@@ -193,9 +213,12 @@ public struct Executor: Sendable {
                 continue
             }
             outcomes.append(run(entry: entry, context: context))
-            // A failure or unverified stop stops the run: the next entry may depend on this one.
+            // Only a **failed action** stops the run. An unverified stop is reported and the run
+            // continues: a bundle of independent vendor updaters must not be blocked because one of
+            // them reports a verification the recipe got wrong (KI-044 aborted thirteen services at
+            // the first entry). A genuinely dependent sequence is expressed with `depends:`, which the
+            // planner orders and refuses on, not with this break.
             if case .failed = outcomes.last?.result { break }
-            if case .executed(let verified) = outcomes.last?.result, verified == false { break }
         }
         return outcomes
     }
@@ -463,6 +486,8 @@ public struct Executor: Sendable {
             return !probes.pidExists(pid)
         case .labelNotRunning:
             return !probes.labelIsRunning(verification.value)
+        case .labelDisabled:
+            return probes.labelIsDisabled(verification.value)
         }
     }
 }

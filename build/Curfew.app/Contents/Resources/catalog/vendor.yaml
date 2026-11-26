@@ -264,7 +264,7 @@ entries:
       run:
         - [/bin/launchctl, disable, {domain}/com.microsoft.teams2.agent]
       verify:
-        kind: label_not_running
+        kind: label_disabled
         value: com.microsoft.teams2.agent
     start:
       run:

@@ -30,9 +30,10 @@ func liveModel() -> MenuBarModel {
         ?? Catalog(entries: [], bundles: [], files: [])
     let running = records.filter { $0.state == .running }.count
     let findings = records.reduce(0) { $0 + $1.findings.count }
+    let held = journal.held()
     return MenuBarModel.build(
-        quiet: !journal.unresolved().isEmpty,
-        unresolvedCount: journal.unresolved().count,
+        quiet: !held.isEmpty,
+        unresolvedCount: held.count,
         runningCount: running,
         findingCount: findings,
         bundleCount: catalog.bundles.count,
@@ -146,14 +147,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// Put back everything quiet mode changed. Same two-step discipline as starting it: the plan is
+    /// shown, then applied on confirmation.
     @objc func restore() {
         let journal = Journal()
-        guard !journal.restorePlan().isEmpty else { return }
+        let plan = journal.restorePlan()
+        guard !plan.isEmpty else {
+            alert(title: "Nothing to restore", body: "Curfew is not holding any change.")
+            return
+        }
         let catalog = (try? CatalogLoader.load(directory: catalogDirectory()))
             ?? Catalog(entries: [], bundles: [], files: [])
-        let context = ExecutionContext(domain: Domain.effective().target)
-        _ = Executor(journal: journal).resume(context: context, catalog: catalog)
+
+        let listing = plan.map { "  · \($0.entryId ?? "?")  (\($0.action ?? "?"))" }.joined(separator: "\n")
+        let dialog = NSAlert()
+        dialog.messageText = "Restore \(plan.count) change(s)?"
+        dialog.informativeText = "These will be put back the way they were:\n\n\(listing)"
+        dialog.alertStyle = .warning
+        dialog.addButton(withTitle: "Restore")
+        dialog.addButton(withTitle: "Cancel")
+        guard dialog.runModal() == .alertFirstButtonReturn else { return }
+
+        let outcomes = Executor(journal: journal)
+            .resume(context: ExecutionContext(domain: Domain.effective().target), catalog: catalog)
         rebuild()
+
+        let lines = outcomes.map { "  \($0.result)  \($0.entryId)" }.joined(separator: "\n")
+        alert(title: journal.held().isEmpty ? "Restored" : "Partly restored", body: lines, monospaced: true)
     }
 
     @objc func openDashboard() {

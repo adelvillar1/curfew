@@ -21,6 +21,11 @@ public enum VerifyKind: String, Sendable, Equatable {
     case portClosed = "port_closed"
     case processGone = "process_gone"
     case labelNotRunning = "label_not_running"
+    /// `launchctl disable` marks a label so it will not be loaded again; it does **not** stop an
+    /// instance that is already running, and an app-submitted job often has no plist to bootout from.
+    /// Verifying such a recipe with `label_not_running` reports a failure for a stop that worked
+    /// (KI-044: it aborted a whole bundle after one entry).
+    case labelDisabled = "label_disabled"
 }
 
 public struct Verification: Sendable, Equatable {

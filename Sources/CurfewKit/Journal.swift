@@ -119,9 +119,42 @@ public final class Journal: @unchecked Sendable {
         return all.filter { $0.kind == .intent && !answered.contains($0.seq) }
     }
 
-    /// Unresolved intents in reverse order: the last thing started is the first thing to undo.
+    /// What Curfew is holding right now: intents whose action **succeeded** and that have not been
+    /// restored. This is what quiet mode *is*. `unresolved()` answers a different question — a run that
+    /// died mid-action — and keying quiet mode off it made a successful apply read as "nothing to
+    /// restore" the instant it finished (KI-045).
+    public func held() -> [JournalRecord] {
+        let all = records()
+        let succeeded = Set(all.compactMap { record in
+            record.kind == .outcome && record.result == "ok" ? record.intent : nil
+        })
+        // `resume` closes an intent with a "resumed" outcome; that takes it out of the set.
+        let restored = Set(all.compactMap { record in
+            record.kind == .outcome && record.result == "resumed" ? record.intent : nil
+        })
+        return all.filter { record in
+            // A `resume` writes its own intent for the undo action. Its "ok" outcome must not make it
+            // look like a change Curfew is holding — that would leave a phantom entry after every
+            // restore, and quiet mode would never read as off again.
+            record.kind == .intent
+                && record.action != "resume"
+                && succeeded.contains(record.seq)
+                && !restored.contains(record.seq)
+        }
+    }
+
+    /// Everything a resume would put back, newest first: the last thing started is the first to undo.
+    ///
+    /// The union of two populations, because both may have changed the machine:
+    /// - `held()` — the action succeeded and was not undone (normal quiet mode);
+    /// - `unresolved()` — the run died between intent and outcome, so the action may have happened
+    ///   (crash recovery). Dropping these from the plan would silently strand a half-applied run.
     public func restorePlan() -> [JournalRecord] {
-        unresolved().reversed()
+        let both = unresolved() + held()
+        var seen = Set<Int>()
+        return both
+            .filter { seen.insert($0.seq).inserted }
+            .sorted { $0.seq > $1.seq }
     }
 
     public func isReadable() -> Bool {
