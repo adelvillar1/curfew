@@ -127,3 +127,21 @@ reports `nil` where it should report a value silently disables the whole detecto
 ## Consistency
 
 `Depends` names only defined atoms; `Choices` names only existing `D` ids; the atom count matches the plan set. Policed by `scripts/ledger_check.py`.
+
+---
+
+## L8 — The window, made readable (7 atoms · plan `2026-11-26-app-window-usability.md`)
+
+The plan is the contract; each atom closes one of its criteria, and the criterion is the atom's evidence.
+Status starts `planned`; an atom becomes `done` only when its criterion is verified from a capture.
+
+| Atom | What it delivers | Depends on | Decisions | Status | Evidence |
+|---|---|---|---|---|---|
+| L8.1 | `Vocabulary.displayName(for:)` — a namespaced launchd label rendered as a name a person recognises, raw label kept on the detail line | — | D38 | planned | closes C0 |
+| L8.2 | Services: a header row naming the columns, and rows grouped by kind with counts | L8.1 | D31 | planned | closes C1 |
+| L8.3 | Services: a search field inside the pane (not `.searchable`, which never renders here) filtering on name or raw label | L8.1, L8.2 | D31 | planned | closes C2 |
+| L8.4 | Sort controls: Services by name, Apps by memory and by name, the choice held for the session | L8.2 | D31 | planned | closes C3 |
+| L8.5 | Bundles: a quiet-mode banner with Restore; no disabled control without a visible reason | L8.4 | D30, D31 | planned | closes C4 |
+| L8.6 | Landing pane fitted to a two-row Held list (≤40 pt above the footer) | L8.5 | D31 | planned | closes C5 |
+| L8.7 | Help sheet (⌘?) defining held, protected and each finding kind; ⌘F focuses the pane's search | L8.6 | D31, D37 | planned | closes C6 and C7 |
+
