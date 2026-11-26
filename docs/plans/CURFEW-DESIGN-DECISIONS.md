@@ -339,3 +339,12 @@ Rules:
   confirmation surface worth trusting, so it remains `make hygiene-live`.
   Constrains: `OrphanReaper` · `PlanAction.reapOrphans` · the Hygiene pane's Reap button.
 
+- **D47 — The storage leg gets an action too, on the same plan-then-confirm footing.**
+  Rationale: D46 left the artifact list report-only, which made the one thing a person opens the pane to fix
+  the one thing the pane could not do. `ArtifactReclaimer` deletes only names on the closed list, only when
+  `wouldPrune` is already true, and only directly under the repo root — all three re-checked at delete time.
+  The button is **state-aware**: with nothing prunable it reads "Nothing to reclaim" and is disabled with the
+  reason in its tooltip, because a control that cannot act must say why (the fridge-door lesson from the apps
+  pane). The CLI is dry unless `--yes`, and that ordering is now the tested part (KI-066).
+  Constrains: `ArtifactReclaimer` · `PlanAction.reclaim` · the Hygiene pane's reclaim button · `curfew hygiene --reclaim`.
+

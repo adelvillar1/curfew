@@ -757,6 +757,27 @@ func runHygiene() -> Never {
     print("")
     print(report.verdict)
 
+    if has("--reclaim") {
+        print("")
+        // The flag is checked BEFORE anything is deleted. The first version called the reclaimer and
+        // then printed "would reclaim", so a dry run deleted the directory and said it hadn't.
+        guard has("--yes") else {
+            if report.pruneable.isEmpty {
+                print("Nothing to reclaim.")
+            } else {
+                print("would reclaim \(HygieneRules.megabytes(report.pruneableBytes)) —")
+                for artifact in report.pruneable {
+                    print("  \(artifact.name)  \(HygieneRules.megabytes(artifact.bytes))")
+                }
+                print("add --yes to delete them")
+            }
+            exit(0)
+        }
+        let result = ArtifactReclaimer().reclaim(report.pruneable, root: repo)
+        print(result.summary)
+        for refusal in result.refused { print("  refused \(refusal.name): \(refusal.reason)") }
+    }
+
     if has("--reap") {
         let result = OrphanReaper().reap(report.orphans)
         print("")

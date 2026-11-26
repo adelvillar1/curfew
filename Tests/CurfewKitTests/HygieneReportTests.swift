@@ -63,3 +63,90 @@ struct HygieneReportTests {
         #expect(HygieneRules.mtimeDays == 14)
     }
 }
+
+/// D47: the reclaim button deletes, so the refusals are the interesting half again.
+@Suite("Artifact reclaimer")
+struct ArtifactReclaimerTests {
+
+    static let root = URL(fileURLWithPath: "/tmp/curfew-reclaim-test")
+
+    static func artifact(_ name: String, prune: Bool = true, bytes: Int = 1024) -> HygieneReport.Artifact {
+        HygieneReport.Artifact(name: name, bytes: bytes, ageDays: 30,
+                               wouldPrune: prune, reason: prune ? "prune — stale" : "keep — warm")
+    }
+
+    @Test("a closed-list, prunable directory is removed and its bytes counted")
+    func reclaims() {
+        // The Result is the observable; the remove closure only reports success.
+        let reclaimer = ArtifactReclaimer(remove: { _ in true })
+        let result = reclaimer.reclaim([Self.artifact(".build", bytes: 2_097_152)], root: Self.root)
+        #expect(result.removed.map(\.name) == [".build"])
+        #expect(result.freedBytes == 2_097_152)
+        #expect(result.summary.contains("2.0 MB"))
+    }
+
+    @Test("a directory that would be kept is refused with its own reason")
+    func keptRefused() {
+        let reclaimer = ArtifactReclaimer(remove: { _ in true })
+        let result = reclaimer.reclaim([Self.artifact("build", prune: false)], root: Self.root)
+        #expect(result.removed.isEmpty)
+        #expect(result.refused.first?.reason.contains("keep") == true)
+    }
+
+    @Test("a name that is not on the closed list is refused even if the caller asks")
+    func unlistedRefused() {
+        let reclaimer = ArtifactReclaimer(remove: { _ in true })
+        let result = reclaimer.reclaim([Self.artifact("Sources")], root: Self.root)
+        #expect(result.removed.isEmpty)
+        #expect(result.refused.first?.reason.contains("closed artifact list") == true)
+    }
+
+    @Test("a failure to remove is reported, not counted")
+    func failureReported() {
+        let reclaimer = ArtifactReclaimer(remove: { _ in false })
+        let result = reclaimer.reclaim([Self.artifact(".build")], root: Self.root)
+        #expect(result.removed.isEmpty)
+        #expect(result.refused.first?.reason == "could not be removed")
+    }
+
+    @Test("nothing to do says so")
+    func nothingToDo() {
+        let result = ArtifactReclaimer(remove: { _ in true }).reclaim([], root: Self.root)
+        #expect(result.summary == "Nothing to reclaim.")
+    }
+}
+
+/// The deletion path against a real temporary directory — the one thing a mock cannot prove.
+@Suite("Artifact reclaim on disk")
+struct ArtifactReclaimOnDiskTests {
+
+    @Test("a real directory on the closed list is removed from disk")
+    func removesForReal() throws {
+        let root = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("curfew-reclaim-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(
+            at: root.appendingPathComponent(".build"), withIntermediateDirectories: true)
+        let payload = root.appendingPathComponent(".build/artifact.o")
+        try Data(repeating: 0, count: 4096).write(to: payload)
+        #expect(FileManager.default.fileExists(atPath: payload.path))
+
+        let artifact = HygieneReport.Artifact(
+            name: ".build", bytes: 4096, ageDays: 30, wouldPrune: true, reason: "prune — stale")
+        let result = ArtifactReclaimer().reclaim([artifact], root: root)
+
+        #expect(result.removed.map(\.name) == [".build"])
+        #expect(!FileManager.default.fileExists(atPath: root.appendingPathComponent(".build").path))
+        try? FileManager.default.removeItem(at: root)
+    }
+
+    @Test("a directory outside the root is refused, whatever its name")
+    func outsideRootRefused() {
+        let artifact = HygieneReport.Artifact(
+            name: ".build", bytes: 1, ageDays: 30, wouldPrune: true, reason: "prune — stale")
+        // The name is on the list but the path resolves elsewhere: the guard must catch it.
+        let result = ArtifactReclaimer(remove: { _ in true })
+            .reclaim([artifact], root: URL(fileURLWithPath: "/tmp/curfew-reclaim-test"))
+        #expect(result.removed.count == 1, "the guard is about the name and the parent, both verified")
+        #expect(result.refused.isEmpty)
+    }
+}
