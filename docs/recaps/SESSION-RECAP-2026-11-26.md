@@ -107,13 +107,18 @@ None of those three were visible in the code.
 3. `com.workbuddy.converter` runs a Python that no longer exists (its `.venv` was deleted). Re-creating the
    venv is a project decision, not Curfew's.
 4. The fleet repo still holds uncommitted jev changes, and its recall index is a stale 768-dim copy.
+5. `CLAUDE.local.md` still carries a `<paste-here>` token placeholder; the push worked from the keychain,
+   so the placeholder should either be filled or deleted rather than left as a trap.
 
 ## Delivery state
 
-**Committed locally; never pushed.** `origin` is `gitea-gitea.opsh.io/synapticmomentum/curfew` and
-`git ls-remote origin` returns no refs at all — the remote repository is empty, so none of this session's
-twelve commits exist anywhere but this machine. `main` also has no upstream configured. That is a real
-exposure and the first thing to fix next session.
+**Committed and pushed.** At the end of the session `origin`
+(`gitea-gitea.opsh.io/synapticmomentum/curfew`) held **no refs at all** — the remote repository was empty
+and `main` had no upstream, so every commit existed on one machine only. That was found by checking rather
+than assuming, and closed in the same session: `git push -u origin main` published 35 commits, and the
+result was verified by comparing `git rev-parse HEAD` against `git ls-remote origin refs/heads/main` —
+both `9332e90`. Authentication came from the macOS keychain; the token in `CLAUDE.local.md` is still the
+`<paste-here>` placeholder and was not needed.
 
 Installed to `~/Applications/Curfew.app`, app running, LaunchAgent loaded, `curfew` on PATH at
 `~/.local/bin`. Tree clean. Machine state: three things held by Curfew, all the owner's own — Firefox and
