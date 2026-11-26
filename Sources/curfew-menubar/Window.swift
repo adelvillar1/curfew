@@ -83,6 +83,24 @@ final class AppModel: ObservableObject {
         }
     }
 
+    /// Resume a frozen app: SIGCONT, instant and safe, so it needs no confirmation.
+    func thaw(_ app: AppRecord) {
+        let pending = journal.restorePlan().filter {
+            $0.entryId == app.bundlePath && $0.action == "freeze"
+        }
+        guard !pending.isEmpty else {
+            note = Note(title: "Not frozen by Curfew",
+                        body: "\(app.name) is not something Curfew stopped, so there is nothing to resume.")
+            return
+        }
+        let outcomes = Executor(journal: journal)
+            .resume(context: context, catalog: catalog, labels: [app.bundlePath])
+        refresh()
+        let lines = outcomes.map { "\(Self.mark($0.result))  \($0.entryId)  \(Self.describe($0.result))" }
+        let title = outcomes.first.map { seen($0) } ?? "Nothing to resume"
+        note = Note(title: title, body: lines.isEmpty ? "No change was needed." : lines.joined(separator: "\n"))
+    }
+
     /// Quit asks first: an app can lose unsaved work.
     func askToQuit(_ app: AppRecord) {
         plan = Plan(
@@ -756,12 +774,16 @@ private struct AppRow: View {
                 .font(.callout)
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
-            // Freeze is the verb: instant and exactly reversible. Quit is deliberately quieter —
-            // it is the one that can lose work.
-            Button("Freeze") { model.freeze(app) }
-                .buttonStyle(.bordered)
-                .disabled(app.isFrozen)
-                .help("Suspend the app's processes. Restore resumes it exactly where it was.")
+            // State-aware: the same row offers Freeze before and Resume after (KI-053).
+            if app.isFrozen {
+                Button("Resume") { model.thaw(app) }
+                    .buttonStyle(.bordered)
+                    .help("Let \(app.name) run again — it continues exactly where it stopped.")
+            } else {
+                Button("Freeze") { model.freeze(app) }
+                    .buttonStyle(.bordered)
+                    .help("Suspend the app's processes. Resume continues it exactly where it was.")
+            }
             Button("Quit…") { model.askToQuit(app) }
                 .buttonStyle(.borderless)
                 .foregroundStyle(.secondary)

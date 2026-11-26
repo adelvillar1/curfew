@@ -66,8 +66,7 @@ if let index = CommandLine.arguments.firstIndex(of: "--drive-freeze"),
     }
     print("note   : \(model.note?.title ?? "-")")
     model.note = nil
-    model.start(label: app.bundlePath)
-    if model.plan != nil { model.applyPlan() }
+    model.thaw(app)
     if let row = model.snapshot.apps.first(where: { $0.name == name }) {
         print("thawed : frozen=\(row.isFrozen)")
     }

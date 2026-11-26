@@ -75,4 +75,27 @@ struct AppsTests {
         #expect(outcome.result == .executed(verified: true))
         _ = control
     }
+
+    @Test("resume with a label thaws that app and closes the freeze intent")
+    func executorThaws() throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("curfew-thaw-\(UUID().uuidString).jsonl")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let journal = Journal(url: url)
+
+        // record a freeze of this test process without actually stopping it
+        let intent = try journal.appendIntent(
+            entryId: "/Applications/Example.app", action: "freeze",
+            argv: [[String(getpid())]])
+        try journal.appendOutcome(intent: intent, result: "ok", verified: true)
+        #expect(journal.held().count == 1)
+
+        let outcomes = Executor(journal: journal).resume(
+            context: ExecutionContext(domain: "gui/501"),
+            catalog: Catalog(entries: [], bundles: [], files: []),
+            labels: ["/Applications/Example.app"])
+
+        #expect(outcomes.first?.result == .executed(verified: true))
+        #expect(journal.held().isEmpty, "the freeze is undone, so quiet mode stops claiming it")
+    }
 }

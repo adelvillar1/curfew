@@ -58,8 +58,12 @@ command that fixes it).
 
 **A control states what it will do now.** The finding row's action is Stop before Curfew holds the
 service and Start after; the row also names the state in words ("held by Curfew", or the launchd state).
-A button whose label stops being true is a bug, not a polish item — the owner found this one by pressing
-it (KI-047).
+An app row offers Freeze while it runs and Resume while it is frozen. A button whose label stops being
+true is a bug, not a polish item — the owner found this one by pressing it (KI-047), and found the same
+shape again in the Apps pane (KI-053).
+
+**Every action has its inverse on the same row.** If a row can do something, the row can undo it. The
+global Restore is the sweep, never the only way back.
 
 ## Voice in the interface
 
