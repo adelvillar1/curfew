@@ -7,7 +7,7 @@ PREFIX ?= $(HOME)/.local/bin
 # SwiftPM cannot build from a sandboxed agent session: see KI-019.
 SWIFT := swift build --disable-sandbox --cache-path .build/spm-cache --config-path .build/spm-config
 
-.PHONY: build release test check install uninstall app run-app install-app clean
+.PHONY: build release test check install uninstall app run-app install-app clean hygiene hygiene-live
 
 build:
 	$(SWIFT)
@@ -84,6 +84,18 @@ install-app: app
 	@# install otherwise leaves nothing on screen and looks like it did nothing. Ask the instance that
 	@# holds the lock to show itself; `open -a` only starts a second process, which the guard exits.
 	@open -a $(APP_INSTALL) || true
+
+## The hygiene pass, ported from fleet: prune regenerable artifacts from a stale repo, and stop
+## keep-alive processes whose parent is gone. Both are reports unless you ask for --live.
+hygiene:
+	@scripts/repo-hygiene.sh --report
+	@echo ""
+	@scripts/reap-orphans.sh
+
+hygiene-live:
+	@scripts/repo-hygiene.sh --live
+	@echo ""
+	@scripts/reap-orphans.sh --live
 
 uninstall-app:
 	-launchctl bootout gui/$(shell id -u)/$(AGENT) 2>/dev/null

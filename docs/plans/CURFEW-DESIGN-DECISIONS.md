@@ -291,3 +291,14 @@ Rules:
   prints it under the state line.
   Constrains: `make app` · `BuildIdentity` · the About panel.
 
+- **D42 — Curfew adopts fleet's hygiene pass, both legs, with the rules unchanged.**
+  Rationale: two habits from the fleet repo apply to this one verbatim. **Repo hygiene** prunes regenerable
+  artifacts (`.build`, `build`, `.swiftpm`) from a repo whose last commit is older than 21 days *and* whose
+  artifact is older than 14 days — both guards, so an active repo's hot build survives — from a **closed
+  list**, with anything unknown merely named. **The orphan reaper** stops keep-alive processes whose parent
+  is gone, matching the command **exactly** and only when `ppid == 1` and the process is ours; a process with a
+  live parent is never touched. Both are reports by default and act only on `--live`;
+  `make hygiene` / `make hygiene-live` run them. The rules are the incident's, not a preference: 1,232 orphaned
+  `tail -f /dev/null` keep-alives once cost this machine 580 MB RSS and 46% of `maxprocperuid`.
+  Constrains: `scripts/repo-hygiene.sh` · `scripts/reap-orphans.sh` · the `hygiene` targets.
+

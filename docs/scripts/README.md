@@ -28,3 +28,38 @@ Probe and measurement scripts. These are how the project turns "the machine feel
 ## Known limitation
 
 `/bin/ps` and `top` were blocked in the sandboxed session that produced the initial measurements. `footprint -p <pid>` and `vmmap` read the same information and are the preferred tools here; confirm both from a normal shell before relying on them.
+
+## `repo-hygiene.sh` — prune what a build regenerates
+
+Curfew's copy of fleet's projects-wide habit. The artifact list is **closed** — `.build`, `build`,
+`.swiftpm`, the three directories SwiftPM and `make app` write — and anything else found is *named*, never
+removed. A directory is prunable only when the repo's last commit is older than 21 days **and** the
+artifact's mtime is older than 14 days, so an active repo keeps its warm build. Uncommitted work is never
+touched.
+
+```bash
+scripts/repo-hygiene.sh --report     # the survey (default)
+scripts/repo-hygiene.sh --dry-run    # what --live would do, named
+scripts/repo-hygiene.sh --live       # apply, logging each action with its size
+scripts/repo-hygiene.sh --purge build
+```
+
+Log: `~/Library/Logs/curfew-repo-hygiene.log`.
+
+## `reap-orphans.sh` — stop keep-alives whose parent is gone
+
+From the 2026-11-21 incident: 1,232 orphaned `tail -f /dev/null` keep-alives (ppid 1, 580 MB RSS, 46% of
+`maxprocperuid`) accumulated over ~55 days. The rules are deliberately narrow: the command must match
+**exactly**, the parent must be gone (`ppid == 1`), and the process must be yours. A process with a live
+parent is never touched — its owner may be about to read from it.
+
+```bash
+scripts/reap-orphans.sh                 # report
+scripts/reap-orphans.sh --live          # SIGTERM the matches
+scripts/reap-orphans.sh --command 'cmd' # match a different exact command
+```
+
+Log: `~/Library/Logs/curfew-reap-orphans.log`.
+
+`make hygiene` runs both in report mode; `make hygiene-live` applies them.
+
