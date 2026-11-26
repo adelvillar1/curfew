@@ -361,6 +361,15 @@ private struct Sidebar: View {
 
 /// What build is running, read from the bundle the app was installed as.
 enum BuildIdentity {
+    /// The title bar is chrome the eye lands on; the build belongs there so "is this the new one?"
+    /// never needs a command line again.
+    static var windowTitle: String { "Curfew — " + shortBuild }
+
+    static var shortBuild: String {
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unversioned"
+        return build.components(separatedBy: " built ").first ?? build
+    }
+
     static var text: String {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
             ?? curfewVersion

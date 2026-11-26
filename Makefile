@@ -81,8 +81,9 @@ install-app: app
 	@echo "installed $(APP_INSTALL) and the login opener"
 	@echo "restore the status item with: launchctl kickstart gui/$$(id -u)/$(AGENT)"
 	@# The login opener starts the app with --background, which by design shows no window — so an
-	@# install otherwise leaves nothing on screen and looks like it did nothing. Show it, once.
-	@open -a $(APP_INSTALL)
+	@# install otherwise leaves nothing on screen and looks like it did nothing. Ask the instance that
+	@# holds the lock to show itself; `open -a` only starts a second process, which the guard exits.
+	@open -a $(APP_INSTALL) || true
 
 uninstall-app:
 	-launchctl bootout gui/$(shell id -u)/$(AGENT) 2>/dev/null

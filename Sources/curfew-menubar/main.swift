@@ -331,6 +331,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // The login opener starts the app in the background: a status item and a Dock icon, no window
         // appearing over whatever the owner was doing. A Finder or Dock launch opens the window.
+        listenForShowRequests()
         buildMainMenu()
         if !CommandLine.arguments.contains("--background") { showWindow() }
         NSApp.setActivationPolicy(.accessory)
@@ -531,6 +532,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         dialog.runModal()
     }
 
+    private var signalSource: DispatchSourceSignal?
+
+    /// Ask the running instance to show its window. `open -a` cannot do it when the instance was
+    /// started by `exec` rather than LaunchServices, and the single-instance guard makes a second
+    /// launch exit — so the hand-off is a signal, which always reaches the process that has the lock.
+    private func listenForShowRequests() {
+        signal(SIGUSR1, SIG_IGN)
+        let source = DispatchSource.makeSignalSource(signal: SIGUSR1, queue: .main)
+        source.setEventHandler { [weak self] in self?.showWindow() }
+        source.resume()
+        signalSource = source
+    }
+
     /// A regular app needs a menu, and the menu is where a keyboard path belongs. Before this the app
     /// had no shortcut at all — not refresh, not start, not a pane switch.
     func buildMainMenu() {
@@ -636,7 +650,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         let hosting = NSHostingController(rootView: CurfewWindow(model: model))
         let created = NSWindow(contentViewController: hosting)
-        created.title = "Curfew"
+        created.title = BuildIdentity.windowTitle
         created.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
         created.titlebarAppearsTransparent = false
         created.setContentSize(NSSize(width: 860, height: 430))
@@ -715,8 +729,22 @@ try? FileManager.default.createDirectory(
     atPath: (lockPath as NSString).deletingLastPathComponent, withIntermediateDirectories: true)
 let lockFD = open(lockPath, O_CREAT | O_RDWR, 0o644)
 if lockFD >= 0, flock(lockFD, LOCK_EX | LOCK_NB) != 0 {
-    FileHandle.standardError.write(Data("Curfew is already running.\n".utf8))
+    // Another instance is the app. Instead of sulking, ask it to show its window — this is what makes
+    // `open -a`, and a Dock click, bring the window forward even though LaunchServices never registered
+    // the instance the login opener `exec`ed.
+    if let holder = try? String(contentsOfFile: lockPath, encoding: .utf8),
+       let pid = pid_t(holder.trimmingCharacters(in: .whitespacesAndNewlines)) {
+        kill(pid, SIGUSR1)
+        print("Curfew is already running (pid \(pid)) — asked it to show its window.")
+    } else {
+        print("Curfew is already running.")
+    }
     exit(0)
+}
+if lockFD >= 0 {
+    ftruncate(lockFD, 0)
+    let me = "\(ProcessInfo.processInfo.processIdentifier)\n"
+    _ = me.withCString { write(lockFD, $0, strlen($0)) }
 }
 
 MainActor.assumeIsolated {
