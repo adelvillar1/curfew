@@ -40,6 +40,19 @@ func liveModel() -> MenuBarModel {
     )
 }
 
+if CommandLine.arguments.contains("--open-dashboard") {
+    // The same code path the menu item runs, driveable from a terminal so it can be proven rather
+    // than assumed — and so a failure prints its reason instead of being swallowed.
+    switch DashboardRunner.open() {
+    case .success(let line):
+        print("opened: \(line)")
+        exit(0)
+    case .failure(let error):
+        FileHandle.standardError.write(Data((error.message + "\n").utf8))
+        exit(1)
+    }
+}
+
 if CommandLine.arguments.contains("--dump-menu") {
     print(liveModel().dump())
     exit(0)
@@ -95,15 +108,69 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func openDashboard() {
-        // The dashboard is a terminal program; hand it to the default terminal via `open`.
-        let cli = ProcessInfo.processInfo.environment["CURFEW_CLI"] ?? "/usr/local/bin/curfew"
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-        task.arguments = ["-e", "tell application \"Terminal\" to do script \"\(cli)\""]
-        try? task.run()
+        switch DashboardRunner.open() {
+        case .success:
+            break
+        case .failure(let error):
+            // A menu item that does nothing is indistinguishable from a broken one. Say why.
+            let alert = NSAlert()
+            alert.messageText = "Could not open the dashboard"
+            alert.informativeText = error.message
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: "OK")
+            alert.runModal()
+        }
     }
 
     @objc func quit() { NSApp.terminate(nil) }
+}
+
+/// The thin AppKit/AppleScript half — the decisions live in `CurfewKit.DashboardLauncher`, which is
+/// tested; this only calls them and reports.
+enum DashboardRunner {
+    static var bundledCatalog: String? {
+        guard let resources = Bundle.main.resourceURL else { return nil }
+        let path = resources.appendingPathComponent("catalog").path
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory), isDirectory.boolValue
+        else { return nil }
+        return path
+    }
+
+    static func open() -> Result<String, DashboardLauncher.Failure> {
+        guard let cli = DashboardLauncher.resolve() else {
+            return .failure(DashboardLauncher.Failure(message: DashboardLauncher.missingMessage()))
+        }
+        let line = DashboardLauncher.command(cli: cli, catalog: bundledCatalog)
+
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        task.arguments = ["-e", "tell application \"Terminal\" to do script \"\(line)\" activate"]
+        let errPipe = Pipe()
+        task.standardError = errPipe
+        task.standardOutput = Pipe()
+        do {
+            try task.run()
+        } catch {
+            return .failure(DashboardLauncher.Failure(
+                message: "Could not run osascript: \(error.localizedDescription)"))
+        }
+        let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
+        task.waitUntilExit()
+        let stderr = String(decoding: errData, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+        if task.terminationStatus != 0 {
+            let automation = stderr.contains("-1743") || stderr.lowercased().contains("not allowed")
+            return .failure(DashboardLauncher.Failure(message: automation
+                ? """
+                  macOS did not allow Curfew to control Terminal.
+
+                  Allow it in System Settings → Privacy & Security → Automation → Curfew → Terminal.
+                  \(stderr.isEmpty ? "" : "\n\(stderr)")
+                  """
+                : "Terminal refused the request (exit \(task.terminationStatus)).\n\(stderr)"))
+        }
+        return .success(line)
+    }
 }
 
 MainActor.assumeIsolated {

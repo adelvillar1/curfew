@@ -577,6 +577,28 @@ even when nothing fires, or the baseline would never advance.
 
 **12 new tests; 220 in 30 suites. The known-issues ledger is at ZERO open.**
 
+## Round 22 — "Open dashboard…" did nothing (KI-042)
+
+Four reasons stacked behind one dead menu item, and only driving it found them:
+
+1. **The CLI had never been installed.** The app hardcoded `/usr/local/bin/curfew`; `make install` puts
+   it in `~/.local/bin`, and neither existed.
+2. **`try? task.run()` swallowed every failure** — a missing binary, a TCC denial, anything.
+3. Once installed, the command was `curfew --dir X`, which the CLI reads as a *command name* and answers
+   with its help text — a launcher that works and still looks dead.
+4. Even then the dashboard opened with **"(no bundles)"**: the CLI resolves `./catalog` and Terminal
+   starts in `$HOME` — KI-039's defect, in the other face of the same product.
+
+The fix: `CurfewKit.DashboardLauncher` (tested, 6 tests) resolves `CURFEW_CLI` → `~/.local/bin` →
+Homebrew → `PATH`, builds `curfew tui --dir <catalogue sealed in the bundle>`, and the app shows an
+`NSAlert` naming every path it tried. `make install-app` also gained a wait after `bootout` — bootstrapping
+too soon returned 5.
+
+**Verified by driving it, not by reading it:** a Terminal window opens running `curfew 0.1.0 · gui/501`,
+`--open-dashboard` prints the exact command, and the failure message lists all six paths it searched.
+
+**226 tests in 31 suites.**
+
 ## Criteria status
 
 All met except two, **deliberately revised** (recorded in the plan, not silently dropped):

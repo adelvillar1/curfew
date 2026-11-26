@@ -156,6 +156,20 @@ Every request sends `User-Agent: curfew` — Cloudflare answers 403/1010 to urll
 twice on this machine. The transport, clock and cache are injected, so the whole surface is testable
 without a network. `unknown` is a first-class outcome: a transport failure is never read as confidence.
 
+## C21 — `DashboardLauncher` — Sources/CurfewKit/DashboardLauncher.swift
+
+```text
+OFFERS   candidates(environment:fileExists:) -> [String] · resolve(...) -> String?
+         command(cli:catalog:) -> String · missingMessage(candidates:) -> String
+EXPECTS  a CLI produced by `make install` (~/.local/bin/curfew) · osascript/Terminal (the app target)
+CONSUMED BY  Curfew.app's "Open dashboard…" item
+```
+
+The subcommand comes **first** — `curfew tui --dir X`. `curfew --dir X` reads `X` as the command name
+and prints help, which is how a working launcher can still look dead. Resolution order: `CURFEW_CLI`,
+`~/.local/bin`, Homebrew, `/usr/local`, then `PATH`. A missing CLI is an error with every path listed,
+never a silent no-op.
+
 ## C20 — `RespawnTracker` — Sources/CurfewKit/RespawnTracker.swift
 
 ```text

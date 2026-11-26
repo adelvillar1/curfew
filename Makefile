@@ -70,6 +70,10 @@ install-app: app
 	-/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f $(APP_INSTALL)
 	cp scripts/$(AGENT).plist $(HOME)/Library/LaunchAgents/$(AGENT).plist
 	-launchctl bootout gui/$(shell id -u)/$(AGENT) 2>/dev/null
+	@# the old instance takes a moment to release the job; bootstrapping too soon returns 5
+	@for i in 1 2 3 4 5 6 7 8 9 10; do \
+		launchctl print gui/$(shell id -u)/$(AGENT) >/dev/null 2>&1 || break; sleep 0.3; \
+	done
 	launchctl bootstrap gui/$(shell id -u) $(HOME)/Library/LaunchAgents/$(AGENT).plist
 	@echo "installed $(APP_INSTALL) and the login opener"
 	@echo "restore the status item with: launchctl kickstart gui/$$(id -u)/$(AGENT)"
