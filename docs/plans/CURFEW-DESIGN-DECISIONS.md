@@ -224,3 +224,22 @@ Rules:
   a pane; `--drive-stop` / `--drive-start` run the window's exact model path and print what it recorded.
   Constrains: `curfew-menubar`'s debug entry points.
 
+- **D34 — Debris is quarantined, never deleted.**
+  Rationale: a removed app can leave a plist whose program is gone, and on this machine one of six such
+  findings is exactly that — `com.valvesoftware.steamclean`, still spawn-scheduled with a 60-second
+  throttle, failing with `EX_CONFIG` forever. Deleting would be the first irreversible thing Curfew does
+  and would break the one promise the product is built on. So the plist **moves** into
+  `~/Library/Application Support/Curfew/quarantine/<timestamp>/`, keeping its path shape, journaled
+  before the move, and `resume` moves it back.
+  Constrains: `QuarantineStore` (C25) · `Executor::resume`'s quarantine branch · `Journal.held`.
+
+- **D35 — "Dangling program" is three different findings, and only one is actionable.**
+  Rationale: of six dangling programs on this machine, four are platform artifacts under `/System` (SIP
+  owns them; `Battery.menu` does not exist on Apple Silicon), one belongs to a live project whose
+  virtualenv was deleted, and one is litter. A blanket cleanup would have been wrong about five. So a
+  missing program under `/System` or `/usr` is reported as `environmental` with "nothing to do" in its
+  summary, and quarantine is offered **only** when the program is missing *and* the owning app is
+  verifiably absent (`QuarantineEligibility`), never under `/System`, and never for a path that names no
+  app.
+  Constrains: `Findings::danglingProgram` · `QuarantineEligibility::judge` · the finding list's severity mix.
+

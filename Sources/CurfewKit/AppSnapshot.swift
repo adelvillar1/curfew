@@ -50,6 +50,10 @@ public struct AppSnapshot: Sendable, Equatable {
         public var isHeld: Bool
         /// The live launchd state, so the row shows what the stop actually did.
         public var serviceState: String
+        /// The stale plist may be moved to quarantine — only when the owning app is verifiably gone.
+        public var canQuarantine: Bool
+        /// Why quarantine is offered, or why it is not — shown as the button's tooltip.
+        public var quarantineNote: String
         public var id: String { "\(label)/\(kind)" }
     }
 
@@ -137,6 +141,19 @@ public enum AppSnapshotProvider {
         let findings: [AppSnapshot.Finding] = records.flatMap { record in
             record.findings.map { finding in
                 let entry = entries[record.id]
+                // Debris a removed app left behind: judged from the program and the plist, never guessed.
+                let verdict = QuarantineEligibility.judge(
+                    program: record.program, plistPath: record.plistPath)
+                let canQuarantine: Bool
+                let quarantineNote: String
+                switch verdict {
+                case .eligible(let owner):
+                    canQuarantine = true
+                    quarantineNote = "\(owner) is gone — move the stale plist to quarantine"
+                case .refuse(let why):
+                    canQuarantine = false
+                    quarantineNote = why
+                }
                 // Stop is only offered where a stop would be honest: verified, catalogued, not protected.
                 let canStop = entry.map { $0.status == .verified && $0.stop != nil } ?? false
                     && !NeverList.isProtected(label: record.id)
@@ -145,7 +162,8 @@ public enum AppSnapshotProvider {
                     severity: finding.severity.rawValue, summary: finding.summary,
                     evidence: finding.evidence, canStop: canStop,
                     isHeld: heldLabels.contains(record.id),
-                    serviceState: record.state.rawValue)
+                    serviceState: record.state.rawValue,
+                    canQuarantine: canQuarantine, quarantineNote: quarantineNote)
             }
         }.sorted { left, right in
             if left.severity != right.severity { return left.severity < right.severity }

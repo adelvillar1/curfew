@@ -65,7 +65,8 @@ struct AppSnapshotTests {
     func canStopIsEarned() {
         let uncatalogued = AppSnapshot.Finding(
             label: "com.example.unknown", kind: "danglingProgram", severity: "defect",
-            summary: "x", evidence: "y", canStop: false, isHeld: false, serviceState: "running")
+            summary: "x", evidence: "y", canStop: false, isHeld: false, serviceState: "running",
+            canQuarantine: false, quarantineNote: "it points into a path that names no app")
         #expect(!uncatalogued.canStop)
     }
 

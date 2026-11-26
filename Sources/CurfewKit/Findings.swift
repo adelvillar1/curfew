@@ -115,10 +115,18 @@ public struct FindingsEngine: Sendable {
         } else {
             evidence = "\(program) does not exist"
         }
+
+        // A missing program under /System or /usr is a platform artifact, not litter and never
+        // actionable: SIP owns those paths, and macOS ships jobs whose program is absent on some
+        // architectures (Battery.menu on Apple Silicon among them). Reported as environmental so the
+        // defect list stays worth reading.
+        let isPlatformPath = program.hasPrefix("/System/") || program.hasPrefix("/usr/")
         return Finding(
             id: .danglingProgram,
-            severity: .defect,
-            summary: "\(detail.label) declares a program that cannot be run",
+            severity: isPlatformPath ? .environmental : .defect,
+            summary: isPlatformPath
+                ? "This macOS ships no program here (nothing to do)"
+                : "\(detail.label) declares a program that cannot be run",
             evidence: evidence,
             confirmsScan: true
         )

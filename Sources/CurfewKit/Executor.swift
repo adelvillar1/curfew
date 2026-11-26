@@ -424,6 +424,23 @@ public struct Executor: Sendable {
                 outcomes.append(StepOutcome(entryId: entryId, action: "resume", result: .preExisting(preExisting)))
                 continue
             }
+            // A quarantine undoes by moving the file back — there is no start recipe for a file.
+            if intent.action == "quarantine" {
+                guard let paths = intent.argv?.first, paths.count >= 2 else {
+                    outcomes.append(StepOutcome(entryId: entryId, action: "resume",
+                                                result: .refused("quarantine intent names no paths")))
+                    continue
+                }
+                do {
+                    try QuarantineStore.restore(from: paths[1], to: paths[0])
+                    try journal.appendOutcome(intent: intent.seq, result: "resumed", verified: true)
+                    outcomes.append(StepOutcome(entryId: entryId, action: "resume", result: .executed(verified: true)))
+                } catch {
+                    outcomes.append(StepOutcome(entryId: entryId, action: "resume",
+                                                result: .failed("\(error.localizedDescription)")))
+                }
+                continue
+            }
             guard let entry = catalog.entry(entryId), let start = entry.start else {
                 outcomes.append(StepOutcome(entryId: entryId, action: "resume", result: .refused("no start recipe")))
                 continue

@@ -183,6 +183,36 @@ final class AppModel: ObservableObject {
             })
     }
 
+    /// Move a stale plist to quarantine — offered only where the owning app is verifiably gone.
+    /// Never deletes: `resume` puts the file back.
+    func quarantine(label: String) {
+        let records = LaunchdInventory().records(in: Domain.effective(), findings: FindingsEngine()).records
+        guard let record = records.first(where: { $0.id == label }), let plist = record.plistPath else {
+            note = Note(title: "Cannot quarantine \(label)", body: "Its plist could not be located.")
+            return
+        }
+        switch QuarantineEligibility.judge(program: record.program, plistPath: plist) {
+        case .refuse(let why):
+            note = Note(title: "Cannot quarantine \(label)", body: why)
+        case .eligible(let owner):
+            plan = Plan(
+                title: "Quarantine \(label)?",
+                detail: "\(owner) is gone. The stale plist moves to Curfew's quarantine — it is not deleted, and Restore puts it back.",
+                steps: ["\(plist)", "  → Application Support/Curfew/quarantine/…"],
+                apply: { [weak self] in
+                    guard let self else { return [] }
+                    do {
+                        let outcome = try QuarantineStore()
+                            .quarantine(plistPath: plist, label: label, journal: self.journal)
+                        self.refresh()
+                        return ["\(Self.mark(outcome.result))  \(outcome.entryId)  \(Self.describe(outcome.result))"]
+                    } catch {
+                        return ["✗  \(label)  \(error.localizedDescription)"]
+                    }
+                })
+        }
+    }
+
     func applyPlan() {
         guard let plan else { return }
         busy = true
@@ -546,6 +576,10 @@ private struct FindingRow: View {
             } else if finding.canStop {
                 Button("Stop") { model.stop(label: finding.label) }
                     .help("Stop \(finding.label) and record it, so it can be put back.")
+            }
+            if finding.canQuarantine {
+                Button("Quarantine…") { model.quarantine(label: finding.label) }
+                    .help(finding.quarantineNote)
             }
         }
         .padding(.vertical, 8)

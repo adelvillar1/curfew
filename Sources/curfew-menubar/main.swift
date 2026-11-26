@@ -51,6 +51,41 @@ func liveModel() -> MenuBarModel {
     )
 }
 
+if let index = CommandLine.arguments.firstIndex(of: "--drive-quarantine"),
+   CommandLine.arguments.count > index + 1 {
+    // The window's quarantine path, driven: move the plist, then put it back, so both directions are
+    // proven on the real file rather than on a fixture.
+    let label = CommandLine.arguments[index + 1]
+    let model = AppModel(catalogDirectory: catalogDirectory())
+    let records = LaunchdInventory().records(in: Domain.effective(), findings: FindingsEngine()).records
+    guard let record = records.first(where: { $0.id == label }), let plist = record.plistPath else {
+        print("no record with a plist for \(label)"); exit(1)
+    }
+    print("verdict: \(QuarantineEligibility.judge(program: record.program, plistPath: plist))")
+    model.quarantine(label: label)
+    guard let plan = model.plan else {
+        print("no plan: \(model.note?.title ?? "-") — \(model.note?.body ?? "")"); exit(1)
+    }
+    print("plan   : \(plan.title)")
+    for step in plan.steps { print("         \(step)") }
+    model.applyPlan()
+    print("result : \(model.note?.body.replacingOccurrences(of: "\n", with: " | ") ?? "-")")
+    model.note = nil
+    print("moved  : plist present=\(FileManager.default.fileExists(atPath: plist)) held=\(model.snapshot.heldLabels.sorted())")
+
+    // and back
+    model.start(label: label)
+    if let reverse = model.plan {
+        for step in reverse.steps { print("undo   : \(step)") }
+        model.applyPlan()
+        print("restored: \(model.note?.body.replacingOccurrences(of: "\n", with: " | ") ?? "-")")
+        print("back   : plist present=\(FileManager.default.fileExists(atPath: plist)) held=\(model.snapshot.heldLabels.sorted())")
+    } else {
+        print("undo   : no plan — \(model.note?.title ?? "-")")
+    }
+    exit(0)
+}
+
 if let index = CommandLine.arguments.firstIndex(of: "--drive-start"),
    CommandLine.arguments.count > index + 1 {
     let label = CommandLine.arguments[index + 1]

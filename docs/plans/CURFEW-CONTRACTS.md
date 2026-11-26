@@ -171,6 +171,21 @@ Start, which must undo exactly one service and leave the rest held (C23's `isHel
 closed. `restorePlan()` is the **union of `held()` and `unresolved()`** — normal quiet mode plus a run that
 died mid-action. Dropping either strands a state.
 
+## C25 — `QuarantineEligibility` / `QuarantineStore` — Sources/CurfewKit/Quarantine.swift
+
+```text
+OFFERS   QuarantineEligibility::judge(program:plistPath:fileExists:home:) -> Verdict (.eligible / .refuse)
+         QuarantineStore::quarantine(plistPath:label:journal:) -> StepOutcome · defaultRoot
+         QuarantineStore::restore(from:to:)
+EXPECTS  Journal (C24) · the inventory's record's `program` and `plistPath`
+CONSUMED BY  Curfew.app's findings list · Executor::resume (the quarantine branch)
+```
+
+**Moves, never deletes** (D34). Eligible only when the program is missing, the path is not under
+`/System`/`/usr`, and the owning app is verifiably absent — established from a `.app` in the path or an
+`Application Support/<Name>/` folder, and refused when neither names an app (D35). Every refusal carries
+a reason the window shows as the button's tooltip.
+
 ## C23 — `AppSnapshot` — Sources/CurfewKit/AppSnapshot.swift
 
 ```text
