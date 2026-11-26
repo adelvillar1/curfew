@@ -424,6 +424,15 @@ public struct Executor: Sendable {
                 outcomes.append(StepOutcome(entryId: entryId, action: "resume", result: .preExisting(preExisting)))
                 continue
             }
+            // A frozen app undoes by SIGCONT — no launchd verb involved.
+            if intent.action == "freeze" {
+                let outcome = AppControl.thaw(intent)
+                if case .executed = outcome.result {
+                    try? journal.appendOutcome(intent: intent.seq, result: "resumed", verified: true)
+                }
+                outcomes.append(outcome)
+                continue
+            }
             // A quarantine undoes by moving the file back — there is no start recipe for a file.
             if intent.action == "quarantine" {
                 guard let paths = intent.argv?.first, paths.count >= 2 else {

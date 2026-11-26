@@ -59,6 +59,8 @@ public struct AppSnapshot: Sendable, Equatable {
 
     public var quiet: Bool
     public var held: [Held]
+    /// GUI apps and what they hold — the biggest reclaim on the machine, and never pre-selected.
+    public var apps: [AppRecord]
     /// Every label Curfew is holding — the set the rows read to decide Stop or Start.
     public var heldLabels: Set<String>
     public var bundles: [Bundle]
@@ -69,12 +71,13 @@ public struct AppSnapshot: Sendable, Equatable {
     public var capturedAt: Date
 
     public init(
-        quiet: Bool, held: [Held] = [], heldLabels: Set<String> = [], bundles: [Bundle] = [],
-        services: [Service] = [], findings: [Finding] = [], problem: String? = nil,
-        capturedAt: Date = Date()
+        quiet: Bool, held: [Held] = [], heldLabels: Set<String> = [], apps: [AppRecord] = [],
+        bundles: [Bundle] = [], services: [Service] = [], findings: [Finding] = [],
+        problem: String? = nil, capturedAt: Date = Date()
     ) {
         self.quiet = quiet
         self.held = held
+        self.apps = apps
         self.heldLabels = heldLabels
         self.bundles = bundles
         self.services = services
@@ -102,8 +105,10 @@ public enum AppSnapshotProvider {
         domain: Domain = Domain.effective(),
         catalogDirectory: URL,
         journal: Journal = Journal(),
+        frontmost: String? = nil,
         now: Date = Date()
     ) -> AppSnapshot {
+        let apps = AppsScanner.scan(frontmost: frontmost)
         let held = journal.held().reversed().map { record in
             AppSnapshot.Held(
                 seq: record.seq,
@@ -116,7 +121,7 @@ public enum AppSnapshotProvider {
 
         guard let catalog = try? CatalogLoader.load(directory: catalogDirectory) else {
             return AppSnapshot(
-                quiet: !held.isEmpty, held: held, heldLabels: heldLabels,
+                quiet: !held.isEmpty, held: held, heldLabels: heldLabels, apps: apps,
                 problem: "No catalogue at \(catalogDirectory.path) — install with `make install-app`.",
                 capturedAt: now)
         }
@@ -171,7 +176,7 @@ public enum AppSnapshotProvider {
         }
 
         return AppSnapshot(
-            quiet: !held.isEmpty, held: held, heldLabels: heldLabels, bundles: bundles,
+            quiet: !held.isEmpty, held: held, heldLabels: heldLabels, apps: apps, bundles: bundles,
             services: services, findings: findings, capturedAt: now)
     }
 }

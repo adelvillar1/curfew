@@ -11,6 +11,7 @@ final class AppModel: ObservableObject {
         case bundles = "Bundles"
         case findings = "Findings"
         case services = "Services"
+        case apps = "Apps"
         var id: String { rawValue }
 
         var symbol: String {
@@ -19,6 +20,7 @@ final class AppModel: ObservableObject {
             case .bundles: return "square.stack.3d.up"
             case .findings: return "stethoscope"
             case .services: return "list.bullet.rectangle"
+            case .apps: return "square.grid.2x2"
             }
         }
     }
@@ -53,7 +55,46 @@ final class AppModel: ObservableObject {
     }
 
     func refresh() {
-        snapshot = AppSnapshotProvider.load(catalogDirectory: catalogDirectory, journal: journal)
+        let frontmost = NSWorkspace.shared.frontmostApplication?.bundleURL?.path
+        snapshot = AppSnapshotProvider.load(
+            catalogDirectory: catalogDirectory, journal: journal, frontmost: frontmost)
+    }
+
+    /// Freeze an app: instant, reversible, and the app never knows. The default verb.
+    func freeze(_ app: AppRecord) {
+        do {
+            let outcome = try AppControl(journal: journal).freeze(app)
+            refresh()
+            note = Note(title: seen(outcome), body: "\(app.name) · \(Int(app.memoryMB)) MB. Freeze is reversible: Restore puts it back where it was.")
+        } catch {
+            note = Note(title: "Could not freeze \(app.name)", body: error.localizedDescription)
+        }
+    }
+
+    /// Quit asks first: an app can lose unsaved work.
+    func askToQuit(_ app: AppRecord) {
+        plan = Plan(
+            title: "Quit \(app.name)?",
+            detail: "This asks the app to quit and it may prompt to save. Freezing is reversible; quitting is not.",
+            steps: ["\(app.bundlePath)", "  \(app.pids.count) process\(app.pids.count == 1 ? "" : "s") · \(Int(app.memoryMB)) MB"],
+            apply: { [weak self] in
+                guard let self else { return [] }
+                do {
+                    let outcome = try AppControl(journal: self.journal).quit(app)
+                    self.refresh()
+                    return ["\(Self.mark(outcome.result))  \(app.name)  \(Self.describe(outcome.result))"]
+                } catch {
+                    return ["✗  \(app.name)  \(error.localizedDescription)"]
+                }
+            })
+    }
+
+    private func seen(_ outcome: StepOutcome) -> String {
+        switch outcome.result {
+        case .executed: return "Frozen"
+        case .failed(let why): return why
+        default: return "Done"
+        }
     }
 
     private var catalog: Catalog {
@@ -285,6 +326,7 @@ private struct Detail: View {
                 case .bundles: BundlesPane(model: model)
                 case .findings: FindingsPane(model: model)
                 case .services: ServicesPane(model: model)
+                case .apps: AppsPane(model: model)
                 }
             }
         }
@@ -652,6 +694,73 @@ private struct ServicesPane: View {
 
 // MARK: - Shared pieces
 
+// MARK: - Apps
+
+private struct AppsPane: View {
+    @ObservedObject var model: AppModel
+
+    var body: some View {
+        let apps = model.snapshot.apps
+        Group {
+            if apps.isEmpty {
+                EmptyState(title: "No apps to show",
+                           message: "Curfew lists the apps that are running, biggest first. The shell and the harness are never listed.")
+            } else {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        SectionHeader("\(apps.count) apps · \(Int(apps.reduce(0) { $0 + $1.memoryMB })) MB")
+                        ForEach(apps) { app in
+                            AppRow(model: model, app: app)
+                            Divider().padding(.leading, 24)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct AppRow: View {
+    @ObservedObject var model: AppModel
+    let app: AppRecord
+
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(app.name)
+                    if app.isFrontmost {
+                        Text("· in front").font(.caption).foregroundStyle(.secondary)
+                    }
+                    if app.isFrozen {
+                        Text("· frozen").font(.caption.weight(.medium)).foregroundStyle(.secondary)
+                    }
+                }
+                Text("\(app.pids.count) process\(app.pids.count == 1 ? "" : "s")")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Text("\(Int(app.memoryMB)) MB")
+                .font(.callout)
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+            // Freeze is the verb: instant and exactly reversible. Quit is deliberately quieter —
+            // it is the one that can lose work.
+            Button("Freeze") { model.freeze(app) }
+                .buttonStyle(.bordered)
+                .disabled(app.isFrozen)
+                .help("Suspend the app's processes. Restore resumes it exactly where it was.")
+            Button("Quit…") { model.askToQuit(app) }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.secondary)
+                .help("Ask the app to quit. It may prompt to save, and it cannot be undone.")
+        }
+        .padding(.vertical, 7)
+        .padding(.horizontal, 24)
+    }
+}
+
 private struct SectionHeader: View {
     let title: String
     init(_ title: String) { self.title = title }
@@ -765,6 +874,7 @@ struct PanePreview: View {
             case .bundles: BundlesPane(model: model)
             case .findings: FindingsPane(model: model)
             case .services: ServicesPane(model: model)
+            case .apps: AppsPane(model: model)
             }
         }
         .frame(width: 860, height: 560)

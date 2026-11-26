@@ -171,6 +171,20 @@ Start, which must undo exactly one service and leave the rest held (C23's `isHel
 closed. `restorePlan()` is the **union of `held()` and `unresolved()`** — normal quiet mode plus a run that
 died mid-action. Dropping either strands a state.
 
+## C26 — `AppsScanner` / `AppControl` — Sources/CurfewKit/Apps.swift
+
+```text
+OFFERS   AppsScanner::scan(frontmost:) -> [AppRecord] · parse(_:states:frontmost:) · parseStates(_:)
+         AppControl::freeze(_:) -> StepOutcome · quit(_:) -> StepOutcome · thaw(_ record:) -> StepOutcome
+EXPECTS  /bin/ps (external) · Journal (C24)
+CONSUMED BY  the window's Apps pane · Executor::resume (the freeze branch)
+```
+
+Apps aggregated by bundle, biggest first, with `neverTouch` excluding the shell, this harness, Curfew and
+the remote-access path (rule 7). **Freeze is a `SIGSTOP` journaled as `freeze`; `resume` sends `SIGCONT`**
+— reversible by the same machinery as everything else. Quit is `SIGTERM`, deliberate and never default.
+The scan uses two `ps` calls because a fourth output field truncates the command column (KI-051).
+
 ## C25 — `QuarantineEligibility` / `QuarantineStore` — Sources/CurfewKit/Quarantine.swift
 
 ```text

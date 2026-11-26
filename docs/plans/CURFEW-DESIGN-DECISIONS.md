@@ -243,3 +243,14 @@ Rules:
   app.
   Constrains: `Findings::danglingProgram` · `QuarantineEligibility::judge` · the finding list's severity mix.
 
+- **D36 — GUI apps are surfaced, never pre-selected, and freeze is the default verb.**
+  Rationale: measured on this machine, fifty-one apps hold **4,156 MB** — Firefox alone 1,899 MB — while
+  the entire vendor-noise bundle holds **20 MB**. The daemons were never where the memory was. But
+  "related to development" is not knowable: Firefox may be holding docs, the harness *is* the development
+  environment, a cloud client may be mid-sync. So Curfew lists apps with observable facts (memory,
+  process count, frontmost, frozen) sorted biggest first and selects nothing. **Freeze** (`SIGSTOP`) is
+  the verb — instant, exactly reversible, and the app never knows; **Quit** is the deliberate, quieter
+  choice because it can lose unsaved work. The shell, this harness and Curfew itself are excluded, and so
+  is the remote-access path (rule 7): freezing Tailscale would cut the only way into the machine.
+  Constrains: `AppsScanner::neverTouch` · `AppControl` (C26) · the window's Apps pane.
+

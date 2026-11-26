@@ -51,6 +51,41 @@ func liveModel() -> MenuBarModel {
     )
 }
 
+if let index = CommandLine.arguments.firstIndex(of: "--drive-freeze"),
+   CommandLine.arguments.count > index + 1 {
+    // Freeze one app, prove the state, then restore it — the window's path, without a click.
+    let name = CommandLine.arguments[index + 1]
+    let model = AppModel(catalogDirectory: catalogDirectory())
+    guard let app = model.snapshot.apps.first(where: { $0.name == name }) else {
+        print("no app named \(name)"); exit(1)
+    }
+    print("before : \(app.name) \(Int(app.memoryMB)) MB · frozen=\(app.isFrozen) · pids=\(app.pids.count)")
+    model.freeze(app)
+    if let row = model.snapshot.apps.first(where: { $0.name == name }) {
+        print("frozen : frozen=\(row.isFrozen)")
+    }
+    print("note   : \(model.note?.title ?? "-")")
+    model.note = nil
+    model.start(label: app.bundlePath)
+    if model.plan != nil { model.applyPlan() }
+    if let row = model.snapshot.apps.first(where: { $0.name == name }) {
+        print("thawed : frozen=\(row.isFrozen)")
+    }
+    print("result : \(model.note?.body.replacingOccurrences(of: "\n", with: " | ") ?? "-")")
+    exit(0)
+}
+
+if CommandLine.arguments.contains("--dump-apps") {
+    // What the Apps pane would list, printed — the same scan the window runs.
+    let apps = AppsScanner.scan()
+    print("\(apps.count) apps · \(Int(apps.reduce(0) { $0 + $1.memoryMB })) MB")
+    for app in apps.prefix(8) {
+        print(String(format: "  %-34s %6d MB  %2d proc%@", (app.name as NSString).utf8String!,
+                     Int(app.memoryMB), app.pids.count, app.isFrozen ? "  frozen" : ""))
+    }
+    exit(0)
+}
+
 if let index = CommandLine.arguments.firstIndex(of: "--drive-quarantine"),
    CommandLine.arguments.count > index + 1 {
     // The window's quarantine path, driven: move the plist, then put it back, so both directions are
