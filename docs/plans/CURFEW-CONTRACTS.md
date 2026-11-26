@@ -156,10 +156,24 @@ Every request sends `User-Agent: curfew` — Cloudflare answers 403/1010 to urll
 twice on this machine. The transport, clock and cache are injected, so the whole surface is testable
 without a network. `unknown` is a first-class outcome: a transport failure is never read as confidence.
 
+## C22 — `MenuBarModel` (menu actions) — Sources/CurfewKit/MenuBarModel.swift
+
+```text
+OFFERS   MenuBundle(name:members:acting:) · MenuItemKind.bundle(String)
+         build(... bundles:protectedBundles:) -> MenuBarModel
+         DashboardLauncher::previewCommand(cli:catalog:bundle:) -> String
+EXPECTS  Catalog (C9) · CatalogBundle (C9) · DashboardLauncher (C21)
+CONSUMED BY  Curfew.app's menu — CurfewKit.MenuBarModelTests (5 tests)
+```
+
+A `bundle` item **previews**: `curfew apply --bundle X` with no `--execute`, so selecting it can never
+change a service. Disabled when quiet is on or when none of its members act. `protect` bundles are never
+offered, but they are named in a row so the catalogue's size stays honest.
+
 ## C21 — `DashboardLauncher` — Sources/CurfewKit/DashboardLauncher.swift
 
 ```text
-OFFERS   candidates(environment:fileExists:) -> [String] · resolve(...) -> String?
+OFFERS   DashboardLauncher::candidates(environment:fileExists:) -> [String] · resolve(...) -> String?
          command(cli:catalog:) -> String · missingMessage(candidates:) -> String
 EXPECTS  a CLI produced by `make install` (~/.local/bin/curfew) · osascript/Terminal (the app target)
 CONSUMED BY  Curfew.app's "Open dashboard…" item
@@ -325,7 +339,8 @@ journal unreadable or let a half-written record look like a completed action. If
 ## C9 — `Catalog` — Sources/CurfewKit/{Catalog,MiniYAML}.swift
 
 ```text
-OFFERS   Catalog::entry(_:) -> CatalogEntry? · Catalog::bundle(_:) -> CatalogBundle?
+OFFERS   Catalog · CatalogEntry · CatalogBundle
+         Catalog::entry(_:) -> CatalogEntry? · Catalog::bundle(_:) -> CatalogBundle?
          CatalogLoader::load(directory:) throws -> Catalog
          CatalogValidator::validate(_:) -> [CatalogViolation]
          CatalogPlanner::plan(bundle:in:) -> (steps: [CatalogStep], refusals: [CatalogRefusal], protectedPorts: [UInt16])

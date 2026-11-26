@@ -10,6 +10,23 @@ public enum MenuItemKind: Equatable, Sendable {
     case restore
     case dashboard
     case quit
+    /// A catalog bundle. Selecting it **previews** the run — the menu never changes a service, because
+    /// rule 3 says a live change is made where its output can be read.
+    case bundle(String)
+}
+
+/// What the menu needs to know about a bundle. `acting` is how many of its members would do something;
+/// a bundle whose members are all refused is not offered.
+public struct MenuBundle: Equatable, Sendable {
+    public var name: String
+    public var members: Int
+    public var acting: Int
+
+    public init(name: String, members: Int, acting: Int) {
+        self.name = name
+        self.members = members
+        self.acting = acting
+    }
 }
 
 public struct MenuItem: Equatable, Sendable {
@@ -54,7 +71,9 @@ public struct MenuBarModel: Equatable, Sendable {
         runningCount: Int,
         findingCount: Int,
         bundleCount: Int,
-        version: String
+        version: String,
+        bundles: [MenuBundle] = [],
+        protectedBundles: [String] = []
     ) -> MenuBarModel {
         let state = quiet
             ? "Quiet mode is ON — \(unresolvedCount) unresolved"
@@ -73,9 +92,11 @@ public struct MenuBarModel: Equatable, Sendable {
                     kind: .restore
                 ),
             ]),
+            MenuSection(title: "Preview a stop", items: stopItems(
+                bundles: bundles, quiet: quiet, bundleCount: bundleCount,
+                protectedBundles: protectedBundles)),
             MenuSection(title: nil, items: [
                 MenuItem(title: "Open dashboard…", enabled: true, kind: .dashboard),
-                MenuItem(title: "\(bundleCount) bundles in the catalog", enabled: false, kind: .info),
             ]),
             MenuSection(title: nil, items: [
                 MenuItem(title: "Curfew \(version)", enabled: false, kind: .info),
@@ -92,6 +113,32 @@ public struct MenuBarModel: Equatable, Sendable {
             sections: sections,
             statusTitle: statusTitle(quiet: quiet, unresolved: unresolvedCount)
         )
+    }
+
+    /// The stop bundles, as previewable rows, plus one line naming the protected sets. A `protect`
+    /// bundle is never actioned by design, so it is not offered — but saying which they are keeps the
+    /// count honest instead of appearing to lose them.
+    static func stopItems(
+        bundles: [MenuBundle], quiet: Bool, bundleCount: Int, protectedBundles: [String]
+    ) -> [MenuItem] {
+        var items: [MenuItem] = bundles.map { bundle in
+            // Quiet mode is a held state: previewing a stop while things are stopped would report on
+            // a machine that is already quiet.
+            MenuItem(
+                title: "\(bundle.name) · \(bundle.acting) of \(bundle.members) act",
+                enabled: !quiet && bundle.acting > 0,
+                kind: .bundle(bundle.name))
+        }
+        if !protectedBundles.isEmpty {
+            items.append(MenuItem(
+                title: "protected: \(protectedBundles.sorted().joined(separator: ", "))",
+                enabled: false, kind: .info))
+        }
+        if items.isEmpty {
+            items.append(MenuItem(title: "\(bundleCount) bundles in the catalog",
+                                  enabled: false, kind: .info))
+        }
+        return items
     }
 
     /// Flat rendering, for `--dump-menu` and for tests.

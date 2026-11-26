@@ -45,6 +45,14 @@ public enum DashboardLauncher {
         return "\(cli) tui --dir \(catalog)"
     }
 
+    /// The dry run for one bundle: `apply` without `--execute`. The menu shows its output; it never
+    /// passes `--execute`, so selecting a bundle cannot change this machine.
+    public static func previewCommand(cli: String, catalog: String?, bundle: String) -> String {
+        var parts = [cli, "apply", "--bundle", bundle]
+        if let catalog, !catalog.isEmpty { parts += ["--dir", catalog] }
+        return parts.joined(separator: " ")
+    }
+
     public static func missingMessage(
         candidates: [String] = DashboardLauncher.candidates()
     ) -> String {

@@ -36,8 +36,41 @@ func liveModel() -> MenuBarModel {
         runningCount: running,
         findingCount: findings,
         bundleCount: catalog.bundles.count,
-        version: curfewVersion
+        version: curfewVersion,
+        bundles: catalog.bundles
+            .filter { $0.kind == .stop }
+            .map { bundle in
+                let entries = bundle.members.compactMap { id in catalog.entries.first { $0.id == id } }
+                let acting = entries.filter { $0.stop?.run.isEmpty == false }.count
+                return MenuBundle(name: bundle.name, members: bundle.members.count, acting: acting)
+            }
+            .sorted { $0.name < $1.name },
+        protectedBundles: catalog.bundles.filter { $0.kind == .protect }.map(\.name)
     )
+}
+
+if let index = CommandLine.arguments.firstIndex(of: "--preview-bundle"),
+   CommandLine.arguments.count > index + 1 {
+    // The same command and capture the menu item runs, printed instead of shown in a modal.
+    let bundle = CommandLine.arguments[index + 1]
+    guard let cli = DashboardLauncher.resolve() else {
+        FileHandle.standardError.write(Data((DashboardLauncher.missingMessage() + "\n").utf8))
+        exit(1)
+    }
+    let line = DashboardLauncher.previewCommand(cli: cli, catalog: DashboardRunner.bundledCatalog, bundle: bundle)
+    print("$ \(line)")
+    let task = Process()
+    task.executableURL = URL(fileURLWithPath: "/bin/sh")
+    task.arguments = ["-c", line]
+    let out = Pipe(), err = Pipe()
+    task.standardOutput = out
+    task.standardError = err
+    try? task.run()
+    let data = out.fileHandleForReading.readDataToEndOfFile()
+    let errData = err.fileHandleForReading.readDataToEndOfFile()
+    task.waitUntilExit()
+    print(String(decoding: data + errData, as: UTF8.self))
+    exit(task.terminationStatus)
 }
 
 if CommandLine.arguments.contains("--open-dashboard") {
@@ -82,6 +115,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 let entry = NSMenuItem(title: item.title, action: action(for: item.kind), keyEquivalent: "")
                 entry.target = self
                 entry.isEnabled = item.enabled
+                if case .bundle(let name) = item.kind { entry.representedObject = name }
                 menu.addItem(entry)
             }
         }
@@ -94,6 +128,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .restore: return #selector(restore)
         case .dashboard: return #selector(openDashboard)
         case .quit: return #selector(quit)
+        case .bundle: return #selector(previewBundle(_:))
         }
     }
 
@@ -120,6 +155,53 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             alert.addButton(withTitle: "OK")
             alert.runModal()
         }
+    }
+
+    /// Preview one bundle: a dry run, shown as text. It deliberately cannot mutate — `apply` without
+    /// `--execute`, so rule 3 holds in the place where no output can be read.
+    @objc func previewBundle(_ sender: NSMenuItem) {
+        guard let bundle = sender.representedObject as? String else { return }
+        guard let cli = DashboardLauncher.resolve() else {
+            alert(title: "Cannot preview", body: DashboardLauncher.missingMessage())
+            return
+        }
+        let catalog = DashboardRunner.bundledCatalog
+        let line = DashboardLauncher.previewCommand(cli: cli, catalog: catalog, bundle: bundle)
+
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/bin/sh")
+        task.arguments = ["-c", line]
+        let out = Pipe(), err = Pipe()
+        task.standardOutput = out
+        task.standardError = err
+        do { try task.run() } catch {
+            alert(title: "Cannot preview", body: "Could not run \(cli): \(error.localizedDescription)")
+            return
+        }
+        let data = out.fileHandleForReading.readDataToEndOfFile()
+        let errData = err.fileHandleForReading.readDataToEndOfFile()
+        task.waitUntilExit()
+
+        let text = String(decoding: data, as: UTF8.self)
+            + String(decoding: errData, as: UTF8.self)
+        alert(title: "Preview — \(bundle)", body: text.isEmpty ? "no output" : text, monospaced: true)
+    }
+
+    func alert(title: String, body: String, monospaced: Bool = false) {
+        let dialog = NSAlert()
+        dialog.messageText = title
+        dialog.alertStyle = .informational
+        // Output is long: put it in a scroll view rather than letting NSAlert truncate it.
+        let scroll = NSScrollView(frame: NSRect(x: 0, y: 0, width: 520, height: 260))
+        let text = NSTextView(frame: scroll.bounds)
+        text.isEditable = false
+        text.string = body
+        if monospaced { text.font = .monospacedSystemFont(ofSize: 11, weight: .regular) }
+        scroll.documentView = text
+        scroll.hasVerticalScroller = true
+        dialog.accessoryView = scroll
+        dialog.addButton(withTitle: "Done")
+        dialog.runModal()
     }
 
     @objc func quit() { NSApp.terminate(nil) }

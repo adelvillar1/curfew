@@ -72,4 +72,62 @@ struct MenuBarModelTests {
         #expect(text.contains("225 services running · 11 findings"))
         #expect(text.contains("Quit"))
     }
+
+    // MARK: Bundles (KI-043)
+
+    @Test("a stop bundle is previewable, and says how many of its members act")
+    func stopBundleItem() {
+        let model = MenuBarModel.build(
+            quiet: false, unresolvedCount: 0, runningCount: 1, findingCount: 0,
+            bundleCount: 5, version: "0.1.0",
+            bundles: [MenuBundle(name: "vendor-noise", members: 13, acting: 13)])
+        let item = model.sections.flatMap(\.items).first { $0.kind == .bundle("vendor-noise") }
+        #expect(item?.title.contains("13 of 13") == true)
+        #expect(item?.enabled == true)
+    }
+
+    @Test("a bundle whose members all refuse is not offered as an action")
+    func inertBundleDisabled() {
+        let model = MenuBarModel.build(
+            quiet: false, unresolvedCount: 0, runningCount: 1, findingCount: 0,
+            bundleCount: 5, version: "0.1.0",
+            bundles: [MenuBundle(name: "data-services", members: 0, acting: 0)])
+        let item = model.sections.flatMap(\.items).first { $0.kind == .bundle("data-services") }
+        #expect(item?.enabled == false)
+    }
+
+    @Test("quiet mode disables previews — the machine is already quiet")
+    func quietDisablesPreviews() {
+        let model = MenuBarModel.build(
+            quiet: true, unresolvedCount: 2, runningCount: 1, findingCount: 0,
+            bundleCount: 5, version: "0.1.0",
+            bundles: [MenuBundle(name: "vendor-noise", members: 13, acting: 13)])
+        #expect(model.sections.flatMap(\.items).allSatisfy { item in
+            if case .bundle = item.kind { return !item.enabled }
+            return true
+        })
+    }
+
+    @Test("protected bundles are named, not silently dropped")
+    func protectedNamed() {
+        let model = MenuBarModel.build(
+            quiet: false, unresolvedCount: 0, runningCount: 1, findingCount: 0,
+            bundleCount: 5, version: "0.1.0",
+            bundles: [MenuBundle(name: "vendor-noise", members: 13, acting: 13)],
+            protectedBundles: ["never-cold", "dev-tools"])
+        let info = model.sections.flatMap(\.items).first {
+            if case .info = $0.kind { return $0.title.contains("protected") }
+            return false
+        }
+        #expect(info?.title.contains("dev-tools") == true)
+        #expect(info?.title.contains("never-cold") == true)
+    }
+
+    @Test("with no bundles at all the old count line is kept")
+    func noBundles() {
+        let model = MenuBarModel.build(
+            quiet: false, unresolvedCount: 0, runningCount: 1, findingCount: 0,
+            bundleCount: 5, version: "0.1.0")
+        #expect(model.sections.flatMap(\.items).contains { $0.title == "5 bundles in the catalog" })
+    }
 }
