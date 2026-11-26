@@ -162,6 +162,9 @@ without a network. `unknown` is a first-class outcome: a transport failure is ne
 OFFERS   held() -> [JournalRecord] · restorePlan() -> [JournalRecord] (held ∪ unresolved, newest first)
 EXPECTS  nothing — it reads the journal file
 CONSUMED BY  curfew status · curfew resume · AppSnapshot (C23) · the menu bar's quiet state
+
+`Executor.resume(context:catalog:labels:)` narrows a restore to named labels — the window's per-finding
+Start, which must undo exactly one service and leave the rest held (C23's `isHeld`).
 ```
 
 `held()` is what Curfew changed and can undo: intents whose action succeeded and which no `resume` has

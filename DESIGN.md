@@ -56,6 +56,11 @@ Every pane has four: loaded, empty (a sentence saying why and what to do), disab
 explaining the lock rather than a grey control with no reason), and error (the problem named, with the
 command that fixes it).
 
+**A control states what it will do now.** The finding row's action is Stop before Curfew holds the
+service and Start after; the row also names the state in words ("held by Curfew", or the launchd state).
+A button whose label stops being true is a bug, not a polish item — the owner found this one by pressing
+it (KI-047).
+
 ## Voice in the interface
 
 Plain and specific. "Quiet mode is off." "2 changes held." "Restoring puts each of these back the way it

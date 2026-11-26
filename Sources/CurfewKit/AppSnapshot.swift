@@ -46,11 +46,17 @@ public struct AppSnapshot: Sendable, Equatable {
         public var evidence: String
         /// The label has a verified, non-protected stop recipe — so `Stop` can be offered.
         public var canStop: Bool
+        /// Curfew is holding this label right now, so the row offers `Start` instead of `Stop`.
+        public var isHeld: Bool
+        /// The live launchd state, so the row shows what the stop actually did.
+        public var serviceState: String
         public var id: String { "\(label)/\(kind)" }
     }
 
     public var quiet: Bool
     public var held: [Held]
+    /// Every label Curfew is holding — the set the rows read to decide Stop or Start.
+    public var heldLabels: Set<String>
     public var bundles: [Bundle]
     public var services: [Service]
     public var findings: [Finding]
@@ -59,11 +65,13 @@ public struct AppSnapshot: Sendable, Equatable {
     public var capturedAt: Date
 
     public init(
-        quiet: Bool, held: [Held] = [], bundles: [Bundle] = [], services: [Service] = [],
-        findings: [Finding] = [], problem: String? = nil, capturedAt: Date = Date()
+        quiet: Bool, held: [Held] = [], heldLabels: Set<String> = [], bundles: [Bundle] = [],
+        services: [Service] = [], findings: [Finding] = [], problem: String? = nil,
+        capturedAt: Date = Date()
     ) {
         self.quiet = quiet
         self.held = held
+        self.heldLabels = heldLabels
         self.bundles = bundles
         self.services = services
         self.findings = findings
@@ -100,9 +108,11 @@ public enum AppSnapshotProvider {
                 when: record.ts)
         }
 
+        let heldLabels = Set(held.map(\.label))
+
         guard let catalog = try? CatalogLoader.load(directory: catalogDirectory) else {
             return AppSnapshot(
-                quiet: !held.isEmpty, held: held,
+                quiet: !held.isEmpty, held: held, heldLabels: heldLabels,
                 problem: "No catalogue at \(catalogDirectory.path) — install with `make install-app`.",
                 capturedAt: now)
         }
@@ -133,7 +143,9 @@ public enum AppSnapshotProvider {
                 return AppSnapshot.Finding(
                     label: record.id, kind: finding.id.rawValue,
                     severity: finding.severity.rawValue, summary: finding.summary,
-                    evidence: finding.evidence, canStop: canStop)
+                    evidence: finding.evidence, canStop: canStop,
+                    isHeld: heldLabels.contains(record.id),
+                    serviceState: record.state.rawValue)
             }
         }.sorted { left, right in
             if left.severity != right.severity { return left.severity < right.severity }
@@ -141,7 +153,7 @@ public enum AppSnapshotProvider {
         }
 
         return AppSnapshot(
-            quiet: !held.isEmpty, held: held, bundles: bundles, services: services,
-            findings: findings, capturedAt: now)
+            quiet: !held.isEmpty, held: held, heldLabels: heldLabels, bundles: bundles,
+            services: services, findings: findings, capturedAt: now)
     }
 }

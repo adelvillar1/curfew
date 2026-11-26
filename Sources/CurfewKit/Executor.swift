@@ -396,10 +396,15 @@ public struct Executor: Sendable {
 
     // MARK: Resume
 
-    public func resume(context: ExecutionContext, catalog: Catalog) -> [StepOutcome] {
+    /// Restore what Curfew holds. `labels` narrows it to those services — the window's per-finding
+    /// Start, which must undo exactly the one the operator asked about and nothing else.
+    public func resume(
+        context: ExecutionContext, catalog: Catalog, labels: Set<String>? = nil
+    ) -> [StepOutcome] {
         var outcomes: [StepOutcome] = []
         for intent in journal.restorePlan() {
             guard let entryId = intent.entryId else { continue }
+            if let labels, !labels.contains(entryId) { continue }
             // Rule 6: an entry we found already stopped is not ours to start.
             if let preExisting = intent.preExisting, !preExisting.isEmpty {
                 outcomes.append(StepOutcome(entryId: entryId, action: "resume", result: .preExisting(preExisting)))

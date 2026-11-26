@@ -163,6 +163,26 @@ final class AppModel: ObservableObject {
             })
     }
 
+    /// Put back one service — the per-finding Start. Undoes exactly this label and nothing else.
+    func start(label: String) {
+        let pending = journal.restorePlan().filter { $0.entryId == label }
+        guard !pending.isEmpty else {
+            note = Note(title: "Nothing to start", body: "Curfew is not holding \(label).")
+            return
+        }
+        plan = Plan(
+            title: "Start \(label)?",
+            detail: "This undoes Curfew's stop. Nothing else is touched.",
+            steps: pending.map { "\($0.entryId ?? "?")  \($0.action ?? "?")" },
+            apply: { [weak self] in
+                guard let self else { return [] }
+                let outcomes = Executor(journal: self.journal)
+                    .resume(context: self.context, catalog: self.catalog, labels: [label])
+                self.refresh()
+                return outcomes.map { "\(Self.mark($0.result))  \($0.entryId)  \(Self.describe($0.result))" }
+            })
+    }
+
     func applyPlan() {
         guard let plan else { return }
         busy = true
@@ -501,6 +521,15 @@ private struct FindingRow: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .truncationMode(.middle)
+                    if finding.isHeld {
+                        Text("· held by Curfew")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.secondary)
+                    } else if finding.serviceState != "running" {
+                        Text("· \(finding.serviceState)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
             Spacer()
@@ -510,10 +539,13 @@ private struct FindingRow: View {
                     body: finding.evidence)
             }
             .buttonStyle(.link)
-            if finding.canStop {
+            // State-aware: the same row offers Stop before and Start after, and says which it is.
+            if finding.isHeld {
+                Button("Start") { model.start(label: finding.label) }
+                    .help("Put \(finding.label) back the way it was.")
+            } else if finding.canStop {
                 Button("Stop") { model.stop(label: finding.label) }
-                    .disabled(model.snapshot.quiet)
-                    .help(model.snapshot.quiet ? "Restore first." : "")
+                    .help("Stop \(finding.label) and record it, so it can be put back.")
             }
         }
         .padding(.vertical, 8)

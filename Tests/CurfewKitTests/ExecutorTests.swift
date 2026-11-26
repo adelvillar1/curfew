@@ -369,4 +369,26 @@ struct ExecutorTests {
             Issue.record("expected a refusal")
         }
     }
+
+    @Test("resume with a label restores that service and leaves the others held")
+    func resumeOneLabel() throws {
+        let url = tempJournal()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let journal = Journal(url: url)
+        for (id, argv) in [("com.example.a", "/bin/a"), ("com.example.b", "/bin/b")] {
+            let intent = try journal.appendIntent(entryId: id, action: "stop", argv: [[argv]])
+            try journal.appendOutcome(intent: intent, result: "ok", verified: true)
+        }
+        let recorder = Recorder()
+        let catalog = self.catalog([
+            entry("com.example.a", start: Recipe(run: [["/bin/a-start"]], needsRoot: false, expect: nil, quiesce: nil, hold: .none, meansReady: nil, verify: nil)),
+            entry("com.example.b", start: Recipe(run: [["/bin/b-start"]], needsRoot: false, expect: nil, quiesce: nil, hold: .none, meansReady: nil, verify: nil)),
+        ])
+        let outcomes = Executor(runner: recorder.run, journal: journal, probes: probes())
+            .resume(context: context(), catalog: catalog, labels: ["com.example.a"])
+
+        #expect(recorder.calls == [["/bin/a-start"]], "only the requested service is started")
+        #expect(outcomes.count == 1)
+        #expect(journal.held().map(\.entryId) == ["com.example.b"], "the other stays held")
+    }
 }

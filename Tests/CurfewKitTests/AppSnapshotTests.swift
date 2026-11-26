@@ -65,7 +65,7 @@ struct AppSnapshotTests {
     func canStopIsEarned() {
         let uncatalogued = AppSnapshot.Finding(
             label: "com.example.unknown", kind: "danglingProgram", severity: "defect",
-            summary: "x", evidence: "y", canStop: false)
+            summary: "x", evidence: "y", canStop: false, isHeld: false, serviceState: "running")
         #expect(!uncatalogued.canStop)
     }
 
@@ -84,5 +84,27 @@ struct AppSnapshotTests {
         #expect(!snapshot.quiet, "a fresh journal holds nothing")
         // and no finding may claim a stop it cannot make
         #expect(snapshot.findings.allSatisfy { !$0.canStop || !NeverList.isProtected(label: $0.label) })
+    }
+
+    @Test("a held label is named, so a row can offer Start instead of Stop")
+    func heldLabels() throws {
+        let url = tempJournal()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let journal = Journal(url: url)
+        let intent = try journal.appendIntent(entryId: "us.zoom.updater", action: "disable", argv: [["/bin/x"]])
+        try journal.appendOutcome(intent: intent, result: "ok", verified: true)
+
+        let catalog = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("catalog")
+        let snapshot = AppSnapshotProvider.load(catalogDirectory: catalog, journal: journal)
+
+        #expect(snapshot.heldLabels == ["us.zoom.updater"])
+        // and any finding that happens to sit on that label agrees with it
+        for finding in snapshot.findings where finding.label == "us.zoom.updater" {
+            #expect(finding.isHeld)
+        }
+        // nothing else claims to be held
+        #expect(snapshot.findings.allSatisfy { $0.isHeld == ($0.label == "us.zoom.updater") })
     }
 }
