@@ -4,7 +4,7 @@ import Foundation
 
 /// The CLI's own version. The JSON output carries it so a bug report is diagnosable
 /// without asking which build produced it (D5, contracts C7).
-public let curfewVersion = "0.1.0"
+public let curfewVersion = "0.2.0"
 
 // MARK: - Domain
 

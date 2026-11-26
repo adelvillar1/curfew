@@ -11,9 +11,9 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.1.0</string>
+	<string>0.2.0</string>
 	<key>CFBundleVersion</key>
-	<string>d44d516 built 12:18</string>
+	<string>04e5672 built 13:08</string>
 	<key>CurfewRepoPath</key>
 	<string>/Users/alejandrodelvillar/Projects/dev-mode</string>
 	<key>LSMinimumSystemVersion</key>

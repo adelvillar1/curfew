@@ -7,7 +7,7 @@ PREFIX ?= $(HOME)/.local/bin
 # SwiftPM cannot build from a sandboxed agent session: see KI-019.
 SWIFT := swift build --disable-sandbox --cache-path .build/spm-cache --config-path .build/spm-config
 
-.PHONY: build release test check install uninstall app run-app install-app clean hygiene hygiene-live wrapup wrapup-live mirror hooks
+.PHONY: build release test check install uninstall app run-app install-app clean hygiene hygiene-live wrapup wrapup-live mirror hooks dmg
 
 build:
 	$(SWIFT)
@@ -56,6 +56,19 @@ app:
 	codesign --force --sign - $(APP)
 	codesign -v $(APP)
 	@echo "built and signed $(APP) — run it with: open $(APP)"
+
+## The installer: a compressed disk image with the app and a /Applications shortcut, so the
+## download is drag-to-install. Ad-hoc signed (no Developer ID on this machine) — see the release notes.
+dmg: app
+	@VERSION=$$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" $(APP)/Contents/Info.plist); \
+	STAGE=$$(mktemp -d); \
+	cp -R $(APP) "$$STAGE/Curfew.app"; \
+	ln -s /Applications "$$STAGE/Applications"; \
+	rm -f build/Curfew-$$VERSION.dmg; \
+	hdiutil create -quiet -volname "Curfew $$VERSION" -srcfolder "$$STAGE" -ov -format UDZO \
+	  build/Curfew-$$VERSION.dmg; \
+	rm -rf "$$STAGE"; \
+	echo "built build/Curfew-$$VERSION.dmg ($$(du -h build/Curfew-$$VERSION.dmg | cut -f1))"
 
 run-app: app
 	open $(APP)

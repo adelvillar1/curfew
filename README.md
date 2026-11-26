@@ -25,6 +25,19 @@ needs node, git, a compiler, and four Apple daemons.
 unattended-development state — stopping exactly the things a build does not need — and then it puts every
 one of them back, the way it found it, when you say so.
 
+## Install
+
+**[Download Curfew 0.2.0](https://github.com/adelvillar1/curfew/releases/latest)** — Apple silicon, macOS 13+.
+
+The image is **ad-hoc signed, not notarised** (no Developer ID), so macOS will warn on first open. Either
+right-click → **Open**, or clear the quarantine bit once:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Curfew.app
+```
+
+Or build it yourself — it has no dependencies: `make app && make dmg`.
+
 ## What it does
 
 - **Reads the machine.** 281 jobs in the user domain, their state, their plists, their crash counters, and
